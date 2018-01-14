@@ -20,9 +20,13 @@ print(env.observation_space.high)
 print(env.observation_space.low)
 #> array([-2.4       ,        -inf, -0.20943951,        -inf])
 
-from gym import spaces
-space = spaces.Discrete(8) # Set with 8 elements {0, 1, 2, ..., 7}
-x = space.sample()
-print(x)
-assert space.contains(x)
-assert space.n == 8
+# from gym import spaces
+# space = spaces.Discrete(8) # Set with 8 elements {0, 1, 2, ..., 7}
+# x = space.sample()
+# print(x)
+# assert space.contains(x)
+# assert space.n == 8
+# print(space.n)
+
+from gym import envs
+print(envs.registry.all())
