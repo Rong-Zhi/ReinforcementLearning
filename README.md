@@ -6,3 +6,5 @@ Originally given by dennybritz: https://github.com/dennybritz/reinforcement-lear
 
 
 E1: Get to know OPen AI Gym 
+
+E2: MDP and Dynammic Programming --- Policy Iteration and Value Iteration
