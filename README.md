@@ -1,6 +1,6 @@
 # ReinforcementLearning
 
-This is my Reinforcement Learning Notes&Summary.
+This is my Reinforcement Learning Notes, Exercises, as well as Summary.
 
 Originally given by dennybritz: https://github.com/dennybritz/reinforcement-learning
 
