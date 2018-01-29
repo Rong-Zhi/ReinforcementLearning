@@ -15,3 +15,5 @@ E3: Model Free -- Monte Carlo
 E4: Model Free -- TD-Learning
     On-policy method -- SARSA , implemented in windy gridworld playground
     Off-policy method -- Q-Learning, implemented in Cliff playground
+    
+E5: Value Approximation -- using sklearn SGDregressor to train and update parameters for Q-Learning
