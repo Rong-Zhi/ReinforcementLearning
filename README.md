@@ -11,3 +11,7 @@ E2: MDP and Model based method -- Dynammic Programming (Policy Iteration and Val
 
 E3: Model Free -- Monte Carlo 
     Implemented in BlackJack game - First-visit on-policy Method & Every-visit off-policy Method
+
+E4: Model Free -- TD-Learning
+    On-policy method -- SARSA , implemented in windy gridworld playground
+    Off-policy method -- Q-Learning, implemented in Cliff playground
