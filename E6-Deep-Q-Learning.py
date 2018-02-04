@@ -100,6 +100,7 @@ class Estimator():
         # Integer id of which action was selected
         self.actions_pl = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
 
+        # normalizaiotn
         X = tf.to_float(self.X_pl) / 255.0
         batch_size = tf.shape(self.X_pl)[0]
 
@@ -304,10 +305,25 @@ def deep_q_learning(sess,
     print("Populating replay memory...")
     state = env.reset()
     state = state_processor.process(sess, state)
+
+    # stack 4 frames(same frame) together
     state = np.stack([state] * 4, axis=2)
+    # output shape: [84, 84, 4, 1]
+
+    # TODO: Populate replay memory!
     for i in range(replay_memory_init_size):
-        # TODO: Populate replay memory!
-        pass
+        action_probs = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps - 1)])
+        action = np.random.choice(len(action_probs), p=action_probs)
+        next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
+        next_state = state_processor.process(sess, next_state)
+        next_state = np.append(state[:, :, 1:], np.expand_dims(next_state, 2), axis=2)
+        replay_memory.append(Transition(state, action, reward, next_state, done))
+        if done:
+            state = env.reset()
+            state = state_processor.process(sess, state)
+            state = np.stack([state] * 4, axis=2)
+        else:
+            state = next_state
 
     # Record videos
     env = Monitor(env,
@@ -339,7 +355,8 @@ def deep_q_learning(sess,
 
             # TODO: Maybe update the target estimator
             if total_t % update_target_estimator_every == 0:
-                pass
+                copy_model_parameters(sess, q_estimator, target_estimator)
+                print('Copy parameters to target estimator\n')
 
             # Print out which step we're on, useful for debugging.
             print("\rStep {} ({}) @ Episode {}/{}, loss: {}".format(
@@ -348,20 +365,36 @@ def deep_q_learning(sess,
 
             # Take a step in the environment
             # TODO: Implement!
+            action_prob = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps - 1)])
+            action = np.random.choice(len(action_probs), p=action_probs)
+            next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
+            next_state = state_processor.process(sess, next_state)
+            next_state = np.append(state[:, :, 1:], np.expand_dims(next_state, 2), axis=2)
 
             # If our replay memory is full, pop the first element
             if len(replay_memory) == replay_memory_size:
                 replay_memory.pop(0)
 
             # TODO: Save transition to replay memory
+            replay_memory.append(Transition(state, action, reward, next_state, done))
 
             # Update statistics
             stats.episode_rewards[i_episode] += reward
             stats.episode_lengths[i_episode] = t
 
             # TODO: Sample a minibatch from the replay memory
+            samples = random.sample(replay_memory, batch_size)
+            states_batch, actions_batch, reward_batch, next_states_batch, done_batch = map(np.array, zip(*samples))
+
             # TODO: Calculate q values and targets
             # TODO Perform gradient descent update
+
+            q_value_next = target_estimator.predict(sess, next_states_batch)
+            target_batch = reward_batch + np.invert(done_batch).astype(np.float32) * discount_factor * np.max(
+                q_value_next, axis=1)
+
+            states_batch = np.array(states_batch)
+            loss = q_estimator.update(sess, states_batch, actions_batch, target_batch)
 
             if done:
                 break
@@ -384,7 +417,6 @@ def deep_q_learning(sess,
 
     env.monitor.close()
     return stats
-
 
 tf.reset_default_graph()
 
@@ -420,3 +452,23 @@ with tf.Session() as sess:
                                     discount_factor=0.99,
                                     batch_size=32):
         print("\nEpisode Reward: {}".format(stats.episode_rewards[-1]))
+
+    state = env.reset()
+    state = state_processor.process(sess, state)
+    state = np.stack([state] * 4, axis=2)
+    policy = make_epsilon_greedy_policy(q_estimator, len(VALID_ACTIONS))
+
+    for t in itertools.count():
+        env.render()
+        action_probs = policy(sess, state, epsilon=1.0)
+        action = np.random.choice(len(action_probs), p=action_probs)
+        next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
+        if done:
+            break
+        next_state = state_processor.process(sess, next_state)
+        next_state = np.append(state[:, :, 1:], np.expand_dims(next_state, 2), axis=2)
+        state = next_state
+
+
+
+
