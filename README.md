@@ -21,4 +21,4 @@ E5: Value Approximation -- use sklearn SGDregressor to train and update paramete
 
 E6: Deep Q Learning -- the CNN net we use here is published by DeepMind, train with Atari game (Breakout environment) images, target value = ground truth, Q value = predicted value, use RMSPropOptimizer to optimize parameters, code is given in Tensorflow, including state processor(resize Atari game images and transfer them into grayscale), checkpoint & monitor & model
 
-E7: Policy gradients --
+E7: Policy gradients -- Monte Carlo Policy Gradient with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline)
