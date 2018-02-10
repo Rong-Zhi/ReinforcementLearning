@@ -39,7 +39,7 @@ scaler = sklearn.preprocessing.StandardScaler()
 scaler.fit(observation_samples)
 
 # Used to convert a state to a featurized representation.
-# We use RBF kernels with different variances to cover different parts of the space
+# We use RBF kernels with different variances to cover different parts of the spacef
 featurizer = sklearn.pipeline.FeatureUnion([
     ('rbf1', RBFSampler(gamma=5.0, n_components=100)),
     ('rbf2', RBFSampler(gamma=2.0, n_components=100)),
@@ -194,6 +194,7 @@ def q_learning(env, estimator, num_episodes, discount_factor=1.0, epsilon=0.1, e
                 break
 
             state = next_state
+
 
 
     return stats, estimator
