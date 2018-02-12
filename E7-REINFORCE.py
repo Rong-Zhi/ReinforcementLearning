@@ -4,7 +4,11 @@
 from gym.envs.classic_control import Continuous_MountainCarEnv
 import numpy as np
 import itertools
+import sklearn
 
+from sklearn import preprocessing
+from sklearn import pipeline
+from sklearn.kernel_approximation import RBFSampler
 from lib import plotting
 import matplotlib.pyplot as plt
 
@@ -16,7 +20,12 @@ obv = env.observation_space.sample()
 # print('Action space: {0}'.format(act))
 # print('Observation Space: ', obv)
 
-# observation = np.array([env.observation_space.sample() for i in range(1000)])
+observation_samples = np.array([env.observation_space.sample() for i in range(10000)])
+scalar = sklearn.preprocessing.StandardScaler()
+scalar.fit(observation_samples)
+
+
+
 
 class GP_RBF_kernel(object):
     """
@@ -39,8 +48,7 @@ class GP_RBF_kernel(object):
 
     # state normalization
     def normalizer(self,state):
-        state = (state - self.obs_low) / (self.obs_high - self.obs_low)
-        return state * 2 - 1
+        return scalar.transform(state)
 
     # transform state to features
     def transform(self, state):
@@ -104,9 +112,10 @@ class Estimator(object):
 
         x_s = self.gp.transform(state)
         mu_s = np.dot(self.theta_mu.T, x_s)
-        sigma_s = np.exp(np.dot(self.theta_sigma.T, x_s))/10
-        action = np.random.normal(mu_s[0],sigma_s[0])
-        action = np.atleast_1d(action)
+        sigma_s = np.exp(np.dot(self.theta_sigma.T, x_s))/30
+        action = np.random.normal(mu_s,sigma_s)
+        # action = np.atleast_1d(action)
+        action = np.clip(action,env.action_space.low[0],env.action_space.high[0])
         # action = np.random.multivariate_normal(mean=mu_s,cov=)
         return action, x_s, mu_s, sigma_s
 
@@ -193,8 +202,8 @@ def PolicyGradient(env, estimator, num_episodes, discount_factor=0.9):
             estimator.update(A=A[t], mu_s=mu_s[t], sigma_s= sigma_s[t], x_s=x_s[t], G=G)
     return stats, estimator
 
-estimator = Estimator(env,alpha=0.1)
-stats, estimator = PolicyGradient(env=env,estimator=estimator,num_episodes=500,discount_factor=0.9)
+estimator = Estimator(env,alpha=0.01)
+stats, estimator = PolicyGradient(env=env,estimator=estimator,num_episodes=100,discount_factor=0.9)
 
 plotting.plot_episode_stats(stats)
 
