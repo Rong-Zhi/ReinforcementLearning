@@ -9,7 +9,6 @@ import sklearn.pipeline
 import itertools
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as pl
 
 from lib import plotting
 from sklearn.kernel_approximation import RBFSampler
