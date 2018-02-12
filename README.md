@@ -21,4 +21,8 @@ E5: Value Approximation -- use sklearn SGDregressor to train and update paramete
 
 E6: Deep Q Learning -- the CNN net we use here is published by DeepMind, train with Atari game (Breakout environment) images, target value = ground truth, Q value = predicted value, use RMSPropOptimizer to optimize parameters, code is given in Tensorflow, including state processor(resize Atari game images and transfer them into grayscale), checkpoint & monitor & model
 
-E7: Policy gradients -- Monte Carlo Policy Gradient with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline), there are some bugs in this code... check it latter
+E7: Policy gradients -- Monte Carlo Policy Gradient with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline), there are some bugs in this code(can't update variance of gaussian policy)... check it latter
+
+E8: Policy gradients -- Actor Critic method with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien), still some bugs(large variance in the end). I guess it is the problem of the environment, the original code given by denny britz doesn't work properly either.... 
+
+some tips for policy gradient: normalize the states into zero mean and unit variance and transform them into RBF features. Using advantage function(td error) to update both estimators instead of td-target.
