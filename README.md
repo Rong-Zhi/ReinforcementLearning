@@ -26,3 +26,5 @@ E7: Policy gradients -- Monte Carlo Policy Gradient with Continuous Montain Car 
 E8: Policy gradients -- Actor Critic method with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien), still some bugs(large variance in the end). I guess it is the problem of the environment, the original code given by denny britz doesn't work properly either.... 
 
 some tips for policy gradient: normalize the states into zero mean and unit variance and transform them into RBF features. Using advantage function(td error) to update both estimators instead of td-target. Try the algorithm in other environment
+
+E9: Relative Entropy Policy search -- Policy search algorithm give by Jan Peters
