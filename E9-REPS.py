@@ -10,8 +10,6 @@ import matplotlib
 from collections import defaultdict
 from lib import plotting
 import numpy as np
-import scipy.optimize
-from scipy.misc import logsumexp
 from gym.envs.toy_text.nchain import NChainEnv
 from scipy.optimize import fmin_l_bfgs_b
 from scipy.optimize import minimize
