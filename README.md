@@ -26,4 +26,4 @@ E8: Policy gradients -- Actor Critic method with Continuous Montain Car environm
 
 some tips for policy gradient: normalize the states into zero mean and unit variance and transform them into RBF features. Using advantage function(td error) to update both estimators instead of td-target. Try the algorithm in other environment
 
-E9: Relative Entropy Policy search -- Policy search algorithm based on the paper from Jan Peters: https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf
+E9: Relative Entropy Policy search -- Policy search algorithm based on the paper from Jan Peters: https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf implemented in Nchain problem of OPEN AI gym.
