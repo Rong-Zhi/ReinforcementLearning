@@ -166,4 +166,3 @@ with tf.Session() as sess:
     actor, critic, stats = actor_critic(env=env, policy_estimator=policy_estimator, value_estimator=value_estimator, num_episodes=50, discount_factor=0.95)
     plotting.plot_episode_stats(stats)
 
-
