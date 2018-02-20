@@ -365,7 +365,7 @@ def deep_q_learning(sess,
 
             # Take a step in the environment
             # TODO: Implement!
-            action_prob = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps - 1)])
+            action_probs = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps - 1)])
             action = np.random.choice(len(action_probs), p=action_probs)
             next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
             next_state = state_processor.process(sess, next_state)

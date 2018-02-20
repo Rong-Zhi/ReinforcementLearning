@@ -2,16 +2,16 @@ import gym
 import numpy as np
 import collections
 from collections import defaultdict
-import sklearn.pipeline
+from scipy.optimize import fmin_cg
+from scipy.optimize import line_search
 import tensorflow as tf
-from sklearn.kernel_approximation import RBFSampler
+
 
 env = gym.envs.make('Cart-Pole-v0')
 
 def single_path(env, policy, path_length, discount_factor):
     Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
-    V = defaultdict(lambda: np.zeros(e))
     state = env.reset()
     samples = []
     for t in range(path_length):
@@ -27,42 +27,52 @@ def single_path(env, policy, path_length, discount_factor):
             eta_policy = G/path_length
         Q[i_sample.state][i_sample.action] = G / (path_length - 1)
         t += 1
-
     return samples, Q, eta_policy
 
 def vine(env):
     pass
 
-def advantage(env):
-    pass
-
-def pg_estimator(env):
-    pass
-
-def conjugate_gradient(env):
-    pass
-
-def policy_update(env):
-    pass
 
 class Agent(object):
-    def __init__(self,
-         env,
-         policy_iteration=200,
-         stepsize=0.01,
-         discount=0.99,
-         path_num=50,
-         path_length=500,
-         hidden_sizes = 30):
 
+    def __init__(self, env, policy_iteration=40, stepsize=0.01,
+                 discount=0.99, path_num=50, path_length=100, hidden_sizes = 30):
         self.act_space = env.action_space.n
-        self.states = tf.placeholder(tf.float32, [env.observation_space[0]] ,name='states')
-        self.adv = tf.placeholder(dtype=tf.float32, name='advantages')
-        self.layer1 = tf.layers.dense(self.states, hidden_sizes)
+        self.state_space = env.observation_space.shape[0]
+        self.policy_iteration = policy_iteration
+        self.stepsize = stepsize
+        self.path_num = path_num
+        self.path_length = path_length
+        self.discount = discount
+        self.hidden_size = hidden_sizes
+
+
+        self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states')
+        self.action = tf.placeholder(tf.float32, shape=[self.act_space] ,name='action')
+        self.adv = tf.placeholder(tf.float32,shape=[None], name='advantages')
+        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space])
+
+        self.layer1 = tf.layers.dense(self.states, self.hidden_size, activation=tf.nn.relu)
         self.output = tf.layers.dense(self.layer1, self.act_space)
-        self.action_prob = tf.nn.softmax(self.output)
+        self.pred_action_prob = tf.nn.softmax(self.output,dim=[None, self.act_space])
+
+        self.surrogate_loss = -tf.reduce_mean(tf.div(
+                self.pred_action_prob, self.prev_policy) * self.adv)
+        self.train_op = tf.train.AdamOptimizer().minimize(self.surrogate_loss)
 
 
 
-def trpo():
+    def predict(self, sess, state):
+        return sess.run(self.pred_action_prob , { self.states: state })
+
+    def update(self, sess, state, advant, prev_policy):
+        feed_dict = {self.states: state, self.adv: advant,
+                      self.prev_policy: prev_policy}
+        global_step, _, loss = sess.run(
+            [tf.contrib.framework.get_global_step(), self.train_op, self.surrogate_loss],
+            feed_dict)
+        return loss
+
+def trpo(env):
+
     pass
