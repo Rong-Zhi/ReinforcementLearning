@@ -36,7 +36,9 @@ def vine(env):
 class Agent(object):
 
     def __init__(self, env, policy_iteration=40, stepsize=0.01,
-                 discount=0.99, path_num=50, path_length=100, hidden_sizes = 30):
+                 discount=0.99, path_num=50, path_length=100, hidden_sizes = (30,3)):
+
+        # Initialize parameters
         self.act_space = env.action_space.n
         self.state_space = env.observation_space.shape[0]
         self.policy_iteration = policy_iteration
@@ -46,16 +48,21 @@ class Agent(object):
         self.discount = discount
         self.hidden_size = hidden_sizes
 
-
+        # tensorflow placeholder
         self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states')
-        self.action = tf.placeholder(tf.float32, shape=[self.act_space] ,name='action')
+        self.action = tf.placeholder(tf.int64, shape=[self.act_space] ,name='action')
         self.adv = tf.placeholder(tf.float32,shape=[None], name='advantages')
-        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space])
+        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_distribution')
 
-        self.layer1 = tf.layers.dense(self.states, self.hidden_size, activation=tf.nn.relu)
-        self.output = tf.layers.dense(self.layer1, self.act_space)
+        # neural network
+        self.layer1 = tf.layers.dense(self.states, self.hidden_size[0], activation=tf.nn.relu)
+        self.layer2 = tf.layers.dense(self.layer1, self.hidden_size[1], activation=tf.nn.relu)
+
+        # output
+        self.output = tf.layers.dense(self.layer2, self.act_space)
         self.pred_action_prob = tf.nn.softmax(self.output,dim=[None, self.act_space])
 
+        # loss
         self.surrogate_loss = -tf.reduce_mean(tf.div(
                 self.pred_action_prob, self.prev_policy) * self.adv)
         self.train_op = tf.train.AdamOptimizer().minimize(self.surrogate_loss)
