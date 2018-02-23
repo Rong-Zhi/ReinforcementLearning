@@ -33,7 +33,7 @@ def vine(env):
     pass
 
 
-class Agent(object):
+class Policy_net(object):
 
     def __init__(self, env, policy_iteration=40, stepsize=0.01,
                  discount=0.99, path_num=50, path_length=100, hidden_sizes = (30,3)):
@@ -80,6 +80,8 @@ class Agent(object):
             feed_dict)
         return loss
 
-def trpo(env):
+class Value_net(object):
+    def __init__(self):
+
 
     pass
