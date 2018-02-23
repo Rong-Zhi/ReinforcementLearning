@@ -36,7 +36,7 @@ def vine(env):
 class Policy_net(object):
 
     def __init__(self, env, policy_iteration=40, stepsize=0.01,
-                 discount=0.99, path_num=50, path_length=100, hidden_sizes = (30,3)):
+                 discount=0.99, path_num=50, path_length=100, hidden_sizes = (32,3)):
 
         # Initialize parameters
         self.act_space = env.action_space.n
@@ -49,10 +49,10 @@ class Policy_net(object):
         self.hidden_size = hidden_sizes
 
         # tensorflow placeholder
-        self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states')
+        self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states') # modify shape later
         self.action = tf.placeholder(tf.int64, shape=[self.act_space] ,name='action')
         self.adv = tf.placeholder(tf.float32,shape=[None], name='advantages')
-        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_distribution')
+        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_policy')
 
         # neural network
         self.layer1 = tf.layers.dense(self.states, self.hidden_size[0], activation=tf.nn.relu)
