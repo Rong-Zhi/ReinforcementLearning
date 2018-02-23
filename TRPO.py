@@ -48,11 +48,14 @@ class Policy_net(object):
         self.discount = discount
         self.hidden_size = hidden_sizes
 
+
+    def build(self):
+
         # tensorflow placeholder
         self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states') # modify shape later
-        self.action = tf.placeholder(tf.int64, shape=[self.act_space] ,name='action')
+        self.action = tf.placeholder(tf.int64, shape=[None] ,name='action')
         self.adv = tf.placeholder(tf.float32,shape=[None], name='advantages')
-        self.prev_policy = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_policy')
+        self.prev_policy_dist = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_policy')
 
         # neural network
         self.layer1 = tf.layers.dense(self.states, self.hidden_size[0], activation=tf.nn.relu)
@@ -60,21 +63,36 @@ class Policy_net(object):
 
         # output
         self.output = tf.layers.dense(self.layer2, self.act_space)
-        self.pred_action_prob = tf.nn.softmax(self.output,dim=[None, self.act_space])
+        self.new_policy_dist = tf.squeeze(tf.nn.softmax(self.output))
+
+        # intermediate result
+        self.new_policy_pi = tf.gather(self.new_policy_dist, self.action)
+        self.old_policy_pi = tf.gather(self.prev_policy_dist, self.action)
 
         # loss
         self.surrogate_loss = -tf.reduce_mean(tf.div(
-                self.pred_action_prob, self.prev_policy) * self.adv)
+                self.new_policy_pi, self.old_policy_pi) * self.adv, name='surrogate_loss')
+
+        self.entropy_loss = tf.reduce_mean(-self.new_policy_dist *
+                                           tf.log(self.new_policy_dist), axis=0, name='entropy_loss')
+
+        self.kl_loss = tf.reduce_mean(self.prev_policy_dist * tf.log(
+            tf.div(self.prev_policy_dist, self.new_policy_dist)), axis=0, name='KL_loss')
+
+        
+
+
+
         self.train_op = tf.train.AdamOptimizer().minimize(self.surrogate_loss)
 
 
 
     def predict(self, sess, state):
-        return sess.run(self.pred_action_prob , { self.states: state })
+        return sess.run(self.new_policy_dist , { self.states: state })
 
     def update(self, sess, state, advant, prev_policy):
         feed_dict = {self.states: state, self.adv: advant,
-                      self.prev_policy: prev_policy}
+                      self.prev_policy_dist: prev_policy}
         global_step, _, loss = sess.run(
             [tf.contrib.framework.get_global_step(), self.train_op, self.surrogate_loss],
             feed_dict)
@@ -84,4 +102,5 @@ class Value_net(object):
     def __init__(self):
 
 
-    pass
+        pass
+
