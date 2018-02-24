@@ -4,6 +4,7 @@ import collections
 from collections import defaultdict
 from scipy.optimize import fmin_cg
 from scipy.optimize import line_search
+import random
 import tensorflow as tf
 
 
@@ -31,6 +32,52 @@ def single_path(env, policy, path_length, discount_factor):
 
 def vine(env):
     pass
+
+
+
+def conjugate_gradient(f_Ax, b, cg_iters=10, residual_tol=1e-10):
+    p = b.copy()
+    r = b.copy()
+    x = np.zeros_like(b)
+    rdotr = r.dot(r)
+    for i in range(cg_iters):
+        z = f_Ax(p)
+        v = rdotr / p.dot(z)
+        x += v * p
+        r -= v * z
+        newrdotr = r.dot(r)
+        mu = newrdotr / rdotr
+        p = r + mu * p
+        rdotr = newrdotr
+        if rdotr < residual_tol:
+            break
+    return x
+
+
+def linesearch(f, x, fullstep, expected_improve_rate):
+    accept_ratio = .1
+    max_backtracks = 10
+    fval = f(x)
+    for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
+        xnew = x + stepfrac * fullstep
+        newfval = f(xnew)
+        actual_improve = fval - newfval
+        expected_improve = expected_improve_rate * stepfrac
+        ratio = actual_improve / expected_improve
+        if ratio > accept_ratio and actual_improve > 0:
+            return xnew
+    return x
+
+def var_shape(x):
+    out = [k.value for k in x.get_shape()]
+    assert all(isinstance(a, int) for a in out), \
+        "shape function assumes that shape is fully known"
+    return out
+
+def flatgrad(loss, var_list):
+    grads = tf.gradients(loss, var_list)
+    return tf.concat(0, [tf.reshape(grad, [np.prod(var_shape(v))])
+                         for (v, grad) in zip(var_list, grads)])
 
 
 class Policy_net(object):
@@ -79,9 +126,16 @@ class Policy_net(object):
         self.kl_loss = tf.reduce_mean(self.prev_policy_dist * tf.log(
             tf.div(self.prev_policy_dist, self.new_policy_dist)), axis=0, name='KL_loss')
 
-        
+        var_list = tf.trainable_variables()
+        ## why???
+        self.kl_first_fix = tf.reduce_mean(tf.stop_gradient(self.new_policy_dist) *
+                                           tf.log(tf.stop_gradient(self.new_policy_dist)/
+                                                  self.new_policy_dist), name='kl_first_fix')
+        # gradinets
+        kl_grads = tf.gradients(self.kl_first_fix, var_list, name="kl_ff_grads")
+        obj_grads = tf.gradients(self.surrogate_loss, var_list, name='policy_grads')
 
-
+        self.flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None])
 
         self.train_op = tf.train.AdamOptimizer().minimize(self.surrogate_loss)
 
@@ -97,6 +151,7 @@ class Policy_net(object):
             [tf.contrib.framework.get_global_step(), self.train_op, self.surrogate_loss],
             feed_dict)
         return loss
+
 
 class Value_net(object):
     def __init__(self):
