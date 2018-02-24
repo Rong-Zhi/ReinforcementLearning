@@ -28,4 +28,4 @@ some tips for policy gradient: normalize the states into zero mean and unit vari
 
 E9: Relative Entropy Policy search -- Policy search algorithm based on the paper from Jan Peters: https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf implemented in Nchain problem of OPEN AI gym.
 
-E10: Trust Region Policy Optmization
+E10: Trust Region Policy Optmization & Proximal Policy Optimization
