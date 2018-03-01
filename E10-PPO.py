@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from lib import plotting
 import matplotlib
+import matplotlib.pyplot as plt
 import gym
 
 matplotlib.style.use('ggplot')
@@ -30,13 +31,13 @@ class Policy_net(object):
             self.test_action_p = tf.placeholder(tf.float32, shape=[None, self.act_space], name='test_action')
 
             # layers
-            self.l1_p = tf.layers.dense(inputs=self.states_p, units=64, activation=tf.nn.relu,
+            self.l1_p = tf.layers.dense(inputs=self.states_p, units=64, activation=activ,
                                         kernel_initializer=initial, name='pl1')
             self.l2_p = tf.layers.dense(self.l1_p, 64, activation=activ,
                                         kernel_initializer=initial,name='pl2')
 
             # outputs
-            self.mu = tf.layers.dense(inputs=self.l2_p, units=self.act_space, activation=activ,
+            self.mu = tf.layers.dense(inputs=self.l2_p, units=self.act_space, activation=None,
                                       kernel_initializer=initial, name='mu')
 
             # self.sigma = tf.layers.dense(self.l2, self.act_space, activation=tf.nn.relu, kernel_initializer=tf.glorot_uniform_initializer(), name='sigma')
@@ -88,13 +89,13 @@ class Value_net(object):
             self.states_v = tf.placeholder(tf.float32, shape=[None, self.state_space], name='states_v')
 
             # layers
-            self.l1_v = tf.layers.dense(inputs=self.states_v, units=64, activation=tf.nn.relu,
+            self.l1_v = tf.layers.dense(inputs=self.states_v, units=64, activation=activ,
                                         kernel_initializer=initial, name='vl1')
             self.l2_v = tf.layers.dense(self.l1_v, 64, activation=activ,
                                         kernel_initializer=initial, name='vl2')
 
             # output
-            self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=tf.identity,
+            self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=None,
                                             kernel_initializer=initial, name='output')
             # self.value_estimate = tf.squeeze(self.output_v, name='squeeze_output')
 
@@ -155,7 +156,7 @@ class PPO:
         self.sess = sess
         self.policy = policy_estimator
         self.value = value_estimator
-        self.vlr = 5e-4
+        self.vlr = 4e-4
         self.plr = 5e-4
         self.epsilon = 0.2
 
@@ -202,10 +203,10 @@ class PPO:
 
 
 def main():
-    # env = gym.make("MountainCarContinuous-v0")
-    env = gym.make('Pendulum-v0')
+    env = gym.make("MountainCarContinuous-v0")
+    # env = gym.make('Pendulum-v0')
 
-    seed = 1000
+    seed = 0
     np.random.seed(seed)
     tf.set_random_seed(seed)
     env.seed(seed)
@@ -226,18 +227,15 @@ def main():
     batchsize = 64
     epoch_per_iter = 15
 
-
-    stats = plotting.EpisodeStats(
-        episode_lengths=np.zeros(num_iteration),
-        episode_rewards=np.zeros(num_iteration))
+    result = {'Reward':[], 'Entropy':[]}
 
     for i_iteration in range(num_iteration):
 
         paths = rollouts(env=env, get_policy=policy_estimator.predict_action, timestep=timestep)
         print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, np.sum(paths['reward'])/paths['nb_paths']))
 
-        stats.episode_lengths[i_iteration] = i_iteration
-        stats.episode_rewards[i_iteration] = np.sum(paths['reward']) / paths['nb_paths']
+        result['Entropy'].append(sess.run(policy_estimator.entropy))
+        result['Reward'].append(np.sum(paths['reward']) / paths['nb_paths'])
 
         # update value estimator
         for epoch in range(epoch_per_iter):
@@ -268,16 +266,26 @@ def main():
 
 
 
-    plotting.plot_episode_stats(stats)
 
-    state = env.reset()
-    while True:
-        env.render()
-        action = policy_estimator.predict_action(state_p=state)
-        next_state, reward, done, _ = env.step(action)
-        if done:
-            break
-        state = next_state
+    plt.figure(1)
+    plt.plot(result['Reward'])
+    plt.ylabel('Reward')
+    plt.title('Reward')
+    plt.figure(2)
+    plt.plot(result['Entropy'])
+    plt.ylabel('Entropy')
+    plt.title('Entropy')
+    plt.show()
+
+
+    # state = env.reset()
+    # while True:
+    #     env.render()
+    #     action = policy_estimator.predict_action(state_p=state)
+    #     next_state, reward, done, _ = env.step(action)
+    #     # if done:
+    #     #     break
+    #     state = next_state
 
 
 if __name__ == '__main__':
