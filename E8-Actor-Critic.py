@@ -50,34 +50,36 @@ class Policy_Estimator():
     Policy function approximator, update theta by policy gradient
     """
     def __init__(self, learning_rate=0.01, scope='policy_estimator'):
-        self.states = tf.placeholder(tf.float32, [400], name='states')
-        self.target = tf.placeholder(dtype=tf.float32, name='targets')
-        # Define a linear classifier
-        self.mu = tf.contrib.layers.fully_connected(
-            inputs=tf.expand_dims(self.states,0),
-            num_outputs=1,
-            activation_fn=None,
-            weights_initializer=tf.zeros_initializer)
+        with tf.variable_scope(scope):
+            self.states = tf.placeholder(tf.float32, [400], name='states')
+            self.target = tf.placeholder(dtype=tf.float32, name='targets')
+            self.action = tf.placeholder(dtype=tf.int32, name="action")
+            # Define a linear classifier
+            self.mu = tf.contrib.layers.fully_connected(
+                inputs=tf.expand_dims(self.states,0),
+                num_outputs=1,
+                activation_fn=None,
+                weights_initializer=tf.zeros_initializer)
 
-        self.sigma = tf.contrib.layers.fully_connected(
-            inputs=tf.expand_dims(self.states, 0),
-            num_outputs=1,
-            activation_fn=None,
-            weights_initializer=tf.zeros_initializer)
-        self.sigma = tf.squeeze(self.sigma)
-        self.sigma = tf.nn.softplus(self.sigma) + 1e-5
+            self.sigma = tf.contrib.layers.fully_connected(
+                inputs=tf.expand_dims(self.states, 0),
+                num_outputs=1,
+                activation_fn=None,
+                weights_initializer=tf.zeros_initializer)
+            self.sigma = tf.squeeze(self.sigma)
+            self.sigma = tf.nn.softplus(self.sigma) + 1e-5
 
-        self.normal_dist = tf.contrib.distributions.Normal(self.mu, self.sigma)
-        self.action = self.normal_dist._sample_n(1)
-        self.action = tf.clip_by_value(self.action, env.action_space.low[0], env.action_space.high[0])
+            self.normal_dist = tf.contrib.distributions.Normal(self.mu, self.sigma)
+            self.action = self.normal_dist._sample_n(1)
+            self.action = tf.clip_by_value(self.action, env.action_space.low[0], env.action_space.high[0])
 
-        self.loss = -self.normal_dist.log_prob(self.action) * self.target
+            self.loss = -self.normal_dist.log_prob(self.action) * self.target
 
-        # Add cross entropy loss here for better exploration
-        self.loss -= 1e-1 * self.normal_dist.entropy()
+            # Add cross entropy loss here for better exploration
+            self.loss -= 1e-1 * self.normal_dist.entropy()
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-        self.trian_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            self.trian_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
     def predict(self, state, sess=None):
         sess = sess or tf.get_default_session()
@@ -98,17 +100,18 @@ class Value_Estimator():
     Value function approximator, update w by TD(0)
     """
     def __init__(self, learning_rate=0.01, scope='value_estimator'):
-        self.states = tf.placeholder(tf.float32, [400], name='states')
-        self.target = tf.placeholder(dtype=tf.float32, name='target')
-        self.output_layer = tf.contrib.layers.fully_connected(
-            inputs=tf.expand_dims(self.states,0),
-            num_outputs=1,
-            activation_fn=None,
-            weights_initializer=tf.zeros_initializer)
-        self.value_estimate = tf.squeeze(self.output_layer)
-        self.loss = tf.squared_difference(self.value_estimate, self.target)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+        with tf.variable_scope(scope):
+            self.states = tf.placeholder(tf.float32, [400], name='states')
+            self.target = tf.placeholder(dtype=tf.float32, name='target')
+            self.output_layer = tf.contrib.layers.fully_connected(
+                inputs=tf.expand_dims(self.states,0),
+                num_outputs=1,
+                activation_fn=None,
+                weights_initializer=tf.zeros_initializer)
+            self.value_estimate = tf.squeeze(self.output_layer)
+            self.loss = tf.squared_difference(self.value_estimate, self.target)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
     def predict(self, state, sess=None):
         sess = sess or tf.get_default_session()
@@ -162,7 +165,7 @@ policy_estimator = Policy_Estimator(learning_rate=0.01)
 value_estimator = Value_Estimator(learning_rate=0.1)
 
 with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
     actor, critic, stats = actor_critic(env=env, policy_estimator=policy_estimator, value_estimator=value_estimator, num_episodes=50, discount_factor=0.95)
     plotting.plot_episode_stats(stats)
 

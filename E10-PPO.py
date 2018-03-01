@@ -1,10 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from gym.envs.classic_control import Continuous_MountainCarEnv
-from gym.envs.classic_control import PendulumEnv
 from lib import plotting
-from collections import namedtuple
 import matplotlib
+import gym
 
 matplotlib.style.use('ggplot')
 
@@ -17,66 +15,55 @@ class Policy_net(object):
                 learning_rate = 0.0001
                 epsilon = 0.2
     """
-    def __init__(self):
-        self.epsilon = 0.2
-        self.learning_rate = 0.0001
+    def __init__(self, env, sess):
+
+        self.sess = sess
         self.act_space = env.action_space.shape[0]
-        self.act_low = env.action_space.low
-        self.act_high = env.action_space.high
         self.state_space = env.observation_space.shape[0]
+        self.init_sigma = 1.5
+        activ = tf.nn.tanh
+        initial = tf.glorot_uniform_initializer()
 
-        # placeholder
-        self.states = tf.placeholder(tf.float32, shape=[None, self.state_space], name='states')
-        self.test_action = tf.placeholder(tf.float32, shape=[None, self.act_space], name='test_action')
-        self.advantage = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
-        self.old_log_dist = tf.placeholder(tf.float32, shape=[None, 1], name='old_log_distribution')
+        with tf.variable_scope("policy"):
+            # placeholder
+            self.states_p = tf.placeholder(tf.float32, shape=[None, self.state_space], name='states_p')
+            self.test_action_p = tf.placeholder(tf.float32, shape=[None, self.act_space], name='test_action')
 
-        # layers
-        self.l1 = tf.layers.dense(inputs=self.states, units=64, activation=tf.nn.relu)
-        # self.l2 = tf.layers.dense(self.l1, 64, activation=tf.nn.tanh)
+            # layers
+            self.l1_p = tf.layers.dense(inputs=self.states_p, units=64, activation=tf.nn.relu,
+                                        kernel_initializer=initial, name='pl1')
+            self.l2_p = tf.layers.dense(self.l1_p, 64, activation=activ,
+                                        kernel_initializer=initial,name='pl2')
 
-        # outputs
-        self.mu = tf.layers.dense(inputs=self.l1, units=self.act_space, activation=tf.identity)
-        # self.sigma = tf.squeeze(tf.layers.dense(self.l1, self.act_space, activation=tf.nn.tanh))
-        # self.sigma = tf.nn.softplus(self.sigma) + 1e-5
+            # outputs
+            self.mu = tf.layers.dense(inputs=self.l2_p, units=self.act_space, activation=activ,
+                                      kernel_initializer=initial, name='mu')
 
-        self.sigma = tf.Variable(tf.ones([1, self.act_space]))
-        self.sigma = tf.exp(self.sigma)
+            # self.sigma = tf.layers.dense(self.l2, self.act_space, activation=tf.nn.relu, kernel_initializer=tf.glorot_uniform_initializer(), name='sigma')
+            # self.sigma = tf.nn.softplus(self.sigma) + 1e-5
 
-        # action probability and action
-        self.new_policy_dist = tf.contrib.distributions.MultivariateNormalDiag(self.mu, self.sigma)
-        self.action = self.new_policy_dist.sample(self.act_space)
-        self.action = tf.clip_by_value(self.action, self.act_low, self.act_high)
 
-        # intermediate result
-        self.new_log_dist = self.new_policy_dist.log_prob(self.test_action)
-        ratio = tf.exp(self.new_log_dist - self.old_log_dist)
-        clip_p = tf.clip_by_value(ratio, 1-self.epsilon, 1+self.epsilon)
+            self.sigma = tf.Variable(np.log(self.init_sigma) * tf.ones([1, self.act_space]))
+            self.sigma = tf.exp(self.sigma)
 
-        # loss and optimizer
-        self.surrogate_loss = -tf.reduce_mean(tf.minimum(tf.multiply(ratio, self.advantage),
-                                                         tf.multiply(clip_p, self.advantage)),
-                                              name='surrogate_loss')
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.train_op = self.optimizer.minimize(self.surrogate_loss, global_step=tf.contrib.framework.get_global_step())
+            # check the exploration situation
+            self.entropy = tf.reduce_sum(self.sigma) + self.act_space * np.log(2 * np.pi * np.e) / 2
 
-    def predict_action(self, state, sess=None):
-        sess = sess or tf.get_default_session()
-        return np.squeeze(sess.run(self.action, {self.states:state}), axis=0)
+            # action probability and action
+            self.new_policy_dist_p = tf.contrib.distributions.MultivariateNormalDiag(self.mu, self.sigma)
+            self.action_p = self.new_policy_dist_p.sample()
+            # self.action_p = tf.clip_by_value(self.action_p, self.act_low, self.act_high)
 
-    def predict_log_dist(self, state, action, sess=None):
-        sess = sess or tf.get_default_session()
-        return sess.run(self.new_log_dist, {self.states:state, self.test_action:action})
 
-    def update(self, state, advantage, test_action, old_policy_dist, sess=None):
-        sess = sess or tf.get_default_session()
-        feed_dict = {self.states:state, self.advantage: advantage,
-                     self.test_action:test_action,
-                     self.old_log_dist:old_policy_dist}
-        _ ,loss = sess.run([self.train_op, self.surrogate_loss],
-                                        feed_dict=feed_dict)
-        return loss
+            # intermediate result
+            self.new_log_prob_p = tf.expand_dims(self.new_policy_dist_p.log_prob(self.test_action_p), axis=-1)
 
+
+    def predict_action(self, state_p):
+        return np.squeeze(self.sess.run(self.action_p, {self.states_p: np.asmatrix(state_p)}), axis=0)
+
+    def predict_log_dist(self, state_p, action_p):
+        return self.sess.run(self.new_log_prob_p, {self.states_p:state_p, self.test_action_p:action_p})
 
 
 
@@ -87,81 +74,158 @@ class Value_net(object):
                 learning rate = 0.0002
                 optimizer -- Adamoptimizer
     """
-    def __init__(self):
-        self.learning_rate = 0.0002
+    def __init__(self, env, sess):
+        self.sess = sess
         self.act_space = env.action_space.shape[0]
         self.state_space = env.observation_space.shape[0]
 
-        # placeholder
-        self.states = tf.placeholder(tf.float32, shape=[None, self.state_space], name='states')
-        self.target = tf.placeholder(tf.float32, shape=[None, 1], name='target')
+        activ = tf.nn.tanh
+        initial = tf.glorot_uniform_initializer()
 
-        # layers
-        self.l1 = tf.layers.dense(inputs=self.states, units=64, activation=tf.nn.tanh)
-        # self.l2 = tf.layers.dense(self.l1, 64, activation=tf.nn.tanh)
+        with tf.variable_scope("value"):
 
-        # output
-        self.output = tf.layers.dense(inputs=self.l1, units=self.act_space, activation=tf.identity)
-        self.value_estimate = tf.squeeze(self.output)
+            # placeholder
+            self.states_v = tf.placeholder(tf.float32, shape=[None, self.state_space], name='states_v')
 
-        # loss and optimizer
-        self.loss = tf.squared_difference(self.value_estimate, self.target, name='loss')
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+            # layers
+            self.l1_v = tf.layers.dense(inputs=self.states_v, units=64, activation=tf.nn.relu,
+                                        kernel_initializer=initial, name='vl1')
+            self.l2_v = tf.layers.dense(self.l1_v, 64, activation=activ,
+                                        kernel_initializer=initial, name='vl2')
 
-    def predict(self, state, sess=None):
-        sess = sess or tf.get_default_session()
-        return sess.run(self.value_estimate, {self.states : state})
+            # output
+            self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=tf.identity,
+                                            kernel_initializer=initial, name='output')
+            # self.value_estimate = tf.squeeze(self.output_v, name='squeeze_output')
 
-
-    def update(self, state, target, sess=None):
-        sess = sess or tf.get_default_session()
-        feed_dict = {self.states: state, self.target: target}
-        _, loss = sess.run([self.train_op, self.loss],
-                                        feed_dict=feed_dict)
-        return loss
+    def predict(self, state_v):
+        return self.sess.run(self.output_v, {self.states_v : state_v})
 
 
-def rollout(env, policy, state_space):
+def rollout(env, get_policy):
     state = env.reset()
-    state = state.reshape(1, state_space)
     done = False
     while not done:
-        action = policy.predict_action(state)
-        print(action)
-        next_state, reward, done, _ = env.step(action)
-        next_state = next_state.reshape(1, state_space)
-        yield state, action, next_state, reward
+        action = get_policy(state_p=state)
+        next_state, reward, done, _ = env.step(np.minimum(np.maximum(action, env.action_space.low), env.action_space.high))
+        yield state, action, reward, done
         state = next_state
 
 
-def rollouts(env, policy, timestep, state_space):
-    Transition = namedtuple("Transition", ["state", "action", "next_state", "reward"])
-    paths = []
-    num_rollout = 0
-    while len(paths) < timestep:
-        for trans in rollout(env, policy, state_space):
-            state, action, next_state, reward = trans
-            paths.append(Transition(state, action, next_state, reward))
-        num_rollout += 1
+def rollouts(env, get_policy, timestep):
+    keys = ['states', 'action', 'reward', 'done']
+    path = {}
+    for k in keys:
+        path[k] = []
+    nb_paths = 0
+    while len(path["reward"]) < timestep:
+        for trans in rollout(env=env, get_policy=get_policy):
+            for key, val in zip(keys, trans):
+                path[key].append(val)
+        nb_paths += 1
+    for key in keys:
+        path[key] = np.asarray(path[key])
+        if path[key].ndim == 1:
+            path[key] = np.expand_dims(path[key], axis=-1)
+    path['nb_paths'] = nb_paths
+    return path
 
-    return paths, num_rollout
+
+def compute_advantage(get_value, paths, discount_factor):
+    values = get_value(state_v=paths['states'])
+    gen_adv = np.empty_like(values)
+    for rev_k, v in enumerate(reversed(values)):
+        k = len(values) - rev_k - 1
+        if paths['done'][k]:  # this is a new path. always true for rev_k == 0
+            gen_adv[k] = paths['reward'][k] - values[k]
+        else:
+            gen_adv[k] = paths['reward'][k] + discount_factor * values[k + 1] - \
+                         values[k] + discount_factor * 0.95 * gen_adv[k + 1]
+    return gen_adv, gen_adv + values
 
 
-def compute_advantage(value_func, states, reward, discount_factor):
-    values = value_func.predict(states)
-    target = [reward[i] + discount_factor * values[i+1] - values[i] for i in range(len(states) - 1)]
-    advantage = [sum([t * discount_factor**i for i,t in enumerate(target[n:])]) for n in range(len(states)-1)]
-    return np.expand_dims(advantage, axis=-1), np.expand_dims(target, axis=-1)
+def next_batch_idx(batch_size, data_set_size):
+    batch_idx_list = np.random.choice(data_set_size, data_set_size, replace=False)
+    for batch_start in range(0, data_set_size, batch_size):
+        yield batch_idx_list[batch_start: min(batch_start+batch_size, data_set_size)]
 
 
-def ppo(env, policy_estimator, value_estimator):
+class PPO:
+    def __init__(self, sess, policy_estimator, value_estimator):
+        self.sess = sess
+        self.policy = policy_estimator
+        self.value = value_estimator
+        self.vlr = 5e-4
+        self.plr = 5e-4
+        self.epsilon = 0.2
+
+        with tf.variable_scope('ppo'):
+            # loss for value estimator
+            self.target_v = tf.placeholder(tf.float32, shape=[None, 1], name='target_v')
+
+            self.loss_v = tf.losses.mean_squared_error(self.value.output_v, self.target_v)
+            self.optimizer_v = tf.train.AdamOptimizer(learning_rate=self.vlr)
+            self.train_op_v = self.optimizer_v.minimize(self.loss_v)
+
+            # loss for policy estimator
+            self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
+            self.old_log_prob_p = tf.placeholder(tf.float32, shape=[None, 1], name='old_log_prob')
+
+            ratio = tf.exp(self.policy.new_log_prob_p - self.old_log_prob_p)
+            clip_p = tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
+
+            # loss and optimizer
+            self.surrogate_loss = -tf.reduce_mean(tf.minimum(tf.multiply(ratio, self.advantage_p),
+                                                             tf.multiply(clip_p, self.advantage_p)),
+                                                  name='surrogate_loss')
+
+            self.optimizer_p = tf.train.AdamOptimizer(learning_rate=self.plr)
+            self.train_op_p = self.optimizer_p.minimize(self.surrogate_loss)
+
+
+    def update_v(self, state_v, target_v):
+        feed_dict = {self.value.states_v: state_v, self.target_v: target_v}
+        _, loss_v = self.sess.run([self.train_op_v, self.loss_v],
+                                        feed_dict=feed_dict)
+        return loss_v
+
+    def update_p(self, state_p, advantage_p, test_action_p, old_prob_p):
+
+        feed_dict = {self.policy.states_p:state_p, self.advantage_p: advantage_p,
+                     self.policy.test_action_p:test_action_p,
+                     self.old_log_prob_p:old_prob_p}
+        _ ,loss_p = self.sess.run([self.train_op_p, self.surrogate_loss],
+                                        feed_dict=feed_dict)
+        return loss_p
+
+
+
+
+def main():
+    # env = gym.make("MountainCarContinuous-v0")
+    env = gym.make('Pendulum-v0')
+
+    seed = 1000
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
+    env.seed(seed)
+
+    sess = tf.Session()
+
+    policy_estimator = Policy_net(env=env, sess=sess)
+    value_estimator = Value_net(env=env, sess=sess)
+    ppo = PPO(sess=sess, policy_estimator=policy_estimator,
+              value_estimator=value_estimator)
+
+    sess.run(tf.global_variables_initializer())
+    tf.summary.FileWriter('./log', sess.graph)
 
     discount_factor = 0.99
     num_iteration = 100
-    timestep = 500
-    batchsize = 32
+    timestep = 3200
+    batchsize = 64
     epoch_per_iter = 15
+
 
     stats = plotting.EpisodeStats(
         episode_lengths=np.zeros(num_iteration),
@@ -169,58 +233,52 @@ def ppo(env, policy_estimator, value_estimator):
 
     for i_iteration in range(num_iteration):
 
-        paths, num_rollout = rollouts(env, policy_estimator, timestep, env.observation_space.shape[0])
-        states, actions, next_states, reward = map(np.array, zip(*paths))
-        states = np.squeeze(states)
-        actions = np.squeeze(actions, axis=(1,))
-
-        print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, np.sum(reward)/num_rollout))
+        paths = rollouts(env=env, get_policy=policy_estimator.predict_action, timestep=timestep)
+        print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, np.sum(paths['reward'])/paths['nb_paths']))
 
         stats.episode_lengths[i_iteration] = i_iteration
-        stats.episode_rewards[i_iteration] = np.sum(reward)/num_rollout
+        stats.episode_rewards[i_iteration] = np.sum(paths['reward']) / paths['nb_paths']
 
-        T = len(paths)
         # update value estimator
         for epoch in range(epoch_per_iter):
-            advantage, target = compute_advantage(value_estimator, states, reward, discount_factor)
-            for i in range(0, T-2, batchsize):
-                end = min(i+batchsize, T-2)
-                lossv = value_estimator.update(states[i:end], target[i:end])
+            advantage, target = compute_advantage(get_value=value_estimator.predict,
+                                                  paths=paths,
+                                                  discount_factor=discount_factor)
+            for idx in next_batch_idx(batchsize, len(target)):
+                lossv = ppo.update_v(state_v=paths['states'][idx],
+                                     target_v=target[idx])
 
-
-        # update policy estimator
-        advantage, target = compute_advantage(value_estimator, states, reward, discount_factor)
-        old_log_dist = policy_estimator.predict_log_dist(states, actions)
-
+        # update policy & value estimator
+        advantage, _ = compute_advantage(get_value=value_estimator.predict,
+                                              paths=paths,
+                                              discount_factor=discount_factor)
+        # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+        advantage = advantage/np.std(advantage)
+        old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
+                                                         action_p=paths['action'])
         for epoch in range(epoch_per_iter):
-            for i in range(0, T-2, batchsize):
-                end = min(i+batchsize, T-2)
-                lossp = policy_estimator.update(states[i:end], actions[i:end],
-                                        advantage[i:end], old_log_dist[i:end])
+            for idx in next_batch_idx(batchsize,len(advantage)):
+                lossp = ppo.update_p(state_p=paths['states'][idx],
+                                     advantage_p=advantage[idx],
+                                     test_action_p=paths['action'][idx],
+                                     old_prob_p=old_log_prob[idx])
 
-        # print('Loss: Value estimator-{0}, Policy estimator-{1}'.format(lossv, lossp))
+        print('Loss: Value estimator:{0}, Policy estimator:{1}'.format(lossv, lossp))
+        print('Entropy of policy:{0}'.format(sess.run(policy_estimator.entropy)))
 
-    return stats, policy_estimator, value_estimator
 
 
-# env = Continuous_MountainCarEnv()
-env = PendulumEnv()
-tf.reset_default_graph()
-global_step = tf.Variable(0, name='global_step', trainable=False)
-
-policy_estimator = Policy_net()
-value_estimator = Value_net()
-
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    stats, policy_estimator, value_estimator = ppo(env, policy_estimator, value_estimator)
     plotting.plot_episode_stats(stats)
-    #
-    # state = env.reset()
-    # while True:
-    #     env.render()
-    #     action = policy_estimator(sess, state, epsilon=1.0)
-    #     next_state, reward, done, _ = env.step(action)
-    #     if done:
-    #         break
-    #     state = next_state
+
+    state = env.reset()
+    while True:
+        env.render()
+        action = policy_estimator.predict_action(state_p=state)
+        next_state, reward, done, _ = env.step(action)
+        if done:
+            break
+        state = next_state
+
+
+if __name__ == '__main__':
+    main()
