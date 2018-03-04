@@ -2,7 +2,6 @@
 
 This is my Reinforcement Learning Notes, Exercises, as well as Summary. Some images can't be shown on github, but it is possible to visit them from iPython Notebook.
 
-E1 - E6, E8 Originally given by dennybritz: https://github.com/dennybritz/reinforcement-learning
 
 E1: Get to know OPEN AI Gym 
 
