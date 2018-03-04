@@ -25,7 +25,14 @@ E8: Policy gradients -- [Actor Critic method](https://github.com/Rong-Zhi/Reinfo
 
 some tips for policy gradient: normalize the states into zero mean and unit variance and transform them into RBF features. Using advantage function(td error) to update both estimators instead of td-target. Try the algorithm in other environment
 
-E9: [Relative Entropy Policy search](https://github.com/Rong-Zhi/ReinforcementLearning/code/REPS) -- Policy search algorithm based on the paper from Jan Peters: https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf implemented in Nchain problem of OPEN AI gym.
+E9: [Relative Entropy Policy search](https://github.com/Rong-Zhi/ReinforcementLearning/code/REPS) -- Policy search algorithm, implemented in Nchain problem of OPEN AI gym.
 
 E10: [Trust Region Policy Optmization](https://github.com/Rong-Zhi/ReinforcementLearning/code/TRPO)- Build simple MLP network  
 E10: [Proximal Policy Optimization](https://github.com/Rong-Zhi/ReinforcementLearning/code/PPO) -- build simple MLP network, first tested in continous space -- continuous mountaincar environment and pendulum environment, then tested in discrete POMDPS environment -- FVRS (Field Version Rock Sample)
+
+
+## References
+- Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
+- [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477) from Schulman et al.
+- [Relative Entropy Policy Search] [paper](https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf) from Peters et al.
+- [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) from Schulman et al.
