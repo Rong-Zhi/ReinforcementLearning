@@ -159,6 +159,7 @@ class PPO:
         self.vlr = 4e-4
         self.plr = 5e-4
         self.epsilon = 0.2
+        self.v_coef = 0.5
 
         with tf.variable_scope('ppo'):
             # loss for value estimator
@@ -183,6 +184,10 @@ class PPO:
             self.optimizer_p = tf.train.AdamOptimizer(learning_rate=self.plr)
             self.train_op_p = self.optimizer_p.minimize(self.surrogate_loss)
 
+            self.loss_all = self.surrogate_loss + self.loss_v * self.v_coef
+            self.train_optimizer_all = tf.train.AdamOptimizer(self.plr).minimize(self.loss_all)
+
+
 
     def update_v(self, state_v, target_v):
         feed_dict = {self.value.states_v: state_v, self.target_v: target_v}
@@ -199,8 +204,14 @@ class PPO:
                                         feed_dict=feed_dict)
         return loss_p
 
+    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p):
 
+        feed_dict = {self.value.states_v:state, self.target_v: target_v,
+                     self.policy.states_p:state, self.advantage_p: advantage_p,
+                     self.policy.test_action_p:test_action_p,
+                     self.old_log_prob_p:old_prob_p}
 
+        self.sess.run([self.train_optimizer_all], feed_dict=feed_dict)
 
 def main():
     env = gym.make("MountainCarContinuous-v0")
@@ -237,31 +248,52 @@ def main():
         result['Entropy'].append(sess.run(policy_estimator.entropy))
         result['Reward'].append(np.sum(paths['reward']) / paths['nb_paths'])
 
-        # update value estimator
-        for epoch in range(epoch_per_iter):
-            advantage, target = compute_advantage(get_value=value_estimator.predict,
-                                                  paths=paths,
-                                                  discount_factor=discount_factor)
-            for idx in next_batch_idx(batchsize, len(target)):
-                lossv = ppo.update_v(state_v=paths['states'][idx],
-                                     target_v=target[idx])
+        # Actor-Critic style
 
-        # update policy & value estimator
-        advantage, _ = compute_advantage(get_value=value_estimator.predict,
+        # update value estimator
+        # for epoch in range(epoch_per_iter):
+        #     advantage, target = compute_advantage(get_value=value_estimator.predict,
+        #                                           paths=paths,
+        #                                           discount_factor=discount_factor)
+        #     for idx in next_batch_idx(batchsize, len(target)):
+        #         lossv = ppo.update_v(state_v=paths['states'][idx],
+        #                              target_v=target[idx])
+        #
+        # # update policy & value estimator
+        # advantage, _ = compute_advantage(get_value=value_estimator.predict,
+        #                                       paths=paths,
+        #                                       discount_factor=discount_factor)
+        # # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+        # advantage = advantage/np.std(advantage)
+        # old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
+        #                                                  action_p=paths['action'])
+        # for epoch in range(epoch_per_iter):
+        #     for idx in next_batch_idx(batchsize,len(advantage)):
+        #         lossp = ppo.update_p(state_p=paths['states'][idx],
+        #                              advantage_p=advantage[idx],
+        #                              test_action_p=paths['action'][idx],
+        #                              old_prob_p=old_log_prob[idx])
+
+
+        # Update using one loss
+        advantage, target = compute_advantage(get_value=value_estimator.predict,
                                               paths=paths,
                                               discount_factor=discount_factor)
+
         # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
-        advantage = advantage/np.std(advantage)
+        advantage = advantage / np.std(advantage)
         old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
                                                          action_p=paths['action'])
         for epoch in range(epoch_per_iter):
             for idx in next_batch_idx(batchsize,len(advantage)):
-                lossp = ppo.update_p(state_p=paths['states'][idx],
+                ppo.update_all(state=paths['states'][idx],
+                                       target_v=target[idx],
                                      advantage_p=advantage[idx],
                                      test_action_p=paths['action'][idx],
                                      old_prob_p=old_log_prob[idx])
 
-        print('Loss: Value estimator:{0}, Policy estimator:{1}'.format(lossv, lossp))
+
+        # print('Loss: Value estimator:{0}, Policy estimator:{1}'.format(lossv, lossp))
         print('Entropy of policy:{0}'.format(sess.run(policy_estimator.entropy)))
 
 
