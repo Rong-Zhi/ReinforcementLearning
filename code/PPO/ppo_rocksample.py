@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
+
 import gym
 
 from scipy.stats import entropy
@@ -27,8 +29,8 @@ class Policy_net(object):
     def __init__(self, env, sess):
 
         self.sess = sess
-        self.act_space = env.spec.action_space.n
-        self.state_space = env.spec.observation_space.shape[0]
+        self.act_space = env.action_space.n
+        self.state_space = env.observation_space.shape[0]
         activ = tf.nn.tanh
         initial = tf.glorot_uniform_initializer()
 
@@ -106,7 +108,6 @@ class Value_net(object):
             self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=None,
                                             kernel_initializer=initial, name='output')
 
-            # self.value_estimate = tf.squeeze(self.output_v, name='squeeze_output')
 
     def predict(self, state_v):
         return self.sess.run(self.output_v, {self.states_v : state_v})
@@ -122,22 +123,27 @@ def rollout(env, get_policy):
         state = next_state
 
 
-def rollouts(env, get_policy, timestep):
-    keys = ['states', 'action', 'reward', 'done']
+def rollouts(env, get_policy, timestep, df):
+    keys = ['states', 'action', 'reward', 'done', '']
     path = {}
     for k in keys:
         path[k] = []
     nb_paths = 0
+    discount_reward = []
     while len(path["reward"]) < timestep:
+        drwd = []
         for trans in rollout(env=env, get_policy=get_policy):
             for key, val in zip(keys, trans):
                 path[key].append(val)
+            drwd.append(trans[2])
+        discount_reward.append(np.sum([rwd * df**n for n,rwd in enumerate(drwd)]))
         nb_paths += 1
     for key in keys:
         path[key] = np.asarray(path[key])
         if path[key].ndim == 1:
             path[key] = np.expand_dims(path[key], axis=-1)
     path['nb_paths'] = nb_paths
+    path['dis_avg_rwd'] = np.mean(discount_reward)
     return path
 
 
@@ -166,17 +172,16 @@ class PPO:
         self.sess = sess
         self.policy = policy_estimator
         self.value = value_estimator
-        self.vlr = 5e-4
-        self.plr = 5e-4
+        self.lr = 2.5e-4
         self.epsilon = 0.2
+        self.v_coef = 0.5
+        self.ent_coef = 0.0
 
         with tf.variable_scope('ppo'):
             # loss for value estimator
             self.target_v = tf.placeholder(tf.float32, shape=[None, 1], name='target_v')
 
             self.loss_v = tf.losses.mean_squared_error(self.value.output_v, self.target_v)
-            self.optimizer_v = tf.train.AdamOptimizer(learning_rate=self.vlr)
-            self.train_op_v = self.optimizer_v.minimize(self.loss_v)
 
             # loss for policy estimator
             self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
@@ -191,39 +196,32 @@ class PPO:
                                                              tf.multiply(clip_p, self.advantage_p)),
                                                   name='surrogate_loss')
 
-            self.optimizer_p = tf.train.AdamOptimizer(learning_rate=self.plr)
-            self.train_op_p = self.optimizer_p.minimize(self.surrogate_loss)
+            self.loss_all = self.surrogate_loss + self.v_coef * self.loss_v - self.ent_coef * self.policy.entropy
+            self.train_all = tf.train.AdamOptimizer(self.lr).minimize(self.loss_all)
 
 
-    def update_v(self, state_v, target_v):
-        feed_dict = {self.value.states_v: state_v, self.target_v: target_v}
-        _, loss_v = self.sess.run([self.train_op_v, self.loss_v],
-                                        feed_dict=feed_dict)
-        return loss_v
 
-    def update_p(self, state_p, advantage_p, test_action_p, old_prob_p):
-
-        feed_dict = {self.policy.states_p:state_p, self.advantage_p: advantage_p,
-                     self.policy.test_action_p:test_action_p,
-                     self.old_log_prob_p:old_prob_p}
-        _ ,loss_p = self.sess.run([self.train_op_p, self.surrogate_loss],
-                                        feed_dict=feed_dict)
-        return loss_p
-
-
+    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p):
+        feed_dict = {self.value.states_v:state, self.target_v:target_v,
+                     self.policy.states_p: state, self.advantage_p: advantage_p,
+                     self.policy.test_action_p: test_action_p,
+                     self.old_log_prob_p: old_prob_p}
+        _, loss_all, sloss, vloss, eloss = self.sess.run([self.train_all, self.loss_all,
+                                                          self.surrogate_loss, self.loss_v, self.policy.entropy],
+                                                         feed_dict=feed_dict)
+        return loss_all, sloss, vloss, eloss
 
 
 # def main():
 
 
 env = normalize(HistoryEnv(
-    RockSampleEnv(map_name="5x7", observation_type="field_vision_full_pos", observation_noise=False)
+    RockSampleEnv(map_name="5x7", observation_type="field_vision_full_pos", observation_noise=True)
     , n_steps=15), scale_reward=1)
-# env = gym.make("MountainCarContinuous-v0")
-# env = gym.make('Pendulum-v0')
-# env = gym.envs.make('Cart-Pole-v0')
 
-env.reset()
+# env = gym.envs.make('CartPole-v0')
+
+
 # seed = 1
 # np.random.seed(seed)
 # tf.set_random_seed(seed)
@@ -243,66 +241,85 @@ sess.run(tf.global_variables_initializer())
 discount_factor = 0.95
 num_iteration = 600
 timestep = 5000
-batchsize = 32
-epoch_per_iter = 15
+batchsize = 64
+epoch_per_iter = 35
+average_time = 1
 
-result = {'Reward':[], 'Entropy':[]}
 
-for i_iteration in range(num_iteration):
+all_result = []
+for i in range(average_time):
+    result = {'Reward': [], 'Entropy': []}
+    for i_iteration in range(num_iteration):
 
-    paths = rollouts(env=env, get_policy=policy_estimator.predict_action, timestep=timestep)
-    print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, np.sum(paths['reward'])/paths['nb_paths']))
+        paths = rollouts(env=env, get_policy=policy_estimator.predict_action, timestep=timestep, df=discount_factor)
 
-    ent = policy_estimator.predict_entropy(state_p=paths['states'])
-    result['Entropy'].append(ent)
-    print('Entropy of policy:{0}'.format(ent))
-    result['Reward'].append(np.sum(paths['reward']) / paths['nb_paths'])
+        ent = policy_estimator.predict_entropy(state_p=paths['states'])
+        result['Entropy'].append(ent)
 
-    # update value estimator
-    for epoch in range(epoch_per_iter):
+        # update policy & value estimator
         advantage, target = compute_advantage(get_value=value_estimator.predict,
                                               paths=paths,
                                               discount_factor=discount_factor)
-        for idx in next_batch_idx(batchsize, len(target)):
-            lossv = ppo.update_v(state_v=paths['states'][idx],
-                                 target_v=target[idx])
+        # calculate average return
+        # result['Reward'].append(np.sum(target) / paths['nb_paths'])
 
-    # update policy & value estimator
-    advantage, _ = compute_advantage(get_value=value_estimator.predict,
-                                          paths=paths,
-                                          discount_factor=discount_factor)
-    # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
-    advantage = advantage/np.std(advantage)
-    old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
-                                                     test_action_p=np.squeeze(paths['action']))
+        # print result
+        # print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration,
+        #                                                np.sum(paths['reward'])/paths['nb_paths']))
 
-    for epoch in range(epoch_per_iter):
-        for idx in next_batch_idx(batchsize,len(advantage)):
-            lossp = ppo.update_p(state_p=paths['states'][idx],
-                                 advantage_p=advantage[idx],
-                                 test_action_p=np.squeeze(paths['action'][idx]),
-                                 old_prob_p=old_log_prob[idx])
+        # average dicount reward
+        result['Reward'].append(paths['dis_avg_rwd'])
 
-    print('Loss: Value estimator:{0}, Policy estimator:{1}'.format(lossv, lossp))
+        print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, paths['dis_avg_rwd']))
+        print('Entropy of policy:{0}'.format(ent))
 
+        advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
 
+        old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
+                                                         test_action_p=np.squeeze(paths['action']))
 
-    if i_iteration % 100 == 0:
-
-        plt.figure(1)
-        plt.plot(result['Reward'])
-        plt.ylabel('Reward')
-        plt.title('Reward')
-
-        plt.figure(2)
-        plt.plot(result['Entropy'])
-        plt.ylabel('Entropy')
-        plt.title('Entropy')
-
-        plt.show()
+        for epoch in range(epoch_per_iter):
+            for idx in next_batch_idx(batchsize,len(advantage)):
+                loss_all, sloss, vloss, eloss = ppo.update_all(state=paths['states'][idx],
+                                       target_v=target[idx],
+                                     advantage_p=advantage[idx],
+                                     test_action_p=np.squeeze(paths['action'][idx]),
+                                     old_prob_p=old_log_prob[idx])
 
 
 
+        print('Loss: {0}'.format(loss_all))
+        print('Surrogate loss:{0}, Value loss:{1}, entropy loss:{2}'.format(sloss, vloss, eloss))
+    all_result.append(result)
+
+average_reward = np.mean([res['Reward'] for res in all_result], axis=0)
+# reward_std = np.std([res['Reward'] for res in all_result], axis=0)
+average_entropy = np.mean([res['Entropy'] for res in all_result], axis=0)
+# entropy_std = np.std([res['Entropy'] for res in all_result], axis=0)
+
+
+rewards_smoothed = pd.Series(average_reward).rolling(5, min_periods=5).mean()
+entropy_smoothed = pd.Series(average_entropy).rolling(5, min_periods=5).mean()
+
+
+# p_range = np.linspace(0, num_iteration-1)
+plt.figure(1)
+plt.plot(rewards_smoothed)
+# plt.fill_between(average_reward - reward_std,
+#                  average_reward + reward_std, alpha=0.2,
+#                  color="coral")
+plt.ylabel('Average Reward')
+plt.title('Average Reward over 10 times')
+
+plt.figure(2)
+plt.plot(entropy_smoothed)
+# plt.fill_between(average_entropy - entropy_std,
+#                  average_entropy + entropy_std, alpha=0.2,
+#                  color='coral')
+plt.ylabel('Average Entropy')
+plt.title('Average Entropy over 10 times')
+
+plt.show()
 
 
 
@@ -320,22 +337,3 @@ for i_iteration in range(num_iteration):
 #     main()
 
 
-
-# from rllab.misc.console import query_action,query_yes_no
-#
-#
-# obs = env.reset()
-# env.render()
-# while True:
-#     action = query_action()
-#     step = env.step(action)
-#     print("observation:", obs, "reward:", step.reward, "done:", step.done, "info:",
-#           step.info)
-#     obs = step.observation
-#     env.render()
-#     if step.done:
-#         if not query_yes_no('Continue simulation?'):
-#             break
-#         else:
-#             obs = env.reset()
-#             env.render()
