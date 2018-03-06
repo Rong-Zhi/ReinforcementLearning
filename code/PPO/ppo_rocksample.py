@@ -209,7 +209,7 @@ class PPO:
 
             self.surrogate_loss = -tf.reduce_mean(tf.multiply(ratio, self.advantage_p))
 
-            tmp = -tf.reduce_sum(tf.multiply(self.old_dist, tf.log(
+            tmp = tf.reduce_sum(tf.multiply(self.old_dist, tf.log(
                 tf.divide(self.old_dist, self.policy.action_p))),axis=1)
             self.loss_kl = tf.reduce_mean(tmp)
 
@@ -217,7 +217,7 @@ class PPO:
             self.beta = tf.cond(self.loss_kl > self.dtarg*1.5, lambda: self.beta*2, lambda: self.beta)
             self.beta = tf.cond(self.loss_kl < self.dtarg/1.5, lambda: self.beta/2, lambda: self.beta)
 
-            self.loss_all = self.surrogate_loss - self.beta * self.loss_kl
+            self.loss_all = self.surrogate_loss + self.beta * self.loss_kl
             self.train_all = tf.train.AdamOptimizer(self.lr).minimize(self.loss_all)
 
 
