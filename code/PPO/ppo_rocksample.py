@@ -1,19 +1,21 @@
 
+
+
+import gym
+import os
+
 import numpy as np
 import tensorflow as tf
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
-
-import gym
-
 from scipy.stats import entropy
 
 from rllab.envs.normalized_env import normalize
 from rllab.envs.pomdp.rock_sample_env import RockSampleEnv
 from rllab.envs.history_env import HistoryEnv
 
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = ''
 matplotlib.style.use('ggplot')
 
 
@@ -49,6 +51,7 @@ class Policy_net(object):
             self.action_p = tf.layers.dense(inputs=self.l2_p, units=self.act_space,
                                           activation=tf.nn.softmax,
                                           kernel_initializer=initial, name='output')
+
             # entropy
             self.entropy = tf.reduce_mean(tf.reduce_sum(-self.action_p * tf.log(self.action_p), axis=1))
 
@@ -70,11 +73,13 @@ class Policy_net(object):
         return self.sess.run(self.entropy, {self.states_p:np.asmatrix(state_p)})
 
     def predict_action(self, state_p):
-        return np.squeeze(self.sess.run(self.action, {self.states_p: np.asmatrix(state_p)}), axis=0)
+        return np.squeeze(self.sess.run(self.action, {self.states_p: np.asmatrix(state_p)}),
+                          axis=0)
 
     def predict_log_dist(self, state_p, test_action_p):
-        x = self.sess.run(self.new_log_prob_p, {self.states_p:state_p, self.test_action_p:test_action_p})
-        return x
+        return self.sess.run([self.action_p, self.new_log_prob_p],
+                             {self.states_p:state_p, self.test_action_p:test_action_p})
+
 
 
 
@@ -176,6 +181,8 @@ class PPO:
         self.epsilon = 0.2
         self.v_coef = 0.5
         self.ent_coef = 0.0
+        self.dtarg = 0.01
+        self.beta = 3.0
 
         with tf.variable_scope('ppo'):
             # loss for value estimator
@@ -185,32 +192,50 @@ class PPO:
 
             # loss for policy estimator
             self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
+            self.old_dist = tf.placeholder(tf.float32, shape=[None, None])
             self.old_log_prob_p = tf.placeholder(tf.float32, shape=[None], name='old_log_prob')
 
             ratio = tf.exp(self.policy.new_log_prob_p - self.old_log_prob_p)
 
             clip_p = tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
 
-            # loss and optimizer
-            self.surrogate_loss = -tf.reduce_mean(tf.minimum(tf.multiply(ratio, self.advantage_p),
-                                                             tf.multiply(clip_p, self.advantage_p)),
-                                                  name='surrogate_loss')
+            # loss and optimizer(clipping)
+            # self.surrogate_loss = -tf.reduce_mean(tf.minimum(tf.multiply(ratio, self.advantage_p),
+            #                                                  tf.multiply(clip_p, self.advantage_p)),
+            #                                       name='surrogate_loss')
+            #
+            # self.loss_all = self.surrogate_loss + self.v_coef * self.loss_v - self.ent_coef * self.policy.entropy
+            # self.train_all = tf.train.AdamOptimizer(self.lr).minimize(self.loss_all)
 
-            self.loss_all = self.surrogate_loss + self.v_coef * self.loss_v - self.ent_coef * self.policy.entropy
+            self.surrogate_loss = -tf.reduce_mean(tf.multiply(ratio, self.advantage_p))
+
+            tmp = -tf.reduce_sum(tf.multiply(self.old_dist, tf.log(
+                tf.divide(self.old_dist, self.policy.action_p))),axis=1)
+            self.loss_kl = tf.reduce_mean(tmp)
+
+
+            self.beta = tf.cond(self.loss_kl > self.dtarg*1.5, lambda: self.beta*2, lambda: self.beta)
+            self.beta = tf.cond(self.loss_kl < self.dtarg/1.5, lambda: self.beta/2, lambda: self.beta)
+
+            self.loss_all = self.surrogate_loss - self.beta * self.loss_kl
             self.train_all = tf.train.AdamOptimizer(self.lr).minimize(self.loss_all)
 
 
-
-    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p):
-        feed_dict = {self.value.states_v:state, self.target_v:target_v,
+    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p, old_dist):
+        feed_dict = {self.value.states_v: state, self.target_v: target_v,
                      self.policy.states_p: state, self.advantage_p: advantage_p,
                      self.policy.test_action_p: test_action_p,
-                     self.old_log_prob_p: old_prob_p}
-        _, loss_all, sloss, vloss, eloss = self.sess.run([self.train_all, self.loss_all,
-                                                          self.surrogate_loss, self.loss_v, self.policy.entropy],
-                                                         feed_dict=feed_dict)
-        return loss_all, sloss, vloss, eloss
+                     self.old_log_prob_p: old_prob_p, self.old_dist: old_dist}
+        # _, loss_all, sloss, vloss, eloss = self.sess.run([self.train_all, self.loss_all,
+        #                                                   self.surrogate_loss, self.loss_v, self.policy.entropy],
+        #                                                  feed_dict=feed_dict)
+        # return loss_all, sloss, vloss, eloss
 
+        _, loss_all, sloss, klloss = self.sess.run([self.train_all, self.loss_all,
+                                                    self.surrogate_loss, self.loss_kl],
+                                                   feed_dict=feed_dict)
+
+        return loss_all, sloss, klloss
 
 # def main():
 
@@ -275,21 +300,20 @@ for i in range(average_time):
 
         advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
 
-        old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
+        old_dist, old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
                                                          test_action_p=np.squeeze(paths['action']))
 
         for epoch in range(epoch_per_iter):
             for idx in next_batch_idx(batchsize,len(advantage)):
-                loss_all, sloss, vloss, eloss = ppo.update_all(state=paths['states'][idx],
-                                       target_v=target[idx],
-                                     advantage_p=advantage[idx],
-                                     test_action_p=np.squeeze(paths['action'][idx]),
-                                     old_prob_p=old_log_prob[idx])
-
-
+                loss_all, sloss, klloss= ppo.update_all(state=paths['states'][idx],
+                                                        target_v=target[idx],
+                                                        advantage_p=advantage[idx],
+                                                        test_action_p=np.squeeze(paths['action'][idx]),
+                                                        old_prob_p=old_log_prob[idx],
+                                                        old_dist=old_dist[idx])
 
         print('Loss: {0}'.format(loss_all))
-        print('Surrogate loss:{0}, Value loss:{1}, entropy loss:{2}'.format(sloss, vloss, eloss))
+        print('Surrogate loss:{0}, Value loss:{1}'.format(sloss,klloss))
     all_result.append(result)
 
 average_reward = np.mean([res['Reward'] for res in all_result], axis=0)
