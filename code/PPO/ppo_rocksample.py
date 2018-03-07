@@ -182,13 +182,14 @@ class PPO:
         self.v_coef = 0.5
         self.ent_coef = 0.0
         self.dtarg = 0.01
-        self.beta = 3.0
+        self.beta = 1.0
 
         with tf.variable_scope('ppo'):
             # loss for value estimator
             self.target_v = tf.placeholder(tf.float32, shape=[None, 1], name='target_v')
 
             self.loss_v = tf.losses.mean_squared_error(self.value.output_v, self.target_v)
+            self.train_v = tf.train.AdamOptimizer(self.lr).minimize(self.loss_v)
 
             # loss for policy estimator
             self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
@@ -197,7 +198,7 @@ class PPO:
 
             ratio = tf.exp(self.policy.new_log_prob_p - self.old_log_prob_p)
 
-            clip_p = tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
+            # clip_p = tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
 
             # loss and optimizer(clipping)
             # self.surrogate_loss = -tf.reduce_mean(tf.minimum(tf.multiply(ratio, self.advantage_p),
@@ -209,19 +210,24 @@ class PPO:
 
             self.surrogate_loss = -tf.reduce_mean(tf.multiply(ratio, self.advantage_p))
 
-            tmp = tf.reduce_sum(tf.multiply(self.old_dist, tf.log(
+            self.tmp = tf.reduce_sum(tf.multiply(self.old_dist, tf.log(
                 tf.divide(self.old_dist, self.policy.action_p))),axis=1)
-            self.loss_kl = tf.reduce_mean(tmp)
+            self.loss_kl = tf.reduce_mean(self.tmp)
 
 
-            self.beta = tf.cond(self.loss_kl > self.dtarg*1.5, lambda: self.beta*2, lambda: self.beta)
-            self.beta = tf.cond(self.loss_kl < self.dtarg/1.5, lambda: self.beta/2, lambda: self.beta)
+            # self.beta = tf.cond(self.loss_kl > self.dtarg*1.5, lambda: self.beta*2, lambda: self.beta)
+            # self.beta = tf.cond(self.loss_kl < self.dtarg/1.5, lambda: self.beta/2, lambda: self.beta)
 
             self.loss_all = self.surrogate_loss + self.beta * self.loss_kl
             self.train_all = tf.train.AdamOptimizer(self.lr).minimize(self.loss_all)
 
 
+    def update_v(self, state, target_v):
+        _, lossv = self.sess.run([self.train_v, self.loss_v],{self.value.states_v:state, self.target_v:target_v})
+        return lossv
+
     def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p, old_dist):
+
         feed_dict = {self.value.states_v: state, self.target_v: target_v,
                      self.policy.states_p: state, self.advantage_p: advantage_p,
                      self.policy.test_action_p: test_action_p,
@@ -240,11 +246,11 @@ class PPO:
 # def main():
 
 
-env = normalize(HistoryEnv(
-    RockSampleEnv(map_name="5x7", observation_type="field_vision_full_pos", observation_noise=True)
-    , n_steps=15), scale_reward=1)
+# env = normalize(HistoryEnv(
+#     RockSampleEnv(map_name="5x7", observation_type="field_vision_full_pos", observation_noise=True)
+#     , n_steps=15), scale_reward=1)
 
-# env = gym.envs.make('CartPole-v0')
+env = gym.envs.make('CartPole-v0')
 
 
 # seed = 1
@@ -300,6 +306,17 @@ for i in range(average_time):
 
         advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
 
+        for epoch in range(epoch_per_iter):
+            for idx in next_batch_idx(batchsize,len(advantage)):
+                lossv = ppo.update_v(state=paths['states'][idx],
+                                     target_v=target[idx])
+
+        # update policy & value estimator
+        advantage, target = compute_advantage(get_value=value_estimator.predict,
+                                              paths=paths,
+                                              discount_factor=discount_factor)
+        advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+
         old_dist, old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
                                                          test_action_p=np.squeeze(paths['action']))
 
@@ -313,7 +330,7 @@ for i in range(average_time):
                                                         old_dist=old_dist[idx])
 
         print('Loss: {0}'.format(loss_all))
-        print('Surrogate loss:{0}, Value loss:{1}'.format(sloss,klloss))
+        print('Surrogate loss:{0}, kl loss:{1}, value loss:{2}'.format(sloss, klloss, lossv))
     all_result.append(result)
 
 average_reward = np.mean([res['Reward'] for res in all_result], axis=0)
