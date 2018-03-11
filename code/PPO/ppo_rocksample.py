@@ -61,7 +61,7 @@ class Policy_net(object):
             self.entropy = tf.reduce_mean(tf.reduce_sum(-self.action_dist * self.action_log_dist, axis=1))
 
             # action will be taken
-            self.action = tf.multinomial(self.action_dist, 1)
+            self.action = tf.multinomial(self.action_log_dist, 1)
 
             # self.new_log_prob_p = lambda s: self.sess.run(self.action_p, {self.states_p: s})[:, self.test_action_p]
             self.new_log_prob_p = self.get_idx_value(self.action_log_dist, self.test_action_p)
@@ -74,15 +74,12 @@ class Policy_net(object):
         value = tf.gather(x_flat, inds*shape[1] + idx)
         return value
 
-    # def predict_entropy(self, state_p):
-    #     return self.sess.run(self.entropy, {self.states_p:np.asmatrix(state_p)})
-
     def predict_action(self, state_p):
         return np.squeeze(self.sess.run(self.action, {self.states_p: np.asmatrix(state_p)}), axis=0)
 
 
     def predict_results(self, state_p, test_action_p):
-        return self.sess.run([self.entropy, self.action_dist, self.new_log_prob_p],
+        return self.sess.run([self.entropy, self.action_dist, self.action_log_dist, self.new_log_prob_p],
                              {self.states_p:state_p, self.test_action_p:test_action_p})
 
 
@@ -113,7 +110,6 @@ class Value_net(object):
                                         kernel_initializer=initial, name='vl1')
             self.l2_v = tf.layers.dense(self.l1_v, 32, activation=activ,
                                         kernel_initializer=initial, name='vl2')
-
             # output
             self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=None,
                                             kernel_initializer=initial, name='output')
@@ -187,7 +183,7 @@ class PPO:
         self.v_coef = 0.5
         self.ent_coef = 0.0
         self.dtarg = 0.01
-        self.beta = 10000.0
+        self.beta = 1.0
 
         with tf.variable_scope('ppo'):
             # loss for value estimator
@@ -199,6 +195,7 @@ class PPO:
             # loss for policy estimator
             self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
             self.old_dist = tf.placeholder(tf.float32, shape=[None, None])
+            self.old_log_dist = tf.placeholder(tf.float32, shape=[None, None])
             self.old_log_prob_p = tf.placeholder(tf.float32, shape=[None], name='old_log_prob')
 
             ratio = tf.exp(self.policy.new_log_prob_p - self.old_log_prob_p)
@@ -215,13 +212,15 @@ class PPO:
 
             self.surrogate_loss = -tf.reduce_mean(tf.multiply(ratio, self.advantage_p))
 
-            self.loss_kl = tf.reduce_mean(tf.reduce_sum(self.old_dist * (tf.log(self.old_dist+TINY) -
-                                                                          tf.log(self.policy.action_dist+TINY)), axis=1))
+            self.loss_kl = tf.reduce_mean(tf.reduce_sum(self.old_dist * (self.old_log_dist
+                                                                         - self.policy.action_log_dist), axis=1))
 
             # self.beta = tf.cond(self.loss_kl > self.dtarg*1.5, lambda: self.beta*2, lambda: self.beta)
             # self.beta = tf.cond(self.loss_kl < self.dtarg/1.5, lambda: self.beta/2, lambda: self.beta)
 
             self.loss_all = self.surrogate_loss + self.beta * self.loss_kl
+            # self.loss_all = self.surrogate_loss
+            # self.loss_all  = -tf.reduce_mean(tf.multiply(self.policy.new_log_prob_p, self.advantage_p))
 
             self.optmizer = tf.train.AdamOptimizer(self.lr)
             # self.grads_k = self.optmizer.compute_gradients(self.surrogate_loss)
@@ -234,12 +233,13 @@ class PPO:
         _, lossv = self.sess.run([self.train_v, self.loss_v],{self.value.states_v:state, self.target_v:target_v})
         return lossv
 
-    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p, old_dist):
+    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p, old_dist, old_log_dist):
 
         feed_dict = {self.value.states_v: state, self.target_v: target_v,
                      self.policy.states_p: state, self.advantage_p: advantage_p,
                      self.policy.test_action_p: test_action_p,
-                     self.old_log_prob_p: old_prob_p, self.old_dist: old_dist}
+                     self.old_log_prob_p: old_prob_p, self.old_dist: old_dist,
+                     self.old_log_dist:old_log_dist}
 
         _, loss_all, sloss, klloss = self.sess.run([self.train_all, self.loss_all,
                                                     self.surrogate_loss, self.loss_kl],
@@ -280,12 +280,12 @@ sess.run(tf.global_variables_initializer())
 # tf.summary.FileWriter('./log', sess.graph)
 
 discount_factor = 0.95
-num_iteration = 1000
+num_iteration = 700
 timestep = 5000
 batchsize = 32
 epoch_per_iter = 15
 average_time = 1
-
+kl_target = 0.01
 
 all_result = []
 for i in range(average_time):
@@ -316,12 +316,12 @@ for i in range(average_time):
                                               discount_factor=discount_factor)
         advantage = (advantage - advantage.mean()) / (advantage.std() + TINY)
 
-        ent, old_dist, old_log_prob = policy_estimator.predict_results(state_p=paths['states'],
+        ent, old_dist, old_log_dist, old_log_prob = policy_estimator.predict_results(state_p=paths['states'],
                                                          test_action_p=np.squeeze(paths['action']))
-        print(old_dist, old_log_prob)
+        # print(old_dist, old_log_prob)
         result['Entropy'].append(ent)
         print('Entropy of policy:{0}'.format(ent))
-
+        print(paths['action'].shape, advantage.shape)
         for epoch in range(epoch_per_iter):
             for idx in next_batch_idx(batchsize,len(advantage)):
                 loss_all, sloss, klloss= ppo.update_all(state=paths['states'][idx],
@@ -329,9 +329,17 @@ for i in range(average_time):
                                                         advantage_p=advantage[idx],
                                                         test_action_p=np.squeeze(paths['action'][idx]),
                                                         old_prob_p=old_log_prob[idx],
-                                                        old_dist=old_dist[idx])
+                                                        old_dist=old_dist[idx],
+                                                        old_log_dist=old_log_dist[idx])
                 # print('S gradient:{0}, K gradient:{1}'.format(sgrad, kgrad))
+                if klloss > 4 * kl_target:
+                    break
 
+            if klloss < kl_target / 1.5:
+                ppo.beta /= 2
+            elif klloss > kl_target * 1.5:
+                ppo.beta *= 2
+            ppo.beta = np.clip(ppo.beta, 1e-4, 30)
         print('Loss: {0}'.format(loss_all))
         # print('Surrogate loss:{0}, kl loss:{1}, value loss:{2}'.format(sloss, klloss, lossv))
         print('Surrogate loss:{0}, kl loss:{1}'.format(sloss, klloss))

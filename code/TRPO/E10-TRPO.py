@@ -96,8 +96,6 @@ class Policy_net(object):
         self.hidden_size = hidden_sizes
 
 
-    def build(self):
-
         # tensorflow placeholder
         self.states = tf.placeholder(tf.float32, shape=[self.state_space] ,name='states') # modify shape later
         self.action = tf.placeholder(tf.int64, shape=[None] ,name='action')
@@ -105,8 +103,8 @@ class Policy_net(object):
         self.prev_policy_dist = tf.placeholder(tf.float32, shape=[None, self.act_space], name='prev_policy')
 
         # neural network
-        self.layer1 = tf.layers.dense(self.states, self.hidden_size[0], activation=tf.nn.relu)
-        self.layer2 = tf.layers.dense(self.layer1, self.hidden_size[1], activation=tf.nn.relu)
+        self.layer1 = tf.layers.dense(self.states, self.hidden_size[0], activation=tf.nn.tanh)
+        self.layer2 = tf.layers.dense(self.layer1, self.hidden_size[1], activation=tf.nn.tanh)
 
         # output
         self.output = tf.layers.dense(self.layer2, self.act_space)
