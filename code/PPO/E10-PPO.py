@@ -55,8 +55,6 @@ class Policy_net(object):
             self.action_p = self.new_policy_dist_p.sample()
             # self.action_p = tf.clip_by_value(self.action_p, self.act_low, self.act_high)
 
-
-            # intermediate result
             self.new_log_prob_p = tf.expand_dims(self.new_policy_dist_p.log_prob(self.test_action_p), axis=-1)
 
 
@@ -108,7 +106,8 @@ def rollout(env, get_policy):
     done = False
     while not done:
         action = get_policy(state_p=state)
-        next_state, reward, done, _ = env.step(np.minimum(np.maximum(action, env.action_space.low), env.action_space.high))
+        next_state, reward, done, _ = env.step(
+            np.minimum(np.maximum(action, env.action_space.low), env.action_space.high))
         yield state, action, reward, done
         state = next_state
 

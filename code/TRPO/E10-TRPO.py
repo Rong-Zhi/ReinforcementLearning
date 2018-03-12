@@ -90,11 +90,9 @@ def flatgrad(loss, var_list):
 class Policy_net(object):
     """
     Actor net: build neural network with 2 hidden layers,
-                each layer contains 64 neurons,
+                each layer contains 32 neurons,
                 output of network is mu and sigma of gaussian distribution,
 
-                learning_rate = 0.0001
-                epsilon = 0.2
     """
     def __init__(self, env, sess):
 
@@ -116,16 +114,16 @@ class Policy_net(object):
             self.l2_p = tf.layers.dense(self.l1_p, 64, activation=activ,
                                         kernel_initializer=initial,name='pl2')
 
+            # # weights
+            # self.w1_p = tf.get_variable('pl1/kernel')
+            # self.w2_p = tf.get_variable('pl2/kernel')
+
             # outputs
             self.mu = tf.layers.dense(inputs=self.l2_p, units=self.act_space, activation=None,
                                       kernel_initializer=initial, name='mu')
 
-            # self.sigma = tf.layers.dense(self.l2, self.act_space, activation=tf.nn.relu, kernel_initializer=tf.glorot_uniform_initializer(), name='sigma')
-            # self.sigma = tf.nn.softplus(self.sigma) + 1e-5
-
-
-            self.sigma = tf.Variable(np.log(self.init_sigma) * tf.ones([1, self.act_space]))
-            self.sigma = tf.exp(self.sigma)
+            self.sig = tf.Variable(np.log(self.init_sigma) * tf.ones([1, self.act_space]))
+            self.sigma = tf.exp(self.sig)
 
             # check the exploration situation
             self.entropy = tf.reduce_sum(self.sigma) + self.act_space * np.log(2 * np.pi * np.e) / 2
@@ -133,10 +131,6 @@ class Policy_net(object):
             # action probability and action
             self.new_policy_dist_p = tf.contrib.distributions.MultivariateNormalDiag(self.mu, self.sigma)
             self.action_p = self.new_policy_dist_p.sample()
-            # self.action_p = tf.clip_by_value(self.action_p, self.act_low, self.act_high)
-
-
-            # intermediate result
             self.new_log_prob_p = tf.expand_dims(self.new_policy_dist_p.log_prob(self.test_action_p), axis=-1)
 
 
@@ -151,8 +145,7 @@ class Policy_net(object):
 class Value_net(object):
     """
     Critic net: build neural network with 2 hidden layers,
-                each layer contains 64 neurons,
-                learning rate = 0.0002
+                each layer contains 32 neurons,
                 optimizer -- Adamoptimizer
     """
     def __init__(self, env, sess):
@@ -177,7 +170,6 @@ class Value_net(object):
             # output
             self.output_v = tf.layers.dense(inputs=self.l2_v, units=1, activation=None,
                                             kernel_initializer=initial, name='output')
-            # self.value_estimate = tf.squeeze(self.output_v, name='squeeze_output')
 
     def predict(self, state_v):
         return self.sess.run(self.output_v, {self.states_v : state_v})
@@ -188,7 +180,8 @@ def rollout(env, get_policy):
     done = False
     while not done:
         action = get_policy(state_p=state)
-        next_state, reward, done, _ = env.step(np.minimum(np.maximum(action, env.action_space.low), env.action_space.high))
+        next_state, reward, done, _ = env.step(
+            np.minimum(np.maximum(action, env.action_space.low), env.action_space.high))
         yield state, action, reward, done
         state = next_state
 
@@ -232,10 +225,12 @@ def next_batch_idx(batch_size, data_set_size):
 
 
 class PPO:
-    def __init__(self, sess, policy_estimator, value_estimator):
+    def __init__(self, sess, env, policy_estimator, value_estimator):
         self.sess = sess
         self.policy = policy_estimator
         self.value = value_estimator
+        self.act_space = env.action_space.shape[0]
+        self.env_space = env.observation_space[0]
         self.vlr = 4e-4
         self.plr = 5e-4
         self.epsilon = 0.2
@@ -251,13 +246,27 @@ class PPO:
 
             # loss for policy estimator
             self.advantage_p = tf.placeholder(tf.float32, shape=[None, 1], name='advantage')
-            self.old_log_prob_p = tf.placeholder(tf.float32, shape=[None, 1], name='old_log_prob')
+            self.old_log_prob_p = tf.placeholder(tf.float32, shape=[None, self.act_space], name='old_log_prob')
+            self.old_mu = tf.placeholder(tf.float32, shape=[None, self.act_space], name='old_mu')
+            self.old_sigma = tf.placeholder(tf.float32, shape=[None, self.act_space], name='old_simga')
 
             ratio = tf.exp(self.policy.new_log_prob_p - self.old_log_prob_p)
 
             # loss and optimizer
             self.surrogate_loss = -tf.reduce_mean(tf.multiply(ratio, self.advantage_p),
                                                   name='surrogate_loss')
+            self.kloldnew =  tf.reduce_sum(tf.log(self.policy.sigma/self.old_sigma),1) +\
+                            tf.reduce_sum(tf.div((tf.square(self.old_sigma) + tf.square(self.old_mu - self.policy.mu)),
+                                          2 * tf.square(self.policy.sigma)), 1) - 0.5 * self.act_space
+
+            self.meankl = tf.reduce_mean(self.kloldnew)
+
+            # intermediate results
+            var_list = [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='policy')]
+            klgrad = tf.gradients(self.meankl, var_list, name='kl_grad')
+            pigrad = tf.gradients(self.surrogate_loss, var_list, name='pi_grad')
+
+
 
 
             self.optimizer_p = tf.train.AdamOptimizer(learning_rate=self.plr)
@@ -266,6 +275,10 @@ class PPO:
             self.loss_all = self.surrogate_loss + self.loss_v * self.v_coef
             self.train_optimizer_all = tf.train.AdamOptimizer(self.plr).minimize(self.loss_all)
 
+    # def get_flat(self, grads, varlist):
+    #     flat_grads = []
+    #     for grad, var in zip(grads, varlist):
+    #         flat_grads.append(tf.reshape(grad, shape=[np.prod(var.get_shape().as_list())]))
 
 
     def update_v(self, state_v, target_v):
