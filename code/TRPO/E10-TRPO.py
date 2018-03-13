@@ -266,8 +266,14 @@ class PPO:
             klgrad = tf.gradients(self.meankl, var_list, name='kl_grad')
             pigrad = tf.gradients(self.surrogate_loss, var_list, name='pi_grad')
 
+            self.pi_grads = self.get_flat(pigrad, var_list)
 
+            self.flat_varlist = tf.placeholder(tf.float32, shape=[None], name='flat_tagent')
 
+            tangent = self.set_from_flat(self.flat_varlist)
+            gvp = [tf.reduce_sum(tg * kg) for tg,kg in zip(tangent, klgrad)]
+
+            self.fvp = self.get_flat(gvp, var_list) # from now on
 
             self.optimizer_p = tf.train.AdamOptimizer(learning_rate=self.plr)
             self.train_op_p = self.optimizer_p.minimize(self.surrogate_loss)
@@ -275,11 +281,21 @@ class PPO:
             self.loss_all = self.surrogate_loss + self.loss_v * self.v_coef
             self.train_optimizer_all = tf.train.AdamOptimizer(self.plr).minimize(self.loss_all)
 
-    # def get_flat(self, grads, varlist):
-    #     flat_grads = []
-    #     for grad, var in zip(grads, varlist):
-    #         flat_grads.append(tf.reshape(grad, shape=[np.prod(var.get_shape().as_list())]))
+    def get_flat(self, grads, varlist):
+        flat_grads = []
+        for grad, var in zip(grads, varlist):
+            flat_grads.append(tf.reshape(grad, shape=[np.prod(var.get_shape().as_list())]))
 
+    def set_from_flat(self, varlist):
+        grads = []
+        start_size = 0
+        for var in varlist:
+            shape = var.get_shape().as_list()
+            varsize = np.prod(shape)
+            grad = tf.reshape(varlist[start_size:(start_size + varsize)], shape=shape)
+            grads.append(grad)
+            start_size += varsize
+        return grads
 
     def update_v(self, state_v, target_v):
         feed_dict = {self.value.states_v: state_v, self.target_v: target_v}
@@ -296,14 +312,6 @@ class PPO:
                                         feed_dict=feed_dict)
         return loss_p
 
-    def update_all(self, state, target_v, advantage_p, test_action_p, old_prob_p):
-
-        feed_dict = {self.value.states_v:state, self.target_v: target_v,
-                     self.policy.states_p:state, self.advantage_p: advantage_p,
-                     self.policy.test_action_p:test_action_p,
-                     self.old_log_prob_p:old_prob_p}
-
-        self.sess.run([self.train_optimizer_all], feed_dict=feed_dict)
 
 # def main():
 env = gym.make("MountainCarContinuous-v0")
@@ -341,45 +349,27 @@ for i_iteration in range(num_iteration):
     result['Reward'].append(np.sum(paths['reward']) / paths['nb_paths'])
 
     # Actor-Critic style
-
-    # update value estimator
-    # for epoch in range(epoch_per_iter):
-    #     advantage, target = compute_advantage(get_value=value_estimator.predict,
-    #                                           paths=paths,
-    #                                           discount_factor=discount_factor)
-    #     for idx in next_batch_idx(batchsize, len(target)):
-    #         lossv = ppo.update_v(state_v=paths['states'][idx],
-    #                              target_v=target[idx])
-    #
-    # # update policy & value estimator
-    # advantage, _ = compute_advantage(get_value=value_estimator.predict,
-    #                                       paths=paths,
-    #                                       discount_factor=discount_factor)
-    # # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
-    # advantage = advantage/np.std(advantage)
-    # old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
-    #                                                  action_p=paths['action'])
-    # for epoch in range(epoch_per_iter):
-    #     for idx in next_batch_idx(batchsize,len(advantage)):
-    #         lossp = ppo.update_p(state_p=paths['states'][idx],
-    #                              advantage_p=advantage[idx],
-    #                              test_action_p=paths['action'][idx],
-    #                              old_prob_p=old_log_prob[idx])
-
-
-    # Update using one loss
     advantage, target = compute_advantage(get_value=value_estimator.predict,
                                           paths=paths,
                                           discount_factor=discount_factor)
+    # update value estimator
+    for epoch in range(epoch_per_iter):
 
+        for idx in next_batch_idx(batchsize, len(target)):
+            lossv = ppo.update_v(state_v=paths['states'][idx],
+                                 target_v=target[idx])
+
+    # update policy & value estimator
+    advantage, _ = compute_advantage(get_value=value_estimator.predict,
+                                          paths=paths,
+                                          discount_factor=discount_factor)
     # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
-    advantage = advantage / np.std(advantage)
+    advantage = advantage/np.std(advantage)
     old_log_prob = policy_estimator.predict_log_dist(state_p=paths['states'],
                                                      action_p=paths['action'])
     for epoch in range(epoch_per_iter):
         for idx in next_batch_idx(batchsize,len(advantage)):
-            ppo.update_all(state=paths['states'][idx],
-                                   target_v=target[idx],
+            lossp = ppo.update_p(state_p=paths['states'][idx],
                                  advantage_p=advantage[idx],
                                  test_action_p=paths['action'][idx],
                                  old_prob_p=old_log_prob[idx])
@@ -402,15 +392,6 @@ plt.title('Entropy')
 plt.show()
 
 
-    # state = env.reset()
-    # while True:
-    #     env.render()
-    #     action = policy_estimator.predict_action(state_p=state)
-    #     next_state, reward, done, _ = env.step(action)
-    #     # if done:
-    #     #     break
-    #     state = next_state
 
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
