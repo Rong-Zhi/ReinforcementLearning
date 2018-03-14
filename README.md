@@ -1,7 +1,6 @@
-# ReinforcementLearning
+# My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
 
-Here are my Notes, Exercises, as well as Summaries for Reinforcement Learning. Some images can't be shown on github, but it is possible to visit them from iPython Notebook.
-
+Nowadays, deep reinforcement learning is 
 
 E1: Get to know [OPEN AI Gym](https://github.com/Rong-Zhi/ReinforcementLearning/code/openai_gym) 
 
