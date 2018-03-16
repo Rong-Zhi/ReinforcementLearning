@@ -1,5 +1,5 @@
 # My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
-** Supervisor from IAS lab: Dr.Joni Pajarinen **
+**Supervisor from IAS lab: Dr.Joni Pajarinen**
 
 Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, which is the so-called POMDP problem. In autonomous driving, the agent car receives signals from noisy sensors and the envrionment of the real world is always partial observable, to address such problems, we will implement different algorithms, try to improve one of them or propose our own algorithm on CARLA.
 
@@ -7,7 +7,7 @@ Deep reinforcement learning has made huge progress in recent years with the help
 
 [CARLA](http://www.carla.org/) is an open-source simulator for autonomous research, supporting development, training, and validation of autonomous urban driving systems. In addition to open-source code and protocols, CARLA provides open digital assets (urban layouts, buildings, vehicles) that were created for this purpose and can be used freely. The simulation platform supports flexible specification of sensor suites and environmental conditions.
 
-*** 15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator
+**15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator**
 
 We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, and changing the behaviour of pedestrians on CARLA.
 
