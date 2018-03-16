@@ -9,8 +9,7 @@ Deep reinforcement learning has made huge progress in recent years with the help
 
 -- **15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator**
 
-We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, and changing the behaviour of pedestrians on CARLA.
-
+We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, or changing the behaviour of pedestrians on CARLA. Then run the simulator via python client for controlling the vehicle and saving data to disk.
 
 ## Approaches for representing POMDP policies:
 
