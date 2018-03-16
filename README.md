@@ -8,7 +8,7 @@ which is the so-called POMDP problem. In autonomous driving, the agent car recei
 
 (structure)
 
-## CARLA
+## Application: CARLA
 (application)
 
 [CARLA](http://www.carla.org/) is an open-source simulator for autonomous research, supporting development, training, and validation of autonomous urban driving systems. In addition to open-source code and protocols, CARLA provides open digital assets (urban layouts, buildings, vehicles) that were created for this purpose and can be used freely. The simulation platform supports flexible specification of sensor suites and environmental conditions.
