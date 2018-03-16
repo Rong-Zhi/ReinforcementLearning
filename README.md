@@ -1,4 +1,4 @@
-# My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
+# Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
 **Supervisor from IAS lab: Dr. Joni Pajarinen**
 
 Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. partial observability is important in real world problems. For example, In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, 
