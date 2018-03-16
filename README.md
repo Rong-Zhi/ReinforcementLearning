@@ -1,4 +1,5 @@
 # My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
+## Supervisor from IAS lab: Dr.Joni Pajarinen
 
 Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, which is the so-called POMDP problem. In autonomous driving, the agent car receives signals from noisy sensors and the envrionment of the real world is always partial observable, to address such problems, we will implement different algorithms, try to improve one of them or propose our own algorithm on CARLA.
 
@@ -17,7 +18,7 @@ We can build a POMDP environment by changing the weather conditions, setting the
 COPOS
 ### Belief-based MDP control
 It is a common approach to use belief-based MDP to solve PODMP problems. We will also consider it in future work.
-## General algorithms in RL
+### General algorithms in RL
 
 Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
 
@@ -32,6 +33,9 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 ## Timeline:
 Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/blob/master/Timeplan.pdf) for detailed information.
 
+## Equipment
+CARLA is built on a PC in IAS lab, with Ubuntu 17.10 system, 16GB memory, Intel core i5-8400 CPU (2.8GHz*6), GeForce GTX 1060 (3GB) graphic card. The following training/testing processes will also be implemented on this PC.
+ 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
 - [Deep Reinforcement learning for POMDPs](http://www.ausy.tu-darmstadt.de/uploads/Team/JoniPajarinen/master_thesis_hong_linh_thai_2018.pdf) master thesis of Thai, H. L.
