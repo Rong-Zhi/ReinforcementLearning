@@ -30,7 +30,7 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 [Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPS environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
 
 ## Timeline:
-Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/blob/master/Timeplan.pages) for detailed information.
+Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/blob/master/Timeplan.pdf) for detailed information.
 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
