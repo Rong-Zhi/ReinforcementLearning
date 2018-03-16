@@ -32,7 +32,7 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
-- []
+- [Deep Reinforcement learning for POMDPs](http://www.ausy.tu-darmstadt.de/uploads/Team/JoniPajarinen/master_thesis_hong_linh_thai_2018.pdf) master thesis of Thai, H. L.
 - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477) from Schulman et al.
 - [Relative Entropy Policy Search] [paper](https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf) from Peters et al.
 - [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) from Schulman et al.
