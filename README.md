@@ -33,6 +33,7 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 ## Timeline:
 Start Date: TBD
 End Date: TBD
+
 Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/blob/master/Timeplan.pdf) for detailed information.
 
 ## Equipment
