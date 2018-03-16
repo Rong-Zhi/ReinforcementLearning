@@ -1,5 +1,5 @@
 # My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
-## Supervisor from IAS lab: Dr.Joni Pajarinen
+** Supervisor from IAS lab: Dr.Joni Pajarinen **
 
 Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, which is the so-called POMDP problem. In autonomous driving, the agent car receives signals from noisy sensors and the envrionment of the real world is always partial observable, to address such problems, we will implement different algorithms, try to improve one of them or propose our own algorithm on CARLA.
 
