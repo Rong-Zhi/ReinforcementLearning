@@ -1,17 +1,25 @@
 # My Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
 **Supervisor from IAS lab: Dr. Joni Pajarinen**
 
-Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, which is the so-called POMDP problem. In autonomous driving, the agent car receives signals from noisy sensors and the envrionment of the real world is always partial observable, to address such problems, we will implement different algorithms, try to improve one of them or propose our own algorithm on CARLA.
+Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. partial observability is important in real world problems. For example, In real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player, 
+In Autonomous driving, the car's sensors give a lot of information but e.g. cars behind corners, pedestrians behind cars cannot be observed using current sensors ....
+POMDP is the standard model for 
+which is the so-called POMDP problem. In autonomous driving, the agent car receives signals from noisy sensors and the envrionment of the real world is always partial observable, to address such problems, we will implement different algorithms, try to improve one of them or propose our own algorithm on CARLA.
+
+(structure)
 
 ## CARLA
-
+(application)
 [CARLA](http://www.carla.org/) is an open-source simulator for autonomous research, supporting development, training, and validation of autonomous urban driving systems. In addition to open-source code and protocols, CARLA provides open digital assets (urban layouts, buildings, vehicles) that were created for this purpose and can be used freely. The simulation platform supports flexible specification of sensor suites and environmental conditions.
 
 -- **15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator**
 
 We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, or changing the behaviour of pedestrians on CARLA. Then run the simulator via python client for controlling the vehicle and saving data to disk.
-
+(test algorithm on benchmark problems)
 ## Approaches for representing POMDP policies:
+(Motivation..)
+(Model-Free algorithms...)
+(Guided reinforcement learning)
 
 ### History-based control
 COPOS
