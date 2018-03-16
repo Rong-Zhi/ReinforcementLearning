@@ -16,7 +16,7 @@ We can build a POMDP environment by changing the weather conditions, setting the
 ### History-based control
 COPOS
 ### Belief-based MDP control
-
+It is a common approach to use belief-based MDP to solve PODMP problems. We will also consider it in future work.
 ## General algorithms in RL
 
 Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
