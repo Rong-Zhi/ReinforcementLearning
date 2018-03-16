@@ -14,24 +14,25 @@ We can build a POMDP environment by changing the weather conditions, setting the
 ## Approaches for representing POMDP policies:
 
 ### History-based control
-#### COPOS
+COPOS
 ### Belief-based MDP control
 
 ## General algorithms in RL
 
-Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://github.com/Rong-Zhi/ReinforcementLearning/code/REINFORCE) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
+Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
 
-Policy gradients -- [Actor Critic method](https://github.com/Rong-Zhi/ReinforcementLearning/code/Actor_Critic) with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien).
+Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/Actor_Critic) with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien).
 
-[Relative Entropy Policy search](https://github.com/Rong-Zhi/ReinforcementLearning/code/REPS) -- Policy search algorithm, implemented in Nchain problem of OPEN AI gym.
+[Relative Entropy Policy search](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REPS) -- Policy search algorithm, implemented in Nchain problem of OPEN AI gym.
 
-[Trust Region Policy Optmization](https://github.com/Rong-Zhi/ReinforcementLearning/code/TRPO)- Build simple MLP network  
+[Trust Region Policy Optmization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/TRPO)- Build simple MLP network  
 
-[Proximal Policy Optimization](https://github.com/Rong-Zhi/ReinforcementLearning/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPS environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
+[Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPS environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
 
 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
+- []
 - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477) from Schulman et al.
 - [Relative Entropy Policy Search] [paper](https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf) from Peters et al.
 - [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) from Schulman et al.
