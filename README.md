@@ -8,12 +8,14 @@ Deep reinforcement learning has made huge progress in recent years with the help
 
 *** 15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator
 
-We can build a POMDP problem by changing the weather conditions, setting the position of vehicles, and changing the behaviour of pedestrians on CARLA.
+We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, and changing the behaviour of pedestrians on CARLA.
 
 
 ## Approaches for representing POMDP policies:
 
-### Histtory-based control
+### History-based control
+### Belief-based MDP control
+
 
 E1: Get to know [OPEN AI Gym](https://github.com/Rong-Zhi/ReinforcementLearning/code/openai_gym) 
 
@@ -42,7 +44,6 @@ E9: [Relative Entropy Policy search](https://github.com/Rong-Zhi/ReinforcementLe
 E10: [Trust Region Policy Optmization](https://github.com/Rong-Zhi/ReinforcementLearning/code/TRPO)- Build simple MLP network  
 E10: [Proximal Policy Optimization](https://github.com/Rong-Zhi/ReinforcementLearning/code/PPO) -- build simple MLP network, first tested in continous space -- continuous mountaincar environment and pendulum environment, then tested in discrete POMDPS environment -- FVRS (Field Version Rock Sample)
 
-### Belief-based MDP control
 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
