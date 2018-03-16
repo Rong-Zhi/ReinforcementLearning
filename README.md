@@ -11,10 +11,9 @@ Deep reinforcement learning has made huge progress in recent years with the help
 We can build a POMDP problem by changing the weather conditions, setting the position of vehicles, and changing the behaviour of pedestrians on CARLA.
 
 
-## Algorithms to solve POMDPs
+## Approaches for representing POMDP policies:
 
-### Belief-based approaches
-### Information state
+### Histtory-based control
 
 E1: Get to know [OPEN AI Gym](https://github.com/Rong-Zhi/ReinforcementLearning/code/openai_gym) 
 
@@ -43,6 +42,7 @@ E9: [Relative Entropy Policy search](https://github.com/Rong-Zhi/ReinforcementLe
 E10: [Trust Region Policy Optmization](https://github.com/Rong-Zhi/ReinforcementLearning/code/TRPO)- Build simple MLP network  
 E10: [Proximal Policy Optimization](https://github.com/Rong-Zhi/ReinforcementLearning/code/PPO) -- build simple MLP network, first tested in continous space -- continuous mountaincar environment and pendulum environment, then tested in discrete POMDPS environment -- FVRS (Field Version Rock Sample)
 
+### Belief-based MDP control
 
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
