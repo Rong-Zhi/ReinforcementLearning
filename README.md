@@ -16,6 +16,8 @@ We can build a POMDP environment by changing the weather conditions, setting the
 As we described before, in POMDP problems, the agent does not directly observe the environment's state, and must make decisions under uncertainty of the true environment state. One method is model-free approach, which directly learn the policy by interactions with environment, and thus, without learning the model of the environment. An alternative solution could be model-based approach, which learns a POMDP model of the environment and afterwards compute an optimal policy based on the learned model. In this thesis, we will focus on model-free approaches.
 
 ### General algorithms in RL
+Here we implemented some model-free RL algorithms, we will use some of them (TRPO and PPO) as a baseline for POMDP problems.
+
 Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
 
 Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/Actor_Critic) with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien).
