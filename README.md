@@ -1,7 +1,7 @@
 # Master thesis -- Deep Reinforcement Learning under Uncertainty in Autonomous Driving
 **Supervisor from IAS lab: Dr. Joni Pajarinen**
 
-Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. Partial observability is important in real world problems, for example, in real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player. In Autonomous driving, receives signals from noisy sensors but just partial information of the surrounding environment, e.g. cars behind corners, pedestrians behind cars cannot be observed using current sensors, POMDP is the standard model for such cases. In this thesis, we will implement different algorithms, try to improve one of them or propose our own algorithm to solve POMDP problems in autonomous driving, train and test the algortihms on an open-source autonomus driving simulator -- CARLA.
+Deep reinforcement learning has made huge progress in recent years with the help of many breakthrough technologies. Computers could automatically learn to play Atari games at human level from raw pixels, AlphaGo could even beat the world champions at Go. Partial observability is important in real world problems, for example, in real-time strategy games, the player usually could only observe partial environments of the game, where the rest is unknown to the player. In Autonomous driving, receives signals from noisy sensors but just partial information of the surrounding environment, e.g. cars behind corners, pedestrians behind cars cannot be observed using current sensors, POMDP (Partial Observable Markov Decision Process) is the standard model for such cases. In this thesis, we will implement different algorithms, try to improve one of them or propose our own algorithm to solve POMDP problems in autonomous driving, train and test the algortihms on an open-source autonomus driving simulator -- CARLA.
 
 
 ## CARLA simulator introduction and modification
@@ -10,15 +10,13 @@ Deep reinforcement learning has made huge progress in recent years with the help
 
 -- **15.03.2018 updates: CARLA has published [0.8.0](https://github.com/carla-simulator/carla/tree/release_0.8.0), Create their own pedestrian models, Remove Automotive Materials dependencies, New cheap background mountains generator**
 
-We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, or changing the behaviour of pedestrians on CARLA. Then run the simulator via python client for controlling the vehicle and saving data to disk.
-
-To avoid unknown issues we could face in CARLA, we want thus test algorithms on other reinforcement learning benchmark tasks first, e.g.OpenAI Gym.
+We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, or changing the behaviour of pedestrians on CARLA. Then run the simulator via python client for controlling the vehicle and saving data to disk. To avoid unknown issues we could face in CARLA, we want thus test algorithms on other reinforcement learning benchmark tasks first, e.g.OpenAI Gym.
 
 ## Algorithms to solve POMDPs:
-(Motivation..)
 
-(Guided reinforcement learning)
-We are going to use model-free algorithms in this thesis, 
+As we described before, POMDP 
+
+Another solution for POMDPs is model-free approach, which directly learn the policy by interactions with environment, and has not been widely implemented so far due to the. We will use model-free approaches in this thesis, 
 
 ### General algorithms in RL
 Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
