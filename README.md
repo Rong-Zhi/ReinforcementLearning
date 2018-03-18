@@ -13,10 +13,7 @@ Deep reinforcement learning has made huge progress in recent years with the help
 We can build a POMDP environment by changing the weather conditions, setting the position of vehicles, or changing the behaviour of pedestrians on CARLA. Then run the simulator via python client for controlling the vehicle and saving data to disk. To avoid unknown issues we could face in CARLA, we want thus test algorithms on other reinforcement learning benchmark tasks first, e.g.OpenAI Gym.
 
 ## Algorithms to solve POMDPs:
-
-As we described before, POMDP 
-
-Another solution for POMDPs is model-free approach, which directly learn the policy by interactions with environment, and has not been widely implemented so far due to the. We will use model-free approaches in this thesis, 
+As we described before, in POMDP problems, the agent does not directly observe the environment's state, and must make decisions under uncertainty of the true environment state. One method is model-free approach, which directly learn the policy by interactions with environment, and thus, without learning the model of the environment. An alternative solution could be model-based approach, which learns a POMDP model of the environment and afterwards compute an optimal policy based on the learned model. In this thesis, we will focus on model-free approaches.
 
 ### General algorithms in RL
 Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
@@ -32,6 +29,7 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 ### COPOS
 
 ### Guided Reinforcement learning
+
 
 ## Timeline:
 Start Date: TBD
