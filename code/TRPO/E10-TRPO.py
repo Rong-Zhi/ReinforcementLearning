@@ -224,7 +224,7 @@ def next_batch_idx(batch_size, data_set_size):
         yield batch_idx_list[batch_start: min(batch_start+batch_size, data_set_size)]
 
 
-class PPO:
+class TRPO:
     def __init__(self, sess, env, policy_estimator, value_estimator):
         self.sess = sess
         self.policy = policy_estimator
@@ -326,7 +326,7 @@ sess = tf.Session()
 
 policy_estimator = Policy_net(env=env, sess=sess)
 value_estimator = Value_net(env=env, sess=sess)
-ppo = PPO(sess=sess, policy_estimator=policy_estimator,
+trpo = TRPO(sess=sess, policy_estimator=policy_estimator,
           value_estimator=value_estimator)
 
 sess.run(tf.global_variables_initializer())
@@ -356,7 +356,7 @@ for i_iteration in range(num_iteration):
     for epoch in range(epoch_per_iter):
 
         for idx in next_batch_idx(batchsize, len(target)):
-            lossv = ppo.update_v(state_v=paths['states'][idx],
+            lossv = trpo.update_v(state_v=paths['states'][idx],
                                  target_v=target[idx])
 
     # update policy & value estimator
@@ -369,7 +369,7 @@ for i_iteration in range(num_iteration):
                                                      action_p=paths['action'])
     for epoch in range(epoch_per_iter):
         for idx in next_batch_idx(batchsize,len(advantage)):
-            lossp = ppo.update_p(state_p=paths['states'][idx],
+            lossp = trpo.update_p(state_p=paths['states'][idx],
                                  advantage_p=advantage[idx],
                                  test_action_p=paths['action'][idx],
                                  old_prob_p=old_log_prob[idx])
