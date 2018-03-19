@@ -18,9 +18,9 @@ As we described before, in POMDP problems, the agent does not directly observe t
 ### General algorithms in RL
 Here we implemented some model-free RL algorithms, we will use some of them (TRPO and PPO) as baseline for POMDP problems.
 
-Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)) with Continuous Montain Car environment from Python scratch. Using Gaussian policy with RBF kernel (without baseline).
+Policy gradient -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REINFORCE(VPG)), [Actor Critic method](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/Actor_Critic), Policy gradient uses gradient ascent as optimization strategy and update the policy parameters in the direction of the gradient, which is easy to implement but hard to choose an appropriate learning rate.
 
-Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/Actor_Critic) with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien).
+We implemented REINFORCE with Continuous Montain Car environment from Python scratch, using Gaussian policy with RBF kernel (without baseline). And Actor-Critic method with Continuous Montain Car environment by tensorflow, aslo using Gaussian policy with RBF kernel(with baselien).
 
 [Relative Entropy Policy search](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REPS) -- REPS is a policy search algorithm that solve trust region problem by using a KL divergence bound.
 
