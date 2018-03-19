@@ -32,8 +32,10 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 Compatible policy search (COPOS)
 
 ### Guided Reinforcement learning
-
-
+In POMDP autonomous driving environment, the agent car observes relevant environmental features by sensors, which shows some additional possible problems compared to MDP, for example, expensive computational cost due to too much observed data, the agent car has to operate even with insufficient sensor data, 
+ Information gathering and exploitation. 
+ 
+ With a guided reinforcement learning approach, one can first learn policy by combining also the real states, we call it guided policy, then train the policy with this guided policy to ultimately improve the performance in abovementioned problems.
 ## Timeline:
 Start Date: TBD
 End Date: TBD
