@@ -22,7 +22,9 @@ Policy gradients -- [Monte Carlo Policy Gradient(REINFORCE)](https://git.ias.inf
 
 Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/Actor_Critic) with Continuous Montain Car environment by tensorflow. Using Gaussian policy with RBF kernel(with baselien).
 
-[Relative Entropy Policy search](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REPS) -- Policy search algorithm, implemented in Nchain problem of OPEN AI gym.
+[Relative Entropy Policy search](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REPS) -- REPS is a policy search algorithm that solve trust region problem by using a KL divergence bound.
+
+We implement it in Nchain problem of OPEN AI gym.
 
 [Trust Region Policy Optmization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/TRPO)- TRPO maximazes the surrogate loss function by adding a contraint on KL divergence to bound the differnce between old and new policy for each update, and has been successfully implemented for deep reinforcement learning.
 
@@ -30,7 +32,7 @@ Here we build a simple MLP network.
 
 [Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- PPO simplifies the constrained optmization problem by using a KL penalty term instead of KL constraint, another modification made by PPO is removing the KL penalty term altogether and using a clipped surrogate loss instead. It achieves better performance as TRPO in MuJoCo and RobotSchool environments.
 
-build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS.
+We build a simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS.
 
 ### COPOS
 Exploration and exploitation is one of the problems of model-free approaches, which could be even harder for POMDPs environment. Compatible policy search (COPOS) (Pajarinen et al. 2017) solve dual trust region optimization problem with embeded entropy regularization, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments.
