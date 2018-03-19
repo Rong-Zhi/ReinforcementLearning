@@ -26,10 +26,10 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 
 [Trust Region Policy Optmization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/TRPO)- Build simple MLP network  
 
-[Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPS environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
+[Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
 
 ### COPOS
-Compatible policy search (COPOS)
+Exploration and exploitation is one of the problems of model-free approaches, which could be even harder for POMDPs environment. Compatible policy search (COPOS) (Pajarinen et al. 2017) embeds entropy regularization in trust region optmization problem, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments.
 
 ### Guided Reinforcement learning
 In POMDP autonomous driving environment, the agent car observes relevant environmental features by sensors, which shows some additional possible problems compared to MDP, for example, expensive computational cost due to too much observed data, the agent car has to operate even with insufficient sensor data, 
