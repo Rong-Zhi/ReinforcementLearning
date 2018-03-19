@@ -35,7 +35,7 @@ Here we build a simple MLP network.
 We build a simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS.
 
 ### COPOS
-Exploration and exploitation is one of the problems of model-free approaches, which could be even harder for POMDPs environment. Compatible policy search (COPOS) (Pajarinen et al. 2017) solve dual trust region optimization problem with embeded entropy regularization, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments.
+Exploration and exploitation is one of the problems of model-free approaches, which could be even harder in POMDPs environment while the environment is partial observable. Compatible policy search (COPOS) (Pajarinen et al. 2017) solve dual trust region optimization problem with embeded entropy regularization, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments, and has been proved satisfactory results in challanging continous tasks and discrete patial observable tasks.
 
 ### Guided Reinforcement learning
 In POMDP autonomous driving environment, the agent car observes relevant environmental features by sensors, which shows some additional possible problems compared to MDP, for example, expensive computational cost due to too much observed data, the agent car has to operate even with insufficient sensor data, 
