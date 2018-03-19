@@ -51,3 +51,4 @@ CARLA is built on a PC in IAS lab, with Ubuntu 17.10 system, 16GB memory, Intel 
 - [Trust Region Policy Optimization](https://arxiv.org/abs/1502.05477) from Schulman et al.
 - [Relative Entropy Policy Search] [paper](https://pdfs.semanticscholar.org/ff47/526838ce85d77a50197a0c5f6ee5095156aa.pdf) from Peters et al.
 - [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) from Schulman et al.
+- [Learning Deep Control Policies for Autonomous Aerial Vehicles with MPC-Guided Policy Search](http://rll.berkeley.edu/icra2016mpcgps/ICRA16_MPCGPS) from Zhang et al.
