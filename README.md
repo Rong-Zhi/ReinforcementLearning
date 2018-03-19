@@ -24,12 +24,16 @@ Policy gradients -- [Actor Critic method](https://git.ias.informatik.tu-darmstad
 
 [Relative Entropy Policy search](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/REPS) -- Policy search algorithm, implemented in Nchain problem of OPEN AI gym.
 
-[Trust Region Policy Optmization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/TRPO)- Build simple MLP network  
+[Trust Region Policy Optmization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/TRPO)- TRPO maximazes the surrogate loss function by adding a contraint on KL divergence to bound the differnce between old and new policy for each update, and has been successfully implemented for deep reinforcement learning.
 
-[Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS
+Here we build a simple MLP network.
+
+[Proximal Policy Optimization](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/tree/master/code/PPO) -- PPO simplifies the constrained optmization problem by using a KL penalty term instead of KL constraint, another modification made by PPO is removing the KL penalty term altogether and using a clipped surrogate loss instead. It achieves better performance as TRPO in MuJoCo and RobotSchool environments.
+
+build simple MLP network, tested in continous space -- continuous mountaincar environment and pendulum environment, and discrete POMDPs environment -- FVRS (Field Version Rock Sample), better performance compared with TRPO, worse than COPOS.
 
 ### COPOS
-Exploration and exploitation is one of the problems of model-free approaches, which could be even harder for POMDPs environment. Compatible policy search (COPOS) (Pajarinen et al. 2017) embeds entropy regularization in trust region optmization problem, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments.
+Exploration and exploitation is one of the problems of model-free approaches, which could be even harder for POMDPs environment. Compatible policy search (COPOS) (Pajarinen et al. 2017) solve dual trust region optimization problem with embeded entropy regularization, which prevents too fast entropy dorps in the learned policy and premature convergence in POMDP envroments.
 
 ### Guided Reinforcement learning
 In POMDP autonomous driving environment, the agent car observes relevant environmental features by sensors, which shows some additional possible problems compared to MDP, for example, expensive computational cost due to too much observed data, the agent car has to operate even with insufficient sensor data, 
