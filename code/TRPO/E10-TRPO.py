@@ -114,9 +114,9 @@ class Policy_net(object):
             self.l2_p = tf.layers.dense(self.l1_p, 64, activation=activ,
                                         kernel_initializer=initial,name='pl2')
 
-            # # weights
-            # self.w1_p = tf.get_variable('pl1/kernel')
-            # self.w2_p = tf.get_variable('pl2/kernel')
+            # weights
+            self.w1_p = tf.get_variable('pl1/kernel')
+            self.w2_p = tf.get_variable('pl2/kernel')
 
             # outputs
             self.mu = tf.layers.dense(inputs=self.l2_p, units=self.act_space, activation=None,
@@ -231,6 +231,7 @@ class TRPO:
         self.value = value_estimator
         self.act_space = env.action_space.shape[0]
         self.env_space = env.observation_space[0]
+        self.entcoef = 0.0
         self.vlr = 4e-4
         self.plr = 5e-4
         self.epsilon = 0.2
@@ -259,7 +260,13 @@ class TRPO:
                             tf.reduce_sum(tf.div((tf.square(self.old_sigma) + tf.square(self.old_mu - self.policy.mu)),
                                           2 * tf.square(self.policy.sigma)), 1) - 0.5 * self.act_space
 
+            self.meanent = tf.reduce_mean(self.policy.entropy)
+            self.entbonus = self.entcoef * self.meanent
             self.meankl = tf.reduce_mean(self.kloldnew)
+            self.optimgain = self.surrogate_loss + self.entbonus
+
+            self.losses = [self.optimgain, self.meankl, self.entbonus, self.surrogate_loss, self.meanent]
+            self.loss_names = ['optimgain', 'meankl', 'entloss', 'surrogate', 'entropy']
 
             # intermediate results
             var_list = [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='policy')]
