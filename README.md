@@ -51,7 +51,7 @@ Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLea
 ## Equipment
 - CARLA is built on a PC in IAS lab, with Ubuntu 17.10 system, 16GB memory, Intel core i5-8400 CPU (2.8GHz*6), GeForce GTX 1060 (3GB) graphic card. The following training/testing processes will also be implemented on this PC.
 
-- Lichtenberg cluster
+- Lichtenberg cluster (from April onwards)
  
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
