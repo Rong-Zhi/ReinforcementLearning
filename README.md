@@ -43,13 +43,15 @@ In POMDP autonomous driving environment, the agent car observes relevant environ
  
  With a guided reinforcement learning approach, one can first learn policy by combining also the real states, we call it guided policy, then train the policy with this guided policy to ultimately improve the performance in abovementioned problems.
 ## Timeline:
-Start Date: TBD
-End Date: TBD
+Start Date: 06.03.2018
+End Date: 05.09.2018
 
 Check [timeplan](https://git.ias.informatik.tu-darmstadt.de/zhi/ReinforcementLearning/blob/master/Timeplan.pdf) for detailed information.
 
 ## Equipment
-CARLA is built on a PC in IAS lab, with Ubuntu 17.10 system, 16GB memory, Intel core i5-8400 CPU (2.8GHz*6), GeForce GTX 1060 (3GB) graphic card. The following training/testing processes will also be implemented on this PC.
+- CARLA is built on a PC in IAS lab, with Ubuntu 17.10 system, 16GB memory, Intel core i5-8400 CPU (2.8GHz*6), GeForce GTX 1060 (3GB) graphic card. The following training/testing processes will also be implemented on this PC.
+
+- Lichtenberg cluster
  
 ## References
 - Reinforcement Learning [Tutorial](https://github.com/dennybritz/reinforcement-learning) given by Denny Britz
