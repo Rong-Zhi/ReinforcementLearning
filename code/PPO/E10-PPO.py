@@ -216,7 +216,7 @@ def main():
     env = gym.make("MountainCarContinuous-v0")
     # env = gym.make('Pendulum-v0')
 
-    seed = 0
+    seed = 1234
     np.random.seed(seed)
     tf.set_random_seed(seed)
     env.seed(seed)
