@@ -97,56 +97,136 @@ def learn(env, policy_fn, *,
     # ----------------------------------------
     ob_space = env.observation_space
     ac_space = env.action_space
+
+    # policy and guided policy
     pi = policy_fn("pi", ob_space, ac_space)
+    # define guided policy
+    gpi = policy_fn("gpi", ob_space, ac_space)
+
+    # old policy and old guided policy
     oldpi = policy_fn("oldpi", ob_space, ac_space)
+    goldpi = policy_fn("goldpi", ob_space, ac_space)
+
+    # Target advantage function and return
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
+    gatarg = tf.placeholder(dtype=tf.float32, shape=[None])
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+    gret = tf.placeholder(dtype=tf.float32, shape=[None])
 
     ob = U.get_placeholder_cached(name="ob")
+    gob = U.get_placeholder_cached(name='gob')
+
+    # Sample action according to policy
     ac = pi.pdtype.sample_placeholder([None])
+    gac = gpi.pdtype.sample_placeholder([None])
 
+    # Kl divergence
     kloldnew = oldpi.pd.kl(pi.pd)
+    # change the oder here
+    gkloldnew = goldpi.pd.kl(gpi.pd)
+
+    # Entropy of policy and guided policy
     ent = pi.pd.entropy()
+    gent = gpi.pd.entropy()
+
+    # Mean kl divergence of origin policy and guided policy
     meankl = tf.reduce_mean(kloldnew)
+    gmeankl = tf.reduce_mean(gkloldnew)
+
+    # Mean entropy and entropy penalty term
     meanent = tf.reduce_mean(ent)
+    gmeanent = tf.reduce_mean(gent)
     entbonus = entcoeff * meanent
+    gentbonus = entcoeff * gmeanent
 
-    vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
+    # Value function error consists of
+    # (value of gpi - target value of pi)^2 and
+    # (value of pi - target value of gpi)^2
+    vferr = tf.reduce_mean(tf.square(pi.vpred - gret))
+    gvferr = tf.reduce_mean(tf.square(gpi.vpred - ret))
 
-    ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
-    surrgain = tf.reduce_mean(ratio * atarg)
+    # define different ratio here
+    # ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
 
-    optimgain = surrgain + entbonus
-    losses = [optimgain, meankl, entbonus, surrgain, meanent]
-    loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
+    ratio = tf.exp(pi.pd.logp(ac) - goldpi.pd.logp(ac)) # advantage * pnew / gpold with action
+    # ratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac))  # with gaction
+
+    # ratio = tf.exp(gpi.pd.logp(ac) - oldpi.pd.logp(gac)) # advantage * gpnew / pold
+    # ratio = tf.exp(gpi.pd.logp(gac) - goldpi.pd.logp(gac)) # advantage * gpnew / gpold
+
+    surrgain = tf.reduce_mean(ratio * atarg) # with advantage target
+    # surrgain = tf.reduce_mean(ratio * gatarg) # with guided advantage target (guided action)
+
+    optimgain = surrgain + entbonus + gentbonus
+    losses = [optimgain, meankl, gmeankl, entbonus, gentbonus, surrgain, meanent, gmeanent]
+    loss_names = ["optimgain", "meankl", "gmeankl", "entloss", "gentloss", "surrgain", "entropy", "gentropy"]
+
 
     dist = meankl
+    gdist = gmeankl
 
     all_var_list = pi.get_trainable_variables()
+    gall_var_list = gpi.get_trainable_variables()
+
+    # policy variable list
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
+    gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
+
+    # value function list
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
+    gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
+
     vfadam = MpiAdam(vf_var_list)
+    gvfadam = MpiAdam(gvf_var_list)
 
     get_flat = U.GetFlat(var_list)
+    gget_flat = U.GetFlat(gvar_list)
+
     set_from_flat = U.SetFromFlat(var_list)
+    gset_from_flat = U.SetFromFlat(gvar_list)
+
     klgrads = tf.gradients(dist, var_list)
+    gklgrads = tf.gradients(gdist, gvar_list)
+
+
     flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
+    gflat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="gflat_tan")
+
     shapes = [var.get_shape().as_list() for var in var_list]
+    gshapes = [var.get_shape().as_list() for var in gvar_list]
+
     start = 0
+    gstart = 0
+
     tangents = []
+    gtangents = []
+
     for shape in shapes:
         sz = U.intprod(shape)
         tangents.append(tf.reshape(flat_tangent[start:start+sz], shape))
         start += sz
+
+    for shape in gshapes:
+        sz = U.intprod(shape)
+        gtangents.append(tf.reshape(gflat_tangent[gstart:gstart+sz], shape))
+        gstart += sz
+
     gvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(klgrads, tangents)]) #pylint: disable=E1111
+    ggvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(gklgrads, gtangents)])
+
     fvp = U.flatgrad(gvp, var_list)
+    gfvp = U.flatgrad(ggvp, gvar_list)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
-    compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
-    compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
+    gassign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
+        for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
+
+    compute_losses = U.function([ob, gob, ac, gac, atarg, gatarg], losses)
+    compute_lossandgrad = U.function([ob, gob, ac, gac, atarg, gatarg], losses + [U.flatgrad(optimgain, var_list)] + [U.flatgrad(optimgain, gvar_list)])
+    compute_fvp = U.function([flat_tangent, gob, gac, gatarg], fvp)
+    compute_gfvp = U.function([])
+    compute_vflossandgrad = U.function([ob, gob, ret, gret], U.flatgrad(vferr, vf_var_list))
 
     @contextmanager
     def timed(msg):

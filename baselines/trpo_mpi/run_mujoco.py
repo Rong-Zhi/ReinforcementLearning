@@ -42,7 +42,8 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = control_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
