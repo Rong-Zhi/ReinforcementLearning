@@ -24380,3 +24380,465 @@ Logging to /home/zhi/Documents/ReinforcementLearning/tmp/Pendulum-v0/trpo-04-05-
 | surrgain         | -0.00066652056 |
 | trial            | 0              |
 -------------------------------------
+----------------------------------
+| EpLenMean        | 196         |
+| EpRewMean        | -1.19e+03   |
+| GEpLenMean       | 205         |
+| GEpRewMean       | -1.19e+03   |
+| Iteration        | 1162        |
+| TimeElapsed      | 1.47e+03    |
+| entloss          | 0.0         |
+| entropy          | 1.4009105   |
+| ev_tdlam_before  | 0.474       |
+| gentloss         | 0.0         |
+| gentropy         | 1.3719425   |
+| gev_tdlam_before | 0.557       |
+| gmeankl          | 0.037110165 |
+| goptimgain       | 0.012304338 |
+| gsurrgain        | 0.012304338 |
+| meankl           | 0.085160874 |
+| optimgain        | 0.014385793 |
+| surrgain         | 0.014385793 |
+| trial            | 0           |
+----------------------------------
+-----------------------------------
+| EpLenMean        | 196          |
+| EpRewMean        | -1.18e+03    |
+| GEpLenMean       | 205          |
+| GEpRewMean       | -1.18e+03    |
+| Iteration        | 1163         |
+| TimeElapsed      | 1.48e+03     |
+| entloss          | 0.0          |
+| entropy          | nan          |
+| ev_tdlam_before  | 0.479        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3718972    |
+| gev_tdlam_before | 0.396        |
+| gmeankl          | 0.029055018  |
+| goptimgain       | 0.0019786754 |
+| gsurrgain        | 0.0019786754 |
+| meankl           | nan          |
+| optimgain        | nan          |
+| surrgain         | nan          |
+| trial            | 0            |
+-----------------------------------
+-----------------------------------
+| EpLenMean        | 196          |
+| EpRewMean        | -1.17e+03    |
+| GEpLenMean       | 205          |
+| GEpRewMean       | -1.17e+03    |
+| Iteration        | 1164         |
+| TimeElapsed      | 1.48e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4010152    |
+| ev_tdlam_before  | 0.559        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3720506    |
+| gev_tdlam_before | 0.472        |
+| gmeankl          | 0.052003607  |
+| goptimgain       | 0.008410939  |
+| gsurrgain        | 0.008410939  |
+| meankl           | 0.077278465  |
+| optimgain        | 0.0058758007 |
+| surrgain         | 0.0058758007 |
+| trial            | 0            |
+-----------------------------------
+-----------------------------------
+| EpLenMean        | 196          |
+| EpRewMean        | -1.16e+03    |
+| GEpLenMean       | 205          |
+| GEpRewMean       | -1.16e+03    |
+| Iteration        | 1165         |
+| TimeElapsed      | 1.48e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4011282    |
+| ev_tdlam_before  | 0.528        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3720247    |
+| gev_tdlam_before | 0.479        |
+| gmeankl          | 0.033148333  |
+| goptimgain       | 0.0035319068 |
+| gsurrgain        | 0.0035319068 |
+| meankl           | 0.048962858  |
+| optimgain        | 0.044532545  |
+| surrgain         | 0.044532545  |
+| trial            | 0            |
+-----------------------------------
+------------------------------------
+| EpLenMean        | 196           |
+| EpRewMean        | -1.17e+03     |
+| GEpLenMean       | 205           |
+| GEpRewMean       | -1.17e+03     |
+| Iteration        | 1166          |
+| TimeElapsed      | 1.48e+03      |
+| entloss          | 0.0           |
+| entropy          | 1.4010423     |
+| ev_tdlam_before  | 0.585         |
+| gentloss         | 0.0           |
+| gentropy         | 1.3720353     |
+| gev_tdlam_before | 0.508         |
+| gmeankl          | 0.06093989    |
+| goptimgain       | 0.0077320463  |
+| gsurrgain        | 0.0077320463  |
+| meankl           | 0.050171457   |
+| optimgain        | -0.0048805876 |
+| surrgain         | -0.0048805876 |
+| trial            | 0             |
+------------------------------------
+-----------------------------------
+| EpLenMean        | 196          |
+| EpRewMean        | -1.17e+03    |
+| GEpLenMean       | 205          |
+| GEpRewMean       | -1.17e+03    |
+| Iteration        | 1167         |
+| TimeElapsed      | 1.48e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4010786    |
+| ev_tdlam_before  | 0.618        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3718817    |
+| gev_tdlam_before | 0.0993       |
+| gmeankl          | 0.0646942    |
+| goptimgain       | -0.013870066 |
+| gsurrgain        | -0.013870066 |
+| meankl           | 0.051382773  |
+| optimgain        | 0.007962189  |
+| surrgain         | 0.007962189  |
+| trial            | 0            |
+-----------------------------------
+------------------------------------
+| EpLenMean        | 201           |
+| EpRewMean        | -1.22e+03     |
+| GEpLenMean       | 201           |
+| GEpRewMean       | -1.22e+03     |
+| Iteration        | 1168          |
+| TimeElapsed      | 1.48e+03      |
+| entloss          | 0.0           |
+| entropy          | 1.401002      |
+| ev_tdlam_before  | 0.444         |
+| gentloss         | 0.0           |
+| gentropy         | 1.3719592     |
+| gev_tdlam_before | 0.268         |
+| gmeankl          | 0.068969905   |
+| goptimgain       | -0.0148483785 |
+| gsurrgain        | -0.0148483785 |
+| meankl           | 0.066401124   |
+| optimgain        | 0.004367537   |
+| surrgain         | 0.004367537   |
+| trial            | 0             |
+------------------------------------
+----------------------------------
+| EpLenMean        | 201         |
+| EpRewMean        | -1.24e+03   |
+| GEpLenMean       | 201         |
+| GEpRewMean       | -1.24e+03   |
+| Iteration        | 1169        |
+| TimeElapsed      | 1.49e+03    |
+| entloss          | 0.0         |
+| entropy          | 1.4010786   |
+| ev_tdlam_before  | 0.622       |
+| gentloss         | 0.0         |
+| gentropy         | 1.3720232   |
+| gev_tdlam_before | 0.376       |
+| gmeankl          | 0.052925568 |
+| goptimgain       | 0.06802189  |
+| gsurrgain        | 0.06802189  |
+| meankl           | 0.046379924 |
+| optimgain        | 0.03666371  |
+| surrgain         | 0.03666371  |
+| trial            | 0           |
+----------------------------------
+-----------------------------------
+| EpLenMean        | 201          |
+| EpRewMean        | -1.25e+03    |
+| GEpLenMean       | 201          |
+| GEpRewMean       | -1.25e+03    |
+| Iteration        | 1170         |
+| TimeElapsed      | 1.49e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4010631    |
+| ev_tdlam_before  | 0.266        |
+| gentloss         | 0.0          |
+| gentropy         | 1.371958     |
+| gev_tdlam_before | 0.327        |
+| gmeankl          | 0.029443003  |
+| goptimgain       | -0.005696506 |
+| gsurrgain        | -0.005696506 |
+| meankl           | 0.08456736   |
+| optimgain        | -0.022287415 |
+| surrgain         | -0.022287415 |
+| trial            | 0            |
+-----------------------------------
+----------------------------------
+| EpLenMean        | 200         |
+| EpRewMean        | -1.26e+03   |
+| GEpLenMean       | 196         |
+| GEpRewMean       | -1.26e+03   |
+| Iteration        | 1171        |
+| TimeElapsed      | 1.49e+03    |
+| entloss          | 0.0         |
+| entropy          | 1.4010624   |
+| ev_tdlam_before  | 0.485       |
+| gentloss         | 0.0         |
+| gentropy         | 1.3718827   |
+| gev_tdlam_before | 0.412       |
+| gmeankl          | 0.046475105 |
+| goptimgain       | 0.007947365 |
+| gsurrgain        | 0.007947365 |
+| meankl           | 0.032922804 |
+| optimgain        | 0.014488267 |
+| surrgain         | 0.014488267 |
+| trial            | 0           |
+----------------------------------
+-----------------------------------
+| EpLenMean        | 205          |
+| EpRewMean        | -1.3e+03     |
+| GEpLenMean       | 196          |
+| GEpRewMean       | -1.3e+03     |
+| Iteration        | 1172         |
+| TimeElapsed      | 1.49e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4010109    |
+| ev_tdlam_before  | 0.625        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3719275    |
+| gev_tdlam_before | 0.304        |
+| gmeankl          | 0.03863806   |
+| goptimgain       | -0.002788919 |
+| gsurrgain        | -0.002788919 |
+| meankl           | 0.07464011   |
+| optimgain        | -0.005396385 |
+| surrgain         | -0.005396385 |
+| trial            | 0            |
+-----------------------------------
+-------------------------------------
+| EpLenMean        | 205            |
+| EpRewMean        | -1.3e+03       |
+| GEpLenMean       | 196            |
+| GEpRewMean       | -1.3e+03       |
+| Iteration        | 1173           |
+| TimeElapsed      | 1.49e+03       |
+| entloss          | 0.0            |
+| entropy          | 1.4010423      |
+| ev_tdlam_before  | 0.62           |
+| gentloss         | 0.0            |
+| gentropy         | 1.3719486      |
+| gev_tdlam_before | 0.226          |
+| gmeankl          | 0.023158092    |
+| goptimgain       | -0.00027373666 |
+| gsurrgain        | -0.00027373666 |
+| meankl           | 0.046351034    |
+| optimgain        | -0.0016624236  |
+| surrgain         | -0.0016624236  |
+| trial            | 0              |
+-------------------------------------
+-----------------------------------
+| EpLenMean        | 205          |
+| EpRewMean        | -1.26e+03    |
+| GEpLenMean       | 196          |
+| GEpRewMean       | -1.26e+03    |
+| Iteration        | 1174         |
+| TimeElapsed      | 1.49e+03     |
+| entloss          | 0.0          |
+| entropy          | 1.4009968    |
+| ev_tdlam_before  | 0.123        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3719745    |
+| gev_tdlam_before | 0.345        |
+| gmeankl          | 0.056401543  |
+| goptimgain       | -0.029355293 |
+| gsurrgain        | -0.029355293 |
+| meankl           | 0.102874845  |
+| optimgain        | -0.0278559   |
+| surrgain         | -0.0278559   |
+| trial            | 0            |
+-----------------------------------
+-----------------------------------
+| EpLenMean        | 205          |
+| EpRewMean        | -1.25e+03    |
+| GEpLenMean       | 196          |
+| GEpRewMean       | -1.25e+03    |
+| Iteration        | 1175         |
+| TimeElapsed      | 1.5e+03      |
+| entloss          | 0.0          |
+| entropy          | 1.4010912    |
+| ev_tdlam_before  | 0.582        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3720092    |
+| gev_tdlam_before | 0.57         |
+| gmeankl          | 0.05241595   |
+| goptimgain       | 0.0117981415 |
+| gsurrgain        | 0.0117981415 |
+| meankl           | 0.047392163  |
+| optimgain        | 0.027168646  |
+| surrgain         | 0.027168646  |
+| trial            | 0            |
+-----------------------------------
+------------------------------------
+| EpLenMean        | 205           |
+| EpRewMean        | -1.25e+03     |
+| GEpLenMean       | 196           |
+| GEpRewMean       | -1.25e+03     |
+| Iteration        | 1176          |
+| TimeElapsed      | 1.5e+03       |
+| entloss          | 0.0           |
+| entropy          | 1.4011179     |
+| ev_tdlam_before  | 0.488         |
+| gentloss         | 0.0           |
+| gentropy         | 1.3719326     |
+| gev_tdlam_before | -0.128        |
+| gmeankl          | 0.059631668   |
+| goptimgain       | -0.0027261982 |
+| gsurrgain        | -0.0027261982 |
+| meankl           | 0.066650786   |
+| optimgain        | -0.005968756  |
+| surrgain         | -0.005968756  |
+| trial            | 0             |
+------------------------------------
+------------------------------------
+| EpLenMean        | 205           |
+| EpRewMean        | -1.27e+03     |
+| GEpLenMean       | 196           |
+| GEpRewMean       | -1.27e+03     |
+| Iteration        | 1177          |
+| TimeElapsed      | 1.5e+03       |
+| entloss          | 0.0           |
+| entropy          | 1.4009854     |
+| ev_tdlam_before  | 0.492         |
+| gentloss         | 0.0           |
+| gentropy         | 1.3719677     |
+| gev_tdlam_before | 0.455         |
+| gmeankl          | 0.03303238    |
+| goptimgain       | -0.0003238893 |
+| gsurrgain        | -0.0003238893 |
+| meankl           | 0.05120506    |
+| optimgain        | -0.029201023  |
+| surrgain         | -0.029201023  |
+| trial            | 0             |
+------------------------------------
+-----------------------------------
+| EpLenMean        | 205          |
+| EpRewMean        | -1.27e+03    |
+| GEpLenMean       | 196          |
+| GEpRewMean       | -1.27e+03    |
+| Iteration        | 1178         |
+| TimeElapsed      | 1.5e+03      |
+| entloss          | 0.0          |
+| entropy          | 1.4010566    |
+| ev_tdlam_before  | 0.422        |
+| gentloss         | 0.0          |
+| gentropy         | 1.371969     |
+| gev_tdlam_before | 0.261        |
+| gmeankl          | 0.041105825  |
+| goptimgain       | -0.008380091 |
+| gsurrgain        | -0.008380091 |
+| meankl           | 0.08076454   |
+| optimgain        | -0.028552406 |
+| surrgain         | -0.028552406 |
+| trial            | 0            |
+-----------------------------------
+-----------------------------------
+| EpLenMean        | 205          |
+| EpRewMean        | -1.25e+03    |
+| GEpLenMean       | 196          |
+| GEpRewMean       | -1.25e+03    |
+| Iteration        | 1179         |
+| TimeElapsed      | 1.5e+03      |
+| entloss          | 0.0          |
+| entropy          | 1.4009868    |
+| ev_tdlam_before  | 0.459        |
+| gentloss         | 0.0          |
+| gentropy         | 1.3719898    |
+| gev_tdlam_before | 0.402        |
+| gmeankl          | 0.04953467   |
+| goptimgain       | 0.010108453  |
+| gsurrgain        | 0.010108453  |
+| meankl           | 0.074405715  |
+| optimgain        | -0.018980555 |
+| surrgain         | -0.018980555 |
+| trial            | 0            |
+-----------------------------------
+--------------------------------
+| EpLenMean        | 201       |
+| EpRewMean        | -1.23e+03 |
+| GEpLenMean       | 196       |
+| GEpRewMean       | -1.23e+03 |
+| Iteration        | 1180      |
+| TimeElapsed      | 1.5e+03   |
+| entloss          | 0.0       |
+| entropy          | nan       |
+| ev_tdlam_before  | 0.479     |
+| gentloss         | 0.0       |
+| gentropy         | nan       |
+| gev_tdlam_before | 0.51      |
+| gmeankl          | nan       |
+| goptimgain       | nan       |
+| gsurrgain        | nan       |
+| meankl           | nan       |
+| optimgain        | nan       |
+| surrgain         | nan       |
+| trial            | 0         |
+--------------------------------
+--------------------------------
+| EpLenMean        | 201       |
+| EpRewMean        | -1.21e+03 |
+| GEpLenMean       | 201       |
+| GEpRewMean       | -1.21e+03 |
+| Iteration        | 1181      |
+| TimeElapsed      | 1.51e+03  |
+| entloss          | 0.0       |
+| entropy          | nan       |
+| ev_tdlam_before  | 0.375     |
+| gentloss         | 0.0       |
+| gentropy         | nan       |
+| gev_tdlam_before | 0.362     |
+| gmeankl          | nan       |
+| goptimgain       | nan       |
+| gsurrgain        | nan       |
+| meankl           | nan       |
+| optimgain        | nan       |
+| surrgain         | nan       |
+| trial            | 0         |
+--------------------------------
+----------------------------------
+| EpLenMean        | 201         |
+| EpRewMean        | -1.21e+03   |
+| GEpLenMean       | 201         |
+| GEpRewMean       | -1.21e+03   |
+| Iteration        | 1182        |
+| TimeElapsed      | 1.51e+03    |
+| entloss          | 0.0         |
+| entropy          | nan         |
+| ev_tdlam_before  | 0.583       |
+| gentloss         | 0.0         |
+| gentropy         | 1.3719888   |
+| gev_tdlam_before | 0.0965      |
+| gmeankl          | 0.07274808  |
+| goptimgain       | 0.081173815 |
+| gsurrgain        | 0.081173815 |
+| meankl           | nan         |
+| optimgain        | nan         |
+| surrgain         | nan         |
+| trial            | 0           |
+----------------------------------
+----------------------------------
+| EpLenMean        | 196         |
+| EpRewMean        | -1.19e+03   |
+| GEpLenMean       | 201         |
+| GEpRewMean       | -1.19e+03   |
+| Iteration        | 1183        |
+| TimeElapsed      | 1.51e+03    |
+| entloss          | 0.0         |
+| entropy          | nan         |
+| ev_tdlam_before  | 0.487       |
+| gentloss         | 0.0         |
+| gentropy         | 1.3717946   |
+| gev_tdlam_before | 0.327       |
+| gmeankl          | 0.047794875 |
+| goptimgain       | -0.02064241 |
+| gsurrgain        | -0.02064241 |
+| meankl           | nan         |
+| optimgain        | nan         |
+| surrgain         | nan         |
+| trial            | 0           |
+----------------------------------
