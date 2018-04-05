@@ -233,7 +233,10 @@ def make_pdtype(ac_space):
     elif isinstance(ac_space, spaces.MultiBinary):
         return BernoulliPdType(ac_space.n)
     else:
-        raise NotImplementedError
+        try:
+            return CategoricalPdType(ac_space.n)
+        except:
+            raise NotImplementedError
 
 def shape_el(v, i):
     maybe = v.get_shape()[i]

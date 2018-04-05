@@ -1,0 +1,82 @@
+Logging to /Users/zhirong/Documents/Masterthesis-code/tmp/Pendulum-v0/trpo-04-06-00-32-27
+********** Iteration 0 ************
+---------------------------------
+| EpLenMean       | 200         |
+| EpRewMean       | -1.34e+03   |
+| EpThisIter      | 5           |
+| EpisodesSoFar   | 5           |
+| TimeElapsed     | 1           |
+| TimestepsSoFar  | 1000        |
+| entloss         | 0.0         |
+| entropy         | 1.4242879   |
+| ev_tdlam_before | -3.48e-05   |
+| meankl          | 0.007831727 |
+| optimgain       | 0.009418394 |
+| surrgain        | 0.009418394 |
+| trial           | 0           |
+---------------------------------
+********** Iteration 1 ************
+----------------------------------
+| EpLenMean       | 200          |
+| EpRewMean       | -1.34e+03    |
+| EpThisIter      | 5            |
+| EpisodesSoFar   | 10           |
+| TimeElapsed     | 1.55         |
+| TimestepsSoFar  | 2000         |
+| entloss         | 0.0          |
+| entropy         | 1.4560345    |
+| ev_tdlam_before | 0.0651       |
+| meankl          | 0.0075476556 |
+| optimgain       | 0.014278223  |
+| surrgain        | 0.014278223  |
+| trial           | 0            |
+----------------------------------
+********** Iteration 2 ************
+----------------------------------
+| EpLenMean       | 200          |
+| EpRewMean       | -1.25e+03    |
+| EpThisIter      | 5            |
+| EpisodesSoFar   | 15           |
+| TimeElapsed     | 2.12         |
+| TimestepsSoFar  | 3000         |
+| entloss         | 0.0          |
+| entropy         | 1.4810388    |
+| ev_tdlam_before | 0.128        |
+| meankl          | 0.0073213037 |
+| optimgain       | 0.011347199  |
+| surrgain        | 0.011347199  |
+| trial           | 0            |
+----------------------------------
+********** Iteration 3 ************
+---------------------------------
+| EpLenMean       | 200         |
+| EpRewMean       | -1.2e+03    |
+| EpThisIter      | 5           |
+| EpisodesSoFar   | 20          |
+| TimeElapsed     | 2.59        |
+| TimestepsSoFar  | 4000        |
+| entloss         | 0.0         |
+| entropy         | 1.4719869   |
+| ev_tdlam_before | 0.106       |
+| meankl          | 0.004524979 |
+| optimgain       | 0.010152364 |
+| surrgain        | 0.010152364 |
+| trial           | 0           |
+---------------------------------
+********** Iteration 4 ************
+---------------------------------
+| EpLenMean       | 200         |
+| EpRewMean       | -1.23e+03   |
+| EpThisIter      | 5           |
+| EpisodesSoFar   | 25          |
+| TimeElapsed     | 3.16        |
+| TimestepsSoFar  | 5000        |
+| entloss         | 0.0         |
+| entropy         | 1.5232241   |
+| ev_tdlam_before | 0.0168      |
+| meankl          | 0.005865305 |
+| optimgain       | 0.008168572 |
+| surrgain        | 0.008168572 |
+| trial           | 0           |
+---------------------------------
+********** Iteration 5 ************

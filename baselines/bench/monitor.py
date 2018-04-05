@@ -14,7 +14,7 @@ class Monitor(Wrapper):
     f = None
 
     def __init__(self, env, filename, allow_early_resets=False, reset_keywords=(), info_keywords=()):
-        Wrapper.__init__(self, env=env)
+        # Wrapper.__init__(self, env=env)
         self.tstart = time.time()
         if filename is None:
             self.f = None
@@ -26,7 +26,8 @@ class Monitor(Wrapper):
                 else:
                     filename = filename + "." + Monitor.EXT
             self.f = open(filename, "wt")
-            self.f.write('#%s\n'%json.dumps({"t_start": self.tstart, 'env_id' : env.spec and env.spec.id}))
+            # self.f.write('#%s\n' % json.dumps({"t_start": self.tstart, 'env_id': env.spec and env.spec.id}))
+            self.f.write('#%s\n'%json.dumps({"t_start": self.tstart, 'env_id' : 'RockSample'}))
             self.logger = csv.DictWriter(self.f, fieldnames=('r', 'l', 't')+reset_keywords+info_keywords)
             self.logger.writeheader()
             self.f.flush()

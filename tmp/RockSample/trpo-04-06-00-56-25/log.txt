@@ -1,0 +1,1 @@
+Logging to /Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpo-04-06-00-56-25
