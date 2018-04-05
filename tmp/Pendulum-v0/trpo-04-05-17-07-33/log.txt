@@ -1,1 +1,0 @@
-Logging to /home/zhi/Documents/ReinforcementLearning/tmp/Pendulum-v0/trpo-04-05-17-07-33

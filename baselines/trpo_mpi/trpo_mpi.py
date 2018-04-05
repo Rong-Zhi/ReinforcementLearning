@@ -10,7 +10,7 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.cg import cg
 from contextlib import contextmanager
 
-def traj_segment_generator(pi, env, horizon, stochastic):
+def traj_segment_generator(pi, env, horizon, stochastic, name="ob"):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
@@ -98,11 +98,11 @@ def learn(env, policy_fn, *,
     ob_space = env.observation_space
     ac_space = env.action_space
     
-    pi = policy_fn("pi", ob_space, ac_space)
-    oldpi = policy_fn("oldpi", ob_space, ac_space)
+    pi = policy_fn("pi", "ob", ob_space, ac_space)
+    oldpi = policy_fn("oldpi", "ob", ob_space, ac_space)
 
-    gpi = policy_fn("gpi", ob_space, ac_space)
-    goldpi = policy_fn("goldpi", ob_space, ac_space)
+    gpi = policy_fn("gpi", "ob", ob_space, ac_space)
+    goldpi = policy_fn("goldpi", "ob", ob_space, ac_space)
 
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
@@ -111,21 +111,25 @@ def learn(env, policy_fn, *,
     gret = tf.placeholder(dtype=tf.float32, shape=[None])
 
     ob = U.get_placeholder_cached(name="ob") #check it later !!!!!!
-    # gob = U.get_placeholder_cached(name="gob")
+    # gob = U.get_placeholder_cached(name="g_ob")
 
     ac = pi.pdtype.sample_placeholder([None])
     gac = gpi.pdtype.sample_placeholder([None])
 
-    def computekl(pi, oldpi):
-        kloldnew = oldpi.pd.kl(pi.pd)
-        ent = pi.pd.entropy()
-        meankl = tf.reduce_mean(kloldnew)
-        meanent = tf.reduce_mean(ent)
-        entbonus = entcoeff * meanent
-        return meankl, meanent, entbonus
 
-    meankl, meanent, entbonus = computekl(pi, oldpi)
-    gmeankl, gmeanent, gentbonus = computekl(gpi, goldpi)
+    kloldnew = oldpi.pd.kl(pi.pd)
+    ent = pi.pd.entropy()
+    meankl = tf.reduce_mean(kloldnew)
+    meanent = tf.reduce_mean(ent)
+    entbonus = entcoeff * meanent
+
+
+    gkloldnew = goldpi.pd.kl(gpi.pd)
+    gent = gpi.pd.entropy()
+    gmeankl = tf.reduce_mean(gkloldnew)
+    gmeanent = tf.reduce_mean(gent)
+    gentbonus = entcoeff * gmeanent
+
 
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret)) # check it later !!!!!!!!!!!!
     gvferr = tf.reduce_mean(tf.square(gpi.vpred - gret))

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.animation as animation
 import os
 
-path ="/home/zhi/Documents/ReinforcementLearning/tmp/Pendulum-v0/trpo-04-05-17-08-48/progress.csv"
+path ="/home/zhi/Documents/ReinforcementLearning/tmp/Pendulum-v0/trpo-04-05-18-30-49/progress.csv"
 
 fig, axes = plt.subplots(2,2, figsize=(10,5))
 axes = axes.flatten()
