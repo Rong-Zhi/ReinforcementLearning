@@ -43,7 +43,7 @@ def make_control_env(env_id, seed):
     """
     set_global_seeds(seed)
     env = gym.make(env_id)
-    env = Monitor(env, logger.get_dir())
+    env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     env.seed(seed)
     return env
 

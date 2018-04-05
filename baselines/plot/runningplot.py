@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.animation as animation
 import os
 
-path ="/Users/zhirong/Documents/Masterthesis/tmp/Pendulum-v0/trpo-04-02-17-15-56/progress.csv"
+path ="/home/zhi/Documents/ReinforcementLearning/tmp/Pendulum-v0/trpo-04-05-17-08-48/progress.csv"
 
-fig, axes = plt.subplots(1,2, figsize=(10,5))
+fig, axes = plt.subplots(2,2, figsize=(10,5))
 axes = axes.flatten()
 
 def plots(i):
@@ -16,6 +16,9 @@ def plots(i):
     data = pd.read_csv(path)
     sns.tsplot(data=data, time='Iteration', value='EpRewMean', unit='trial', ax=axes[0])
     sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', ax=axes[1])
+
+    sns.tsplot(data=data, time='Iteration', value='GEpRewMean', unit='trial', ax=axes[2])
+    sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', ax=axes[3])
     # x = np.random.rand(1000)
     # axes[0].plot(x)
 
