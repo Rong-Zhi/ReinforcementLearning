@@ -100,29 +100,48 @@ def learn(env, policy_fn, *,
     
     pi = policy_fn("pi", ob_space, ac_space)
     oldpi = policy_fn("oldpi", ob_space, ac_space)
+
+    gpi = policy_fn("gpi", ob_space, ac_space)
+    goldpi = policy_fn("goldpi", ob_space, ac_space)
+
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
-    ob = U.get_placeholder_cached(name="ob")
+    gatarg = tf.placeholder(dtype=tf.float32, shape=[None])
+    gret = tf.placeholder(dtype=tf.float32, shape=[None])
+
+    ob = U.get_placeholder_cached(name="ob") #check it later !!!!!!
     ac = pi.pdtype.sample_placeholder([None])
+    gac = gpi.pdtype.sample_placeholder([None])
 
-    kloldnew = oldpi.pd.kl(pi.pd)
-    ent = pi.pd.entropy()
-    meankl = tf.reduce_mean(kloldnew)
-    meanent = tf.reduce_mean(ent)
-    entbonus = entcoeff * meanent
+    def computekl(pi, oldpi):
+        kloldnew = oldpi.pd.kl(pi.pd)
+        ent = pi.pd.entropy()
+        meankl = tf.reduce_mean(kloldnew)
+        meanent = tf.reduce_mean(ent)
+        entbonus = entcoeff * meanent
+        return meankl, meanent, entbonus
 
-    vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
+    meankl, meanent, entbonus = computekl(pi, oldpi)
+    gmeankl, gmeanent, gentbonus = computekl(gpi, goldpi)
 
-    ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
-    surrgain = tf.reduce_mean(ratio * atarg)
+    vferr = tf.reduce_mean(tf.square(pi.vpred - ret)) # check it later !!!!!!!!!!!!
 
-    optimgain = surrgain + entbonus
-    losses = [optimgain, meankl, entbonus, surrgain, meanent]
-    loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
+    def computels(pi1, pi2, meankl, meanent, entbonus, ac):
+        ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
+        surrgain = tf.reduce_mean(ratio * atarg)
+        optimgain = surrgain + entbonus
+        losses = [optimgain, meankl, entbonus, surrgain, meanent]
+        loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
+        return optimgain, losses, loss_names
+
+    optimgain, losses, loss_names = computels(pi, goldpi, meankl, meanent, entbonus, ac)
+    goptimgain, glosses, gloss_names = computels(gpi, oldpi, gmeankl, gmeanent, gentbonus, gac)
 
     dist = meankl
+    gdist = gmeankl
 
+    def computevargrads(pi,)
     all_var_list = pi.get_trainable_variables()
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
@@ -141,6 +160,7 @@ def learn(env, policy_fn, *,
         start += sz
     gvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(klgrads, tangents)]) #pylint: disable=E1111
     fvp = U.flatgrad(gvp, var_list)
+
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
