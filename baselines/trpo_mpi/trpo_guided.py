@@ -79,7 +79,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
-def learn(env, policy_fn, *,
+def learn(env, genv, policy_fn, *,
         timesteps_per_batch, # what to train on
         max_kl, cg_iters,
         gamma, lam, # advantage estimation
@@ -90,6 +90,7 @@ def learn(env, policy_fn, *,
         max_timesteps=0, max_episodes=0, max_iters=0,  # time constraint
         callback=None,
         i_trial):
+
     nworkers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     np.set_printoptions(precision=3)
@@ -242,7 +243,8 @@ def learn(env, policy_fn, *,
     # Prepare for rollouts
     # ----------------------------------------
     seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
-    gseg_gen = traj_segment_generator(gpi, env, timesteps_per_batch, stochastic=True)
+    gseg_gen = traj_segment_generator(gpi, genv, timesteps_per_batch, stochastic=True)
+    # gseg_gen = traj_segment_generator(gpi, env, timesteps_per_batch, stochastic=True)
 
     episodes_so_far = 0
     timesteps_so_far = 0

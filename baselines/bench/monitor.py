@@ -14,7 +14,7 @@ class Monitor(Wrapper):
     f = None
 
     def __init__(self, env, filename, allow_early_resets=False, reset_keywords=(), info_keywords=()):
-        # Wrapper.__init__(self, env=env)
+        Wrapper.__init__(self, env=env)
         self.tstart = time.time()
         if filename is None:
             self.f = None

@@ -284,6 +284,7 @@ def learn(env, policy_fn, *,
         logger.logkv("TimestepsSoFar", timesteps_so_far)
         logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
+        logger.logkv("Iteration", iters_so_far)
 
         if rank==0:
             logger.dump_tabular()

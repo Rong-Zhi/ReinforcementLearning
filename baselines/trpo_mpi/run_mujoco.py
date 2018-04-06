@@ -5,7 +5,7 @@ from mpi4py import MPI
 from baselines.common.cmd_util import make_control_env, control_arg_parser
 from baselines import logger
 from baselines.ppo1.mlp_policy import MlpPolicy
-from baselines.trpo_mpi import trpo_rocksample
+from baselines.trpo_mpi import trpo_guided
 import os
 import datetime
 
@@ -29,7 +29,7 @@ def train(env_id, num_timesteps, seed, num_trials=1):
         workerseed = seed + 10000 * MPI.COMM_WORLD.Get_rank()
         # env = make_mujoco_env(env_id, workerseed)
         env = make_control_env(env_id, workerseed)
-        trpo_rocksample.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=20, cg_damping=0.1,
+        trpo_guided.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=20, cg_damping=0.1,
             max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
         env.close()
 
