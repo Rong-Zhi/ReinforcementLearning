@@ -6,8 +6,8 @@ import matplotlib.animation as animation
 import os
 
 # path ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpo-04-06-11-54-38/progress.csv"
-# path = "/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpo-04-06-12-24-36/progress.csv"
-path = "/Users/zhirong/Documents/Masterthesis-code/tmp/Pendulum-v0/trpo-04-06-12-50-42/progress.csv"
+path = "/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpo-04-08-00-07-32/progress.csv"
+# path = "/Users/zhirong/Documents/Masterthesis-code/tmp/Pendulum-v0/trpo-04-06-12-50-42/progress.csv"
 fig, axes = plt.subplots(2, 2, figsize=(10,5))
 axes = axes.flatten()
 

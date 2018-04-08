@@ -112,7 +112,7 @@ def learn(env, genv, policy_fn, *,
     gret = tf.placeholder(dtype=tf.float32, shape=[None])
 
     ob = U.get_placeholder_cached(name="ob") #check it later !!!!!!
-    # gob = U.get_placeholder_cached(name="g_ob")
+    # gob = U.get_placeholder_cached(name="ob")
 
     ac = pi.pdtype.sample_placeholder([None])
     gac = gpi.pdtype.sample_placeholder([None])
@@ -280,10 +280,21 @@ def learn(env, genv, policy_fn, *,
         gob, gac, gatarg, gtdlamret, gvpredbefore = gseg["ob"], gseg["ac"], gseg["adv"], gseg["tdlamret"], gseg["vpred"]
         gatarg = standarize(gatarg)
 
-        if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(gtdlamret)
-        if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(gob) # update running mean/std for policy
 
-        gargs = gseg["ob"], gseg["ac"], gatarg
+
+        with timed("sampling"):
+            seg = seg_gen.__next__()
+        add_vtarg_and_adv(seg, gamma, lam)
+        ob, ac, atarg, tdlamret, vpredbefore = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"], seg["vpred"]
+        atarg = standarize(atarg) # standardized advantage function estimate
+
+        if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(tdlamret)
+        if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(ob) # update running mean/std for policy
+
+        if hasattr(pi, "ret_rms"): pi.ret_rms.update(gtdlamret)
+        if hasattr(pi, "ob_rms"): pi.ob_rms.update(gob) # update running mean/std for policy
+
+        gargs = seg["ob"], seg["ac"], atarg
         gfvpargs = [arr[::5] for arr in gargs]
 
         def gfisher_vector_product(p):
@@ -338,23 +349,15 @@ def learn(env, genv, policy_fn, *,
 
         with timed("gvf"):
             for _ in range(vf_iters):
-                for (mbob, mbret) in dataset.iterbatches((gseg["ob"], gseg["tdlamret"]),
+                for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
                 include_final_partial_batch=False, batch_size=64):
                     gg = allmean(gcompute_vflossandgrad(mbob, mbret))
                     gvfadam.update(gg, vf_stepsize)
 
         print("********** Train Policy ************")
-        with timed("sampling"):
-            seg = seg_gen.__next__()
 
-        add_vtarg_and_adv(seg, gamma, lam)
-        ob, ac, atarg, tdlamret, vpredbefore = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"], seg["vpred"]
-        atarg = standarize(atarg) # standardized advantage function estimate
 
-        if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
-        if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
-
-        args = seg["ob"], seg["ac"], atarg
+        args = gseg["ob"], gseg["ac"], gatarg
         fvpargs = [arr[::5] for arr in args]
 
         def fisher_vector_product(p):
@@ -417,7 +420,7 @@ def learn(env, genv, policy_fn, *,
 
         with timed("vf"):
             for _ in range(vf_iters):
-                for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
+                for (mbob, mbret) in dataset.iterbatches((gseg["ob"], gseg["tdlamret"]),
                                                          include_final_partial_batch=False, batch_size=64):
                     g = allmean(compute_vflossandgrad(mbob, mbret))
                     vfadam.update(g, vf_stepsize)
