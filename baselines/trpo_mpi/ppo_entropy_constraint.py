@@ -92,6 +92,7 @@ def learn(env, policy_fn, *,
         schedule='constant',
         clip_param,
         i_trial):
+
     nworkers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     np.set_printoptions(precision=3)
@@ -104,30 +105,32 @@ def learn(env, policy_fn, *,
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
-    ob = U.get_placeholder_cached(name="ob")
-    ac = pi.pdtype.sample_placeholder([None])
-
-    # kloldnew = oldpi.pd.kl(pi.pd)
-    ent = pi.pd.entropy()
-    oldent = oldpi.pd.entropy()
-
-    # meankl = tf.reduce_mean(kloldnew)
-    meanent = tf.reduce_mean(ent)
-    meancent = tf.reduce_mean(oldent - ent)
-    entbonus = entcoeff * meanent
-
     lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 
-    vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
+    ob = U.get_placeholder_cached(name="ob")
+    ac = pi.pdtype.sample_placeholder([None])
+
+    kloldnew = oldpi.pd.kl(pi.pd)
+    ent = pi.pd.entropy()
+    oldent = oldpi.pd.entropy()
+
+    meankl = tf.reduce_mean(kloldnew)
+    meanent = tf.reduce_mean(ent)
+    meancent = tf.reduce_mean(oldent - ent)
+    entbonus = -entcoeff * meanent
+
+
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
-    surrgain = tf.reduce_mean(ratio * atarg)
+    surr1 = ratio * atarg
+    surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
+    pol_surr = -tf.reduce_mean(tf.minimum(surr1, surr2))
+    vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
+    total_loss = pol_surr + entbonus + vferr
 
-    optimgain = surrgain + entbonus
-    # losses = [optimgain, meankl, entbonus, surrgain, meanent]
-    losses = [optimgain, meancent, entbonus, surrgain, meanent]
-    loss_names = ["optimgain", "meancent", "entloss", "surrgain", "entropy"]
+    losses = [pol_surr, meancent, entbonus, meankl, meanent, total_loss]
+    loss_names = ["surrogate", "meancent", "entloss", "meankl", "entropy", "total_loss"]
 
     dist = meancent
 
@@ -152,9 +155,9 @@ def learn(env, policy_fn, *,
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
-    compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
+    compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
+    compute_lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    compute_fvp = U.function([flat_tangent, ob, ac, atarg, ret, lrmult], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
     @contextmanager
@@ -222,17 +225,17 @@ def learn(env, policy_fn, *,
         vpredbefore = seg["vpred"] # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
-        if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
+        # if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         args = seg["ob"], seg["ac"], atarg
         fvpargs = [arr[::5] for arr in args]
         def fisher_vector_product(p):
-            return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
+            return allmean(compute_fvp(p, [*fvpargs, cur_lrmult])) + cg_damping * p
 
         assign_old_eq_new() # set old parameter values to new parameter values
         with timed("computegrad"):
-            *lossbefore, g = compute_lossandgrad(*args)
+            *lossbefore, g = compute_lossandgrad(seg["ob"], seg["ac"], atarg, cur_lrmult)
         lossbefore = allmean(np.array(lossbefore))
         g = allmean(g)
         if np.allclose(g, 0):
@@ -252,7 +255,7 @@ def learn(env, policy_fn, *,
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 set_from_flat(thnew)
-                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(*args)))
+                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(seg["ob"], seg["ac"], atarg, cur_lrmult)))
                 improve = surr - surrbefore
                 print("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():
