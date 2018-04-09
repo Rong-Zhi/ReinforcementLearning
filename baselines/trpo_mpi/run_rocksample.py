@@ -5,7 +5,7 @@ from baselines.common.cmd_util import make_rocksample_env, rocksample_arg_parser
 from baselines import logger
 from baselines.ppo1.mlp_policy import MlpPolicy
 # from baselines.trpo_mpi import trpo_rocksample
-from baselines.trpo_mpi import trpo_guided, trpo_rocksample
+from baselines.trpo_mpi import trpo_guided, trpo_rocksample, ppo_entropy_constraint
 import os
 import datetime
 
@@ -23,10 +23,10 @@ def train(num_timesteps, seed, num_trials=1):
         env = make_rocksample_env(workerseed, map_name="5x7", observation_type="field_vision_full_pos",
                                   observation_noise=True, n_steps=15)
 
-        genv = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
-                                  observation_noise=False, n_steps=15)
+        # genv = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
+        #                           observation_noise=False, n_steps=15)
 
-        trpo_guided.learn(env, genv, policy_fn, timesteps_per_batch=5000, max_kl=0.01, cg_iters=10, cg_damping=0.1,
+        ppo_entropy_constraint.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
             max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
 
         env.close()
@@ -43,7 +43,7 @@ def main():
     # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
     log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoconstraint-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
     train(num_timesteps=600, seed=args.seed)

@@ -8,7 +8,7 @@ import datetime
 
 
 def train(num_timesteps, seed, num_trials=1):
-    from baselines.ppo1 import mlp_policy, ppo_guided, pporocksample
+    from baselines.ppo1 import mlp_policy, ppo_guided, pporocksample, ppo_guided2
     U.make_session(num_cpu=1).__enter__()
     def policy_fn(name, ob_space, ac_space):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
@@ -21,7 +21,7 @@ def train(num_timesteps, seed, num_trials=1):
         genv = make_rocksample_env(seed, map_name="5x7", observation_type="fully_observable",
                                       observation_noise=False, n_steps=15)
 
-        ppo_guided.learn(env, genv, i_trial, policy_fn,
+        ppo_guided2.learn(env, genv, i_trial, policy_fn,
                 max_timesteps=num_timesteps,
                 timesteps_per_actorbatch=5000,
                 clip_param=0.2, entcoeff=0.0,
