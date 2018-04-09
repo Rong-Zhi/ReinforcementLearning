@@ -10,23 +10,23 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.cg import cg
 from contextlib import contextmanager
 
-def traj_segment_generator(pi, env, horizon, stochastic, name="ob"):
-    # Initialize state variables
+
+def traj_segment_generator(pi, pi_, env, horizon, stochastic):
     t = 0
-    ac = env.action_space.sample()
-    new = True
-    rew = 0.0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    new = True # marks if we're on first timestep of an episode
     ob = env.reset()
 
-    cur_ep_ret = 0
-    cur_ep_len = 0
-    ep_rets = []
-    ep_lens = []
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
+    vpreds_ = np.zeros(horizon, 'float32')
     news = np.zeros(horizon, 'int32')
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
@@ -34,14 +34,14 @@ def traj_segment_generator(pi, env, horizon, stochastic, name="ob"):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
+        ac_, vpred_ = pi_.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
-            yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
-                    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+            yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "vpred_": vpreds_, "new" : news,
+                    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new), "nextvpred_": vpred_ * (1 - new),
                     "ep_rets" : ep_rets, "ep_lens" : ep_lens}
-            _, vpred = pi.act(stochastic, ob)
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
@@ -51,6 +51,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, name="ob"):
         vpreds[i] = vpred
         news[i] = new
         acs[i] = ac
+        vpreds_[i] = vpred_
         prevacs[i] = prevac
 
         ob, rew, new, _ = env.step(ac)
@@ -67,17 +68,27 @@ def traj_segment_generator(pi, env, horizon, stochastic, name="ob"):
         t += 1
 
 def add_vtarg_and_adv(seg, gamma, lam):
+    """
+    Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
+    """
     new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
     vpred = np.append(seg["vpred"], seg["nextvpred"])
+    vpred_ = np.append(seg["vpred_"], seg["nextvpred_"])
     T = len(seg["rew"])
     seg["adv"] = gaelam = np.empty(T, 'float32')
+    seg["adv_"] = gaelam_ = np.empty(T, 'float32')
     rew = seg["rew"]
     lastgaelam = 0
+    l = 0
     for t in reversed(range(T)):
         nonterminal = 1-new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
+        delta_ = rew[t] + gamma * vpred_[t+1] * nonterminal - vpred_[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
+        gaelam_[t] = l = delta_ + gamma * lam * nonterminal * l
+
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
+    seg["tdlamret_"] = seg["adv_"] + seg["vpred_"]
 
 def learn(env, genv, policy_fn, *,
         timesteps_per_batch, # what to train on
@@ -99,11 +110,11 @@ def learn(env, genv, policy_fn, *,
     ob_space = env.observation_space
     ac_space = env.action_space
     
-    pi = policy_fn("pi", "ob", ob_space, ac_space)
-    oldpi = policy_fn("oldpi", "ob", ob_space, ac_space)
+    pi = policy_fn("pi", ob_space, ac_space)
+    oldpi = policy_fn("oldpi", ob_space, ac_space)
 
-    gpi = policy_fn("gpi", "ob", ob_space, ac_space)
-    goldpi = policy_fn("goldpi", "ob", ob_space, ac_space)
+    gpi = policy_fn("gpi", ob_space, ac_space)
+    goldpi = policy_fn("goldpi", ob_space, ac_space)
 
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
@@ -132,18 +143,18 @@ def learn(env, genv, policy_fn, *,
     gentbonus = entcoeff * gmeanent
 
 
-    vferr = tf.reduce_mean(tf.square(pi.vpred - ret)) # check it later !!!!!!!!!!!!
-    gvferr = tf.reduce_mean(tf.square(gpi.vpred - gret))
+    vferr = tf.reduce_mean(tf.square(pi.vpred - gret)) # check it later !!!!!!!!!!!!
+    gvferr = tf.reduce_mean(tf.square(gpi.vpred - ret))
 
 
-    ratio = tf.exp(pi.pd.logp(ac) - goldpi.pd.logp(ac)) # advantage * pnew / pold
-    surrgain = tf.reduce_mean(ratio * atarg)
+    ratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac)) # advantage * pnew / pold
+    surrgain = tf.reduce_mean(ratio * gatarg)
     optimgain = surrgain + entbonus
     losses = [optimgain, meankl, entbonus, surrgain, meanent]
     loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
 
-    gratio = tf.exp(gpi.pd.logp(gac) - oldpi.pd.logp(gac))  # advantage * pnew / pold
-    gsurrgain = tf.reduce_mean(gratio * gatarg)
+    gratio = tf.exp(gpi.pd.logp(ac) - oldpi.pd.logp(ac))  # advantage * pnew / pold
+    gsurrgain = tf.reduce_mean(gratio * atarg)
     goptimgain = gsurrgain + gentbonus
     glosses = [goptimgain, gmeankl, gentbonus, gsurrgain, gmeanent]
     gloss_names = ["goptimgain", "gmeankl", "gentloss", "gsurrgain", "gentropy"]
@@ -199,15 +210,15 @@ def learn(env, genv, policy_fn, *,
             for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
 
 
-    compute_losses = U.function([ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
-    compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
-    compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
+    compute_losses = U.function([ob, gac, gatarg], losses)
+    compute_lossandgrad = U.function([ob, gac, gatarg], losses + [U.flatgrad(optimgain, var_list)])
+    compute_fvp = U.function([flat_tangent, ob, gac, gatarg], fvp)
+    compute_vflossandgrad = U.function([ob, gret], U.flatgrad(vferr, vf_var_list))
 
-    gcompute_losses = U.function([ob, gac, gatarg], glosses)
-    gcompute_lossandgrad = U.function([ob, gac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
-    gcompute_fvp = U.function([gflat_tangent, ob, gac, gatarg], gfvp)
-    gcompute_vflossandgrad = U.function([ob, gret], U.flatgrad(gvferr, gvf_var_list))
+    gcompute_losses = U.function([ob, ac, atarg], glosses)
+    gcompute_lossandgrad = U.function([ob, ac, atarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
+    gcompute_fvp = U.function([gflat_tangent, ob, ac, atarg], gfvp)
+    gcompute_vflossandgrad = U.function([ob, ret], U.flatgrad(gvferr, gvf_var_list))
 
     @contextmanager
     def timed(msg):
@@ -242,8 +253,8 @@ def learn(env, genv, policy_fn, *,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
-    gseg_gen = traj_segment_generator(gpi, genv, timesteps_per_batch, stochastic=True)
+    seg_gen = traj_segment_generator(pi, gpi, env, timesteps_per_batch, stochastic=True)
+    gseg_gen = traj_segment_generator(gpi, pi, genv, timesteps_per_batch, stochastic=True)
     # gseg_gen = traj_segment_generator(gpi, env, timesteps_per_batch, stochastic=True)
 
     episodes_so_far = 0
@@ -288,14 +299,17 @@ def learn(env, genv, policy_fn, *,
         ob, ac, atarg, tdlamret, vpredbefore = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"], seg["vpred"]
         atarg = standarize(atarg) # standardized advantage function estimate
 
-        if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(tdlamret)
+        # if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(tdlamret)
         if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(ob) # update running mean/std for policy
 
-        if hasattr(pi, "ret_rms"): pi.ret_rms.update(gtdlamret)
+        # if hasattr(pi, "ret_rms"): pi.ret_rms.update(gtdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(gob) # update running mean/std for policy
 
         gargs = seg["ob"], seg["ac"], atarg
         gfvpargs = [arr[::5] for arr in gargs]
+
+        args = gseg["ob"], gseg["ac"], gatarg
+        fvpargs = [arr[::5] for arr in args]
 
         def gfisher_vector_product(p):
             return allmean(gcompute_fvp(p, *gfvpargs)) + cg_damping * p
@@ -357,8 +371,7 @@ def learn(env, genv, policy_fn, *,
         print("********** Train Policy ************")
 
 
-        args = gseg["ob"], gseg["ac"], gatarg
-        fvpargs = [arr[::5] for arr in args]
+
 
         def fisher_vector_product(p):
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p

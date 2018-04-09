@@ -97,8 +97,8 @@ def learn(env, policy_fn, *,
     # ----------------------------------------
     ob_space = env.observation_space
     ac_space = env.action_space
-    pi = policy_fn("pi", "ob", ob_space, ac_space)
-    oldpi = policy_fn("oldpi", "ob", ob_space, ac_space)
+    pi = policy_fn("pi", ob_space, ac_space)
+    oldpi = policy_fn("oldpi",ob_space, ac_space)
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 

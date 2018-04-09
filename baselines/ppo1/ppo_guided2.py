@@ -134,30 +134,30 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
     ratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac)) # pnew / pold
-    surr1 = ratio * gatarg # surrogate from conservative policy iteration
-    surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * gatarg #
+    surr1 = ratio * atarg # surrogate from conservative policy iteration
+    surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg #
     pol_surr = - tf.reduce_mean(tf.minimum(surr1, surr2)) # PPO's pessimistic surrogate (L^CLIP)
-    vf_loss = tf.reduce_mean(tf.square(gpi.vpred - gret))
+    vf_loss = tf.reduce_mean(tf.square(pi.vpred - ret))
     total_loss = pol_surr + pol_entpen + vf_loss
     losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     gratio = tf.exp(gpi.pd.logp(ac) - oldpi.pd.logp(ac))
-    gsurr1 = gratio * atarg
-    gsurr2 = tf.clip_by_value(gratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
+    gsurr1 = gratio * gatarg
+    gsurr2 = tf.clip_by_value(gratio, 1.0 - clip_param, 1.0 + clip_param) * gatarg
     gpol_surr = - tf.reduce_mean(tf.minimum(gsurr1, gsurr2))
-    gvf_loss = tf.reduce_mean(tf.square(pi.vpred - ret))
+    gvf_loss = tf.reduce_mean(tf.square(gpi.vpred - gret))
     gtotal_loss = gpol_surr + gpol_entpen + gvf_loss
     glosses = [gpol_surr, gpol_entpen, gvf_loss, gmeankl, gmeanent]
     gloss_names = ["gpol_surr", "gpol_entpen", "gvf_loss", "gkl", "gent"]
 
 
     var_list = pi.get_trainable_variables()
-    lossandgrad = U.function([ob, gac, gatarg, gret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    lossandgrad = U.function([ob, gac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
     gvar_list = gpi.get_trainable_variables()
-    glossandgrad = U.function([ob, ac, atarg, ret, lrmult], glosses + [U.flatgrad(gtotal_loss, gvar_list)])
+    glossandgrad = U.function([ob, ac, gatarg, gret, lrmult], glosses + [U.flatgrad(gtotal_loss, gvar_list)])
     gadam = MpiAdam(gvar_list, epsilon=adam_epsilon)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
@@ -167,8 +167,8 @@ def learn(env, genv, i_trial,policy_fn, *,
         for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
 
 
-    compute_losses = U.function([ob, gac, gatarg, gret, lrmult], losses)
-    gcompute_losses = U.function([ob, ac, atarg, ret, lrmult], glosses)
+    compute_losses = U.function([ob, gac, atarg, ret, lrmult], losses)
+    gcompute_losses = U.function([ob, ac, gatarg, gret, lrmult], glosses)
 
 
     U.initialize()
@@ -258,7 +258,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         for _ in range(optim_epochs):
             glosses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                *newlosses, g = glossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                *newlosses, g = glossandgrad(batch["ob"], batch["ac"], batch["atarg_"], batch["vtarg_"], cur_lrmult)
                 gadam.update(g, optim_stepsize * cur_lrmult)
                 glosses.append(newlosses)
             # print(fmt_row(13, np.mean(glosses, axis=0)))
@@ -266,7 +266,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         # print("Evaluating losses...")
         glosses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = gcompute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            newlosses = gcompute_losses(batch["ob"], batch["ac"], batch["atarg_"], batch["vtarg_"], cur_lrmult)
             glosses.append(newlosses)
         gmeanlosses, _, _ = mpi_moments(glosses, axis=0)
         # print(fmt_row(13, gmeanlosses))
@@ -287,7 +287,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in gd.iterate_once(optim_batchsize):
-                *newlosses, g = lossandgrad(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
+                *newlosses, g = lossandgrad(batch["gob"], batch["gac"], batch["gatarg_"], batch["gvtarg_"], cur_lrmult)
                 adam.update(g, optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
             # print(fmt_row(13, np.mean(losses, axis=0)))
@@ -295,7 +295,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         # print("Evaluating losses...")
         losses = []
         for batch in gd.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
+            newlosses = compute_losses(batch["gob"], batch["gac"], batch["gatarg_"], batch["gvtarg_"], cur_lrmult)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
         # print(fmt_row(13, meanlosses))
