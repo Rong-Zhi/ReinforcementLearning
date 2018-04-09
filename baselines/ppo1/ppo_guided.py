@@ -87,7 +87,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
     seg["tdlamret_"] = seg["adv_"] + seg["vpred_"]
 
-def learn(env, genv, policy_fn, *,
+def learn(env, genv, i_trial,policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
@@ -95,7 +95,7 @@ def learn(env, genv, policy_fn, *,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
-        schedule='constant' # annealing for stepsize parameters (epsilon and adam)
+        schedule='constant', # annealing for stepsize parameters (epsilon and adam)
         ):
     # Setup losses and stuff
     # ----------------------------------------
@@ -185,8 +185,9 @@ def learn(env, genv, policy_fn, *,
     iters_so_far = 0
     tstart = time.time()
 
-    lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
+    # lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+    grewbuffer = deque(maxlen=100)
 
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
@@ -250,7 +251,7 @@ def learn(env, genv, policy_fn, *,
 
         gassign_old_eq_new()
         print("Optimizing...Guided Policy")
-        print(fmt_row(13, gloss_names))
+        # print(fmt_row(13, gloss_names))
 
         # Here we do a bunch of optimization epochs over the data
 
@@ -260,15 +261,15 @@ def learn(env, genv, policy_fn, *,
                 *newlosses, g = glossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
                 gadam.update(g, optim_stepsize * cur_lrmult)
                 glosses.append(newlosses)
-            print(fmt_row(13, np.mean(glosses, axis=0)))
+            # print(fmt_row(13, np.mean(glosses, axis=0)))
 
-        print("Evaluating losses...")
+        # print("Evaluating losses...")
         glosses = []
         for batch in d.iterate_once(optim_batchsize):
             newlosses = gcompute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
             glosses.append(newlosses)
         gmeanlosses, _, _ = mpi_moments(glosses, axis=0)
-        print(fmt_row(13, gmeanlosses))
+        # print(fmt_row(13, gmeanlosses))
 
         for (lossval, name) in zipsame(gmeanlosses, gloss_names):
             logger.record_tabular("gloss_" + name, lossval)
@@ -276,8 +277,8 @@ def learn(env, genv, policy_fn, *,
 
 
         assign_old_eq_new() # set old parameter values to new parameter values
-        print("Optimizing...")
-        print(fmt_row(13, loss_names))
+        # print("Optimizing...")
+        # print(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
 
         optim_batchsize = optim_batchsize or ob.shape[0]
@@ -289,15 +290,15 @@ def learn(env, genv, policy_fn, *,
                 *newlosses, g = lossandgrad(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
                 adam.update(g, optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
-            print(fmt_row(13, np.mean(losses, axis=0)))
+            # print(fmt_row(13, np.mean(losses, axis=0)))
 
-        print("Evaluating losses...")
+        # print("Evaluating losses...")
         losses = []
         for batch in gd.iterate_once(optim_batchsize):
             newlosses = compute_losses(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
-        print(fmt_row(13, meanlosses))
+        # print(fmt_row(13, meanlosses))
 
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_"+name, lossval)
@@ -308,17 +309,31 @@ def learn(env, genv, policy_fn, *,
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
         lens, rews = map(flatten_lists, zip(*listoflrpairs))
-        lenbuffer.extend(lens)
+
+        glrlocal = (gseg["ep_lens"], gseg["ep_rets"]) # local values
+        glistoflrpairs = MPI.COMM_WORLD.allgather(glrlocal) # list of tuples
+        glens, grews = map(flatten_lists, zip(*glistoflrpairs))
+
+        # lenbuffer.extend(lens)
         rewbuffer.extend(rews)
-        logger.record_tabular("EpLenMean", np.mean(lenbuffer))
+        grewbuffer.extend(grews)
+        # logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
-        logger.record_tabular("EpThisIter", len(lens))
-        episodes_so_far += len(lens)
-        timesteps_so_far += sum(lens)
+        logger.record_tabular("GEpRewMean", np.mean(grewbuffer))
+        # logger.record_tabular("EpThisIter", len(lens))
+
+
+
+        # episodes_so_far += len(lens)
+        # timesteps_so_far += sum(lens)
         iters_so_far += 1
-        logger.record_tabular("EpisodesSoFar", episodes_so_far)
+        # logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
+
+        logger.logkv('trial', i_trial)
+        logger.logkv("Iteration", iters_so_far)
+
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 
