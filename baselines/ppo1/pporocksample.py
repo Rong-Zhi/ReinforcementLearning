@@ -85,7 +85,7 @@ def learn(env, i_trial, policy_fn, *,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
-        schedule='constant', # annealing for stepsize parameters (epsilon and adam)
+        schedule='constant'# annealing for stepsize parameters (epsilon and adam)
         ):
     # Setup losses and stuff
     # ----------------------------------------
