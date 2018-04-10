@@ -7,7 +7,7 @@ import os
 import datetime
 
 
-def train(num_timesteps, seed, num_trials=1):
+def train(num_timesteps, seed, num_trials=10):
     from baselines.ppo1 import mlp_policy, ppo_guided, pporocksample, ppo_guided2
     U.make_session(num_cpu=1).__enter__()
     def policy_fn(name, ob_space, ac_space):

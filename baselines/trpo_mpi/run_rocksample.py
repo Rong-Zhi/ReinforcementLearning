@@ -28,8 +28,8 @@ def train(num_timesteps, seed, num_trials=1):
 
         # trpo_guided.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
             # max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
-        ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=1024, max_kl=0.01,
-                  max_timesteps=num_timesteps,cg_iters=10, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
+        ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=5000, max_kl=0.05,
+                  max_timesteps=num_timesteps,cg_iters=20, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
                   vf_stepsize=1e-3, vf_iters=5, clip_param=0.2, schedule='linear', i_trial=i_trial)
         env.close()
 
@@ -42,13 +42,13 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoconstraint-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
-    train(num_timesteps=600, seed=args.seed)
+    train(num_timesteps=args.num_timesteps, seed=args.seed)
 
 if __name__ == '__main__':
     main()

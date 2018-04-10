@@ -105,7 +105,7 @@ def learn(env, policy_fn, *,
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
-    lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
+    lrmult = tf.placeholder(dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 
     ob = U.get_placeholder_cached(name="ob")
@@ -118,14 +118,14 @@ def learn(env, policy_fn, *,
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
     meancent = tf.reduce_mean(oldent - ent)
-    entbonus = -entcoeff * meanent
+    entbonus = entcoeff * meanent
 
 
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
     surr1 = ratio * atarg
     surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
-    pol_surr = -tf.reduce_mean(tf.minimum(surr1, surr2))
+    pol_surr = tf.reduce_mean(tf.minimum(surr1, surr2))
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
     total_loss = pol_surr + entbonus + vferr
 
@@ -157,7 +157,7 @@ def learn(env, policy_fn, *,
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
     compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
     compute_lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
-    compute_fvp = U.function([flat_tangent, ob, ac, atarg, ret, lrmult], fvp)
+    compute_fvp = U.function([flat_tangent, ob, ac, atarg, ret], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
     @contextmanager
@@ -228,14 +228,24 @@ def learn(env, policy_fn, *,
         # if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
-        args = seg["ob"], seg["ac"], atarg
+        args = seg["ob"], seg["ac"], atarg, tdlamret
         fvpargs = [arr[::5] for arr in args]
         def fisher_vector_product(p):
-            return allmean(compute_fvp(p, [*fvpargs, cur_lrmult])) + cg_damping * p
+            return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
 
         assign_old_eq_new() # set old parameter values to new parameter values
+
+
+        with timed("vf"):
+            for _ in range(vf_iters):
+                for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
+                include_final_partial_batch=False, batch_size=32):
+                    g = allmean(compute_vflossandgrad(mbob, mbret))
+                    vfadam.update(g, vf_stepsize * cur_lrmult)
+
+
         with timed("computegrad"):
-            *lossbefore, g = compute_lossandgrad(seg["ob"], seg["ac"], atarg, cur_lrmult)
+            *lossbefore, g = compute_lossandgrad(*args, cur_lrmult)
         lossbefore = allmean(np.array(lossbefore))
         g = allmean(g)
         if np.allclose(g, 0):
@@ -255,7 +265,7 @@ def learn(env, policy_fn, *,
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 set_from_flat(thnew)
-                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(seg["ob"], seg["ac"], atarg, cur_lrmult)))
+                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(*args, cur_lrmult)))
                 improve = surr - surrbefore
                 print("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():
@@ -278,12 +288,7 @@ def learn(env, policy_fn, *,
         for (lossname, lossval) in zip(loss_names, meanlosses):
             logger.logkv(lossname, lossval)
 
-        with timed("vf"):
-            for _ in range(vf_iters):
-                for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
-                include_final_partial_batch=False, batch_size=64):
-                    g = allmean(compute_vflossandgrad(mbob, mbret))
-                    vfadam.update(g, vf_stepsize)
+
 
         logger.logkv("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
 
