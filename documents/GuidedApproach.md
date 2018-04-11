@@ -1,5 +1,6 @@
 
 # Guided RL Approach
+%%latex
 
 As mentioned previously, we want to improve the existed RL algorithems in POMDP environments by proposing a guided learning way. 
 
