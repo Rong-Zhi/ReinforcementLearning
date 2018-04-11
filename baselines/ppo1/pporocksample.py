@@ -155,7 +155,7 @@ def learn(env, i_trial, policy_fn, *,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+            cur_lrmult =  max(1.0 - float(iters_so_far) / float(max_iters), 0)
         else:
             raise NotImplementedError
 

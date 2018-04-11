@@ -295,19 +295,19 @@ def learn(env, policy_fn, *,
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
         lens, rews = map(flatten_lists, zip(*listoflrpairs))
-        lenbuffer.extend(lens)
+        # lenbuffer.extend(lens)
         rewbuffer.extend(rews)
 
-        logger.logkv("EpLenMean", np.mean(lenbuffer))
+        # logger.logkv("EpLenMean", np.mean(lenbuffer))
         logger.logkv("EpRewMean", np.mean(rewbuffer))
-        logger.logkv("EpThisIter", len(lens))
+        # logger.logkv("EpThisIter", len(lens))
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
         iters_so_far += 1
-
-        logger.logkv("EpisodesSoFar", episodes_so_far)
-        logger.logkv("TimestepsSoFar", timesteps_so_far)
-        logger.logkv("TimeElapsed", time.time() - tstart)
+        #
+        # logger.logkv("EpisodesSoFar", episodes_so_far)
+        # logger.logkv("TimestepsSoFar", timesteps_so_far)
+        # logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
 

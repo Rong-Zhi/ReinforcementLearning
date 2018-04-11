@@ -185,8 +185,9 @@ def learn(env, genv, i_trial,policy_fn, *,
     iters_so_far = 0
     tstart = time.time()
 
-    # lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
+    lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+    glenbuffer = deque(maxlen=100)  # rolling buffer for episode lengths
     grewbuffer = deque(maxlen=100)
 
 
@@ -277,11 +278,11 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
         assign_old_eq_new() # set old parameter values to new parameter values
-        # print("Optimizing...")
+        print("Optimizing...Training Policy")
         # print(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
 
-        optim_batchsize = optim_batchsize or ob.shape[0]
+        optim_batchsize = optim_batchsize or gob.shape[0]
 
 
         for _ in range(optim_epochs):
@@ -304,15 +305,15 @@ def learn(env, genv, i_trial,policy_fn, *,
             logger.record_tabular("loss_"+name, lossval)
         # logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
 
-
-
-        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
-        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
+        lrlocal = (seg["ep_lens"], seg["ep_rets"])  # local values
+        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal)  # list of tuples
         lens, rews = map(flatten_lists, zip(*listoflrpairs))
+
 
         glrlocal = (gseg["ep_lens"], gseg["ep_rets"]) # local values
         glistoflrpairs = MPI.COMM_WORLD.allgather(glrlocal) # list of tuples
         glens, grews = map(flatten_lists, zip(*glistoflrpairs))
+
 
         # lenbuffer.extend(lens)
         rewbuffer.extend(rews)
