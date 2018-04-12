@@ -10,6 +10,7 @@ sns.set(color_codes=True)
 path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpo/progress.csv"
 path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppo-04-12-17-01-47/progress.csv"
 path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-04-12-17-52-57/progress.csv'
+path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpoent5000-04-12-18-48-43/progress.csv'
 # path = "/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoconstraint-04-09-23-08-36/progress.csv"
 # path = "/Users/zhirong/Documents/Masterthesis-code/tmp/Pendulum-v0/trpo-04-06-12-50-42/progress.csv"
 fig, axes = plt.subplots(1, 2, figsize=(10,5))
@@ -24,7 +25,9 @@ def plots(i):
     d2['name'] = 'ppo'
     d3 = pd.read_csv(path3)
     d3['name'] = 'ppoent'
-    data = pd.concat([d1[:600], d2[:600], d3])
+    d4 = pd.read_csv(path4)
+    d4['name'] = 'trpoent'
+    data = pd.concat([d1[:600], d2[:600], d3, d4])
 
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='name', ax=axes[0])
     sns.tsplot(data=data, time='Iteration', value='loss_ent', unit='trial', condition='name',ax=axes[1])
