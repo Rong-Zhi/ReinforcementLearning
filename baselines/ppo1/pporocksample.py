@@ -214,6 +214,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
+        logger.logkv("Name", 'PPOent')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 

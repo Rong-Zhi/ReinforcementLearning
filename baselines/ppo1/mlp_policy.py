@@ -21,17 +21,17 @@ class MlpPolicy(object):
         # ob = U.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
         ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
 
-        with tf.variable_scope("obfilter"):
+        with tf.variable_scope("obfilter", reuse=tf.AUTO_REUSE):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
 
-        with tf.variable_scope('vf'):
+        with tf.variable_scope('vf', reuse=tf.AUTO_REUSE):
             obz = tf.clip_by_value((ob - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
             last_out = obz
             for i in range(num_hid_layers):
                 last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name="fc%i"%(i+1), kernel_initializer=U.normc_initializer(1.0)))
             self.vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=U.normc_initializer(1.0))[:,0]
 
-        with tf.variable_scope('pol'):
+        with tf.variable_scope('pol', reuse=tf.AUTO_REUSE):
             last_out = obz
             for i in range(num_hid_layers):
                 last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))

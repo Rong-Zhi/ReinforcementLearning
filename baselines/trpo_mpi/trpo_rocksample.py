@@ -120,7 +120,7 @@ def learn(env, policy_fn, *,
 
     optimgain = surrgain + entbonus
     losses = [optimgain, meankl, entbonus, surrgain, meanent]
-    loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
+    loss_names = ["optimgain", "meankl", "entloss", "surrgain", "loss_ent"]
 
     dist = meankl
 
@@ -283,11 +283,13 @@ def learn(env, policy_fn, *,
         timesteps_so_far += sum(lens)
         iters_so_far += 1
 
+
         logger.logkv("EpisodesSoFar", episodes_so_far)
         logger.logkv("TimestepsSoFar", timesteps_so_far)
         logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
+        logger.logkv("Name", 'TRPOent')
 
         if rank==0:
             logger.dump_tabular()

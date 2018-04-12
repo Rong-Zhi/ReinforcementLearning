@@ -8,6 +8,7 @@ from baselines.ppo1.mlp_policy import MlpPolicy
 from baselines.trpo_mpi import trpo_guided, trpo_rocksample, ppo_entropy_constraint
 import os
 import datetime
+import tensorflow as tf
 
 
 def train(num_timesteps, seed, num_trials=5):
@@ -43,10 +44,10 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpoent5000-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpoent5-5000-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
     train(num_timesteps=args.num_timesteps, seed=args.seed)
