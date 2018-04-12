@@ -161,6 +161,8 @@ def learn(env, i_trial, policy_fn, *,
 
         print("********** Iteration %i ************"%iters_so_far)
 
+        entcoeff = max(1.0 - float(iters_so_far) / float(max_iters), 0)
+
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
