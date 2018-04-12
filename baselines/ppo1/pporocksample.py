@@ -79,7 +79,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
 
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
-        clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
+        clip_param, entp, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
         gamma, lam, # advantage estimation
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
@@ -106,6 +106,7 @@ def learn(env, i_trial, policy_fn, *,
     ent = pi.pd.entropy()
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
+    entcoeff = tf.placeholder(dtype=tf.float32, shape=[])
     pol_entpen = (-entcoeff) * meanent
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # pnew / pold
@@ -118,12 +119,12 @@ def learn(env, i_trial, policy_fn, *,
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     var_list = pi.get_trainable_variables()
-    lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    lossandgrad = U.function([ob, ac, atarg, ret, lrmult, entcoeff], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
+    compute_losses = U.function([ob, ac, atarg, ret, lrmult, entcoeff], losses)
 
     U.initialize()
     adam.sync()
@@ -161,7 +162,7 @@ def learn(env, i_trial, policy_fn, *,
 
         print("********** Iteration %i ************"%iters_so_far)
 
-        entcoeff = max(1.0 - float(iters_so_far) / float(max_iters), 0)
+        entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.01)
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
@@ -182,7 +183,7 @@ def learn(env, i_trial, policy_fn, *,
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
                 adam.update(g, optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
             # print(fmt_row(13, np.mean(losses, axis=0)))
@@ -190,7 +191,7 @@ def learn(env, i_trial, policy_fn, *,
         # print("Evaluating losses...")
         losses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            newlosses = compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
         # print(fmt_row(13, meanlosses))

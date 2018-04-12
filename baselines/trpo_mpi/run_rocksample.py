@@ -10,7 +10,7 @@ import os
 import datetime
 
 
-def train(num_timesteps, seed, num_trials=1):
+def train(num_timesteps, seed, num_trials=5):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -26,11 +26,12 @@ def train(num_timesteps, seed, num_trials=1):
         # genv = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
         #                           observation_noise=False, n_steps=15)
 
-        # trpo_guided.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
-            # max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
-        ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=5000, max_kl=0.05,
-                  max_timesteps=num_timesteps,cg_iters=20, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
-                  vf_stepsize=1e-3, vf_iters=5, clip_param=0.2, schedule='linear', i_trial=i_trial)
+        trpo_rocksample.learn(env, policy_fn, timesteps_per_batch=5000, max_kl=0.01, cg_iters=10, cg_damping=0.1,
+            max_iters=600, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
+
+        # ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=2048, max_kl=0.05,
+        #           max_timesteps=num_timesteps,cg_iters=20, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
+        #           vf_stepsize=1e-3, vf_iters=5, clip_param=0.2, schedule='linear', i_trial=i_trial)
         env.close()
 
 def get_dir(path):
@@ -45,7 +46,7 @@ def main():
     # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
     log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoconstraint-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpoent5000-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
     train(num_timesteps=args.num_timesteps, seed=args.seed)

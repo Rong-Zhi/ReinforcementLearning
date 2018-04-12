@@ -83,7 +83,7 @@ def learn(env, policy_fn, *,
         timesteps_per_batch, # what to train on
         max_kl, cg_iters,
         gamma, lam, # advantage estimation
-        entcoeff=0.0,
+        entc=0.5,
         cg_damping=1e-2,
         vf_stepsize=3e-4,
         vf_iters =3,
@@ -104,12 +104,14 @@ def learn(env, policy_fn, *,
 
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
+    entp = tf.placeholder(dtype=tf.float32, shape=[])
 
     kloldnew = oldpi.pd.kl(pi.pd)
     ent = pi.pd.entropy()
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
-    entbonus = entcoeff * meanent
+
+    entbonus = entp * meanent
 
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
 
@@ -143,8 +145,8 @@ def learn(env, policy_fn, *,
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
+    compute_losses = U.function([ob, ac, atarg, entp], losses)
+    compute_lossandgrad = U.function([ob, ac, atarg, entp], losses + [U.flatgrad(optimgain, var_list)])
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
@@ -199,6 +201,8 @@ def learn(env, policy_fn, *,
             seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
+        entcoeff = max(entc - float(iters_so_far) / float(max_iters), 0.01)
+
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"] # predicted value function before udpate
@@ -214,7 +218,7 @@ def learn(env, policy_fn, *,
 
         assign_old_eq_new() # set old parameter values to new parameter values
         with timed("computegrad"):
-            *lossbefore, g = compute_lossandgrad(*args)
+            *lossbefore, g = compute_lossandgrad(*args, entcoeff)
         lossbefore = allmean(np.array(lossbefore))
         g = allmean(g)
         if np.allclose(g, 0):
@@ -234,7 +238,7 @@ def learn(env, policy_fn, *,
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 set_from_flat(thnew)
-                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(*args)))
+                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(*args, entcoeff)))
                 improve = surr - surrbefore
                 print("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():
