@@ -201,7 +201,8 @@ def learn(env, policy_fn, *,
             seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
-        entcoeff = max(entc - float(iters_so_far) / float(max_iters), 0.01)
+        # entcoeff = max(entc - float(iters_so_far) / float(max_iters), 0.01)
+        entcoeff = 0.0
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]

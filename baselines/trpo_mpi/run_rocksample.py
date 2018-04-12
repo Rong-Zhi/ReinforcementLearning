@@ -47,7 +47,7 @@ def main():
     log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
     # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpoent5-5000-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo5-5000-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
     train(num_timesteps=args.num_timesteps, seed=args.seed)
