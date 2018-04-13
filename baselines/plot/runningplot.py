@@ -18,7 +18,7 @@ path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-
 path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
 
 
-fig, axes = plt.subplots(4, 2, figsize=(16,10))
+fig, axes = plt.subplots(1, 2, figsize=(18,5))
 axes = axes.flatten()
 
 def plots(i):
@@ -28,20 +28,20 @@ def plots(i):
     d2= pd.read_csv(path2)
     d3 = pd.read_csv(path3)
     d4 = pd.read_csv(path4)
-    # data = pd.concat([d1, d2, d3, d4])
-    data = d4
-    sns.tsplot(data=d1, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0])
-    sns.tsplot(data=d1, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[1])
-    plt.title('TRPO')
-    sns.tsplot(data=d2, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[2])
-    sns.tsplot(data=d2, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[3])
-    plt.title('TRPOent')
-    sns.tsplot(data=d3, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4])
-    sns.tsplot(data=d3, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[5])
-    plt.title('PPO')
-    sns.tsplot(data=d4, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[6])
-    sns.tsplot(data=d4, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[7], )
-    plt.title('PPOent')
+    data = pd.concat([d1, d2, d3, d4])
+
+    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0])
+    sns.tsplot(data=data, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[1])
+    # plt.title('TRPO')
+    # sns.tsplot(data=d2, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[2])
+    # sns.tsplot(data=d2, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[3])
+    # plt.title('TRPOent')
+    # sns.tsplot(data=d3, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4])
+    # sns.tsplot(data=d3, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[5])
+    # plt.title('PPO')
+    # sns.tsplot(data=d4, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[6])
+    # sns.tsplot(data=d4, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[7], )
+    # plt.title('PPOent')
     # sns.tsplot(data=data, time='Iteration', value='GEpRewMean', unit='trial', ax=axes[2])
     # axes[2].set_ylim([-2, 3])
     # sns.tsplot(data=data, time='Iteration', value='gloss_gent', unit='trial', ax=axes[3])
