@@ -18,7 +18,7 @@ path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-
 path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
 
 
-fig, axes = plt.subplots(4, 2, figsize=(16,8))
+fig, axes = plt.subplots(4, 2, figsize=(16,10))
 axes = axes.flatten()
 
 def plots(i):
