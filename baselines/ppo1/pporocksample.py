@@ -85,7 +85,8 @@ def learn(env, i_trial, policy_fn, *,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
-        schedule='constant'# annealing for stepsize parameters (epsilon and adam)
+        schedule='constant',# annealing for stepsize parameters (epsilon and adam)
+        useentr=False
         ):
     # Setup losses and stuff
     # ----------------------------------------
@@ -162,8 +163,10 @@ def learn(env, i_trial, policy_fn, *,
 
         print("********** Iteration %i ************"%iters_so_far)
 
-        entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.01)
-        # entcoeff = 0.0
+        if useentr:
+            entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.04)
+        else:
+            entcoeff = 0.0
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
