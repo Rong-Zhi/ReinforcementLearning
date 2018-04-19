@@ -8,7 +8,7 @@ from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
 
-def traj_segment_generator(pi, env, horizon, stochastic):
+def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     new = True # marks if we're on first timestep of an episode
@@ -16,8 +16,10 @@ def traj_segment_generator(pi, env, horizon, stochastic):
 
     cur_ep_ret = 0 # return in current episode
     cur_ep_len = 0 # len of current episode
+    cur_ep_drwd = 0
     ep_rets = [] # returns of completed episodes in this segment
     ep_lens = [] # lengths of ...
+    ep_drwd = []
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
@@ -36,11 +38,12 @@ def traj_segment_generator(pi, env, horizon, stochastic):
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, 'ep_drwd': ep_drwd}
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
             ep_lens = []
+            ep_drwd = []
         i = t % horizon
         obs[i] = ob
         vpreds[i] = vpred
@@ -53,11 +56,14 @@ def traj_segment_generator(pi, env, horizon, stochastic):
 
         cur_ep_ret += rew
         cur_ep_len += 1
+        cur_ep_drwd = rew + gamma * cur_ep_drwd
         if new:
             ep_rets.append(cur_ep_ret)
             ep_lens.append(cur_ep_len)
+            ep_drwd.append(cur_ep_drwd)
             cur_ep_ret = 0
             cur_ep_len = 0
+            cur_ep_drwd = 0
             ob = env.reset()
         t += 1
 
@@ -76,6 +82,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
+
 
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
@@ -132,7 +139,7 @@ def learn(env, i_trial, policy_fn, *,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(pi, env, timesteps_per_actorbatch, stochastic=True)
+    seg_gen = traj_segment_generator(pi, env, timesteps_per_actorbatch, stochastic=True, gamma=gamma)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -140,6 +147,7 @@ def learn(env, i_trial, policy_fn, *,
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+    drwdbuffer = deque(maxlen=100) # rolling buffer for episode discounted rewards
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
@@ -202,13 +210,15 @@ def learn(env, i_trial, policy_fn, *,
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_"+name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
-        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
+        lrlocal = (seg["ep_lens"], seg["ep_rets"], seg["ep_drwd"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
-        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lens, rews, drwds = map(flatten_lists, zip(*listoflrpairs))
         lenbuffer.extend(lens)
         rewbuffer.extend(rews)
+        drwdbuffer.extend(drwds)
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
+        logger.record_tabular("DiscountRewardMean", np.mean(drwdbuffer))
         logger.record_tabular("EpThisIter", len(lens))
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
