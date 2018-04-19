@@ -40,7 +40,7 @@ def train(num_timesteps, seed, num_trials=1):
                 timesteps_per_actorbatch=5000,
                 clip_param=0.2, entp=0.6,
                 optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-                gamma=0.99, lam=0.95, schedule='linear', useentr=True
+                gamma=0.99, lam=0.95, schedule='linear', useentr=False
                             )
         env.close()
 
@@ -54,8 +54,8 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoent-full-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)

@@ -7,7 +7,7 @@ import os
 
 sns.set(color_codes=True)
 
-path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoguide-full-04-17-17-21-19/progress.csv"
+path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-full-04-19-15-27-53/progress.csv"
 path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppo-04-12-17-01-47/progress.csv"
 path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-04-12-17-52-57/progress.csv'
 path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpoent5000-04-12-18-48-43/progress.csv'
@@ -18,7 +18,7 @@ path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpoent5000-04
 # path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
 
 
-fig, axes = plt.subplots(1, 2, figsize=(18,5))
+fig, axes = plt.subplots(1, 3, figsize=(18,5))
 axes = axes.flatten()
 
 def plots(i):
@@ -31,7 +31,8 @@ def plots(i):
     # data = pd.concat([d1, d2, d3, d4])
     data = d1
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0])
-    sns.tsplot(data=data, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[1])
+    sns.tsplot(data=data, time='Iteration', value='DiscountRewardMean',unit='trial', condition='Name', ax=axes[1])
+    sns.tsplot(data=data, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[2])
     # plt.title('TRPO')
     # sns.tsplot(data=d2, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[2])
     # sns.tsplot(data=d2, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[3])
