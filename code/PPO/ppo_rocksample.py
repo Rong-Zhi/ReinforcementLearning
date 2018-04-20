@@ -260,6 +260,10 @@ env = normalize(HistoryEnv(
     RockSampleEnv(map_name="5x7", observation_type="field_vision_full_pos", observation_noise=True)
     , n_steps=15), scale_reward=1)
 
+env = normalize(RockSampleEnv(map_name="5x7",
+                              observation_type="fully_observable",
+                              observation_noise=False), scale_reward=1)
+
 # env = gym.envs.make('CartPole-v0')
 
 
@@ -280,8 +284,8 @@ sess.run(tf.global_variables_initializer())
 # tf.summary.FileWriter('./log', sess.graph)
 
 discount_factor = 0.95
-num_iteration = 700
-timestep = 5000
+num_iteration = 600
+timestep = 2048
 batchsize = 32
 epoch_per_iter = 15
 average_time = 1
@@ -292,13 +296,15 @@ for i in range(average_time):
     result = {'Reward': [], 'Entropy': []}
     for i_iteration in range(num_iteration):
 
-        paths = rollouts(env=env, get_policy=policy_estimator.predict_action, timestep=timestep, df=discount_factor)
+        paths = rollouts(env=env, get_policy=policy_estimator.predict_action,
+                         timestep=timestep, df=discount_factor)
 
         # average dicount reward
         result['Reward'].append(paths['dis_avg_rwd'])
 
-        print('Training {0}/{1}, reward:{2} \n'.format(i_iteration, num_iteration, paths['dis_avg_rwd']))
-
+        print('Training {0}/{1}, discounted reward:{2}, average reward:{3} \n'.
+              format(i_iteration, num_iteration, paths['dis_avg_rwd'],
+                     np.sum(paths['reward']) / paths['nb_paths']))
         # update policy & value estimator
         advantage, target = compute_advantage(get_value=value_estimator.predict,
                                               paths=paths,
@@ -332,8 +338,8 @@ for i in range(average_time):
                                                         old_dist=old_dist[idx],
                                                         old_log_dist=old_log_dist[idx])
                 # print('S gradient:{0}, K gradient:{1}'.format(sgrad, kgrad))
-                if klloss > 4 * kl_target:
-                    break
+                # if klloss > 4 * kl_target:
+                #     break
 
             if klloss < kl_target / 1.5:
                 ppo.beta /= 2
@@ -355,20 +361,15 @@ rewards_smoothed = pd.Series(average_reward).rolling(5, min_periods=5).mean()
 entropy_smoothed = pd.Series(average_entropy).rolling(5, min_periods=5).mean()
 
 
-# p_range = np.linspace(0, num_iteration-1)
 plt.figure(1)
 plt.plot(rewards_smoothed)
-# plt.fill_between(average_reward - reward_std,
-#                  average_reward + reward_std, alpha=0.2,
-#                  color="coral")
+
 plt.ylabel('Average Discount Reward')
 plt.title('Average Discount Reward over 10 times')
 
 plt.figure(2)
 plt.plot(entropy_smoothed)
-# plt.fill_between(average_entropy - entropy_std,
-#                  average_entropy + entropy_std, alpha=0.2,
-#                  color='coral')
+
 plt.ylabel('Average Entropy')
 plt.title('Average Entropy over 10 times')
 

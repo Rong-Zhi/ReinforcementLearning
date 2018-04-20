@@ -59,10 +59,10 @@ def make_rocksample_env(seed, map_name, observation_type, observation_noise, n_s
      (without seed)
     """
     set_global_seeds(seed)
-    # env = normalize(HistoryEnv(RockSampleEnv(map_name=map_name, observation_type=observation_type,
-    #                observation_noise=observation_noise), n_steps=n_steps), scale_reward=1)
-    env = normalize(RockSampleEnv(map_name=map_name, observation_type=observation_type,
-                   observation_noise=observation_noise), scale_reward=1)
+    env = normalize(HistoryEnv(RockSampleEnv(map_name=map_name, observation_type=observation_type,
+                   observation_noise=observation_noise), n_steps=n_steps), scale_reward=1)
+    # env = normalize(RockSampleEnv(map_name=map_name, observation_type=observation_type,
+    #                observation_noise=observation_noise), scale_reward=1)
     # env.seed(seed)
     env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     return env

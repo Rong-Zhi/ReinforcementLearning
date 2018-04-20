@@ -84,6 +84,10 @@ def add_vtarg_and_adv(seg, gamma, lam):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
+
+
+
+
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entp, # clipping parameter epsilon, entropy coeff
@@ -127,6 +131,8 @@ def learn(env, i_trial, policy_fn, *,
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     var_list = pi.get_trainable_variables()
+    compute_ratio = U.function([ob, ac], ratio)
+
     lossandgrad = U.function([ob, ac, atarg, ret, lrmult, entcoeff], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
@@ -179,18 +185,21 @@ def learn(env, i_trial, policy_fn, *,
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
+
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"] # predicted value function before udpate
-        atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
-        optim_batchsize = optim_batchsize or ob.shape[0]
 
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         assign_old_eq_new() # set old parameter values to new parameter values
-        # print("Optimizing...")
-        # print(fmt_row(13, loss_names))
+        # prob_r = compute_ratio(ob, ac)
+        # atarg = atarg * np.minimum(1., prob_r)
+
+        atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
+        optim_batchsize = optim_batchsize or ob.shape[0]
+
         # Here we do a bunch of optimization epochs over the data
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
