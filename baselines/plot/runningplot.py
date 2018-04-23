@@ -7,14 +7,14 @@ import os
 
 sns.set(color_codes=True)
 #
-path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoguidedentretrace-5000-04-23-17-19-40/progress.csv"
+# path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoguidedentretrace-5000-04-23-17-19-40/progress.csv"
 # path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentgamma095-5000-05001-04-23-15-26-44/progress.csv"
 # path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlinear-5000-04-23-15-27-38/progress.csv'
 # path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlineargamma095-5000-04-23-15-28-01/progress.csv'
 # path5 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretracelinear-5000-04-23-15-29-04/progress.csv'
 # path6 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretrace05001-5000-04-23-15-29-36/progress.csv'
 
-# path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent-retrace-full-04-22-15-11-08/progress.csv'
+path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoguidedentretrace-5000-04-23-22-37-34/progress.csv'
 # path2 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpoent5-5000-04-12-22-31-23/progress.csv'
 # path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-13-02-08-29/progress.csv'
 # path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
