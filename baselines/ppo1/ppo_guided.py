@@ -8,7 +8,7 @@ from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
 
-def traj_segment_generator(pi, pi_, env, horizon, stochastic):
+def traj_segment_generator(pi, pi_, env, horizon, stochastic, gamma):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     new = True # marks if we're on first timestep of an episode
@@ -16,14 +16,16 @@ def traj_segment_generator(pi, pi_, env, horizon, stochastic):
 
     cur_ep_ret = 0 # return in current episode
     cur_ep_len = 0 # len of current episode
+    lastdrwds = 0
     ep_rets = [] # returns of completed episodes in this segment
     ep_lens = [] # lengths of ...
+    ep_drwds = []
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
-    vpreds_ = np.zeros(horizon, 'float32')
+
     news = np.zeros(horizon, 'int32')
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
@@ -31,34 +33,42 @@ def traj_segment_generator(pi, pi_, env, horizon, stochastic):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
-        ac_, vpred_ = pi_.act(stochastic, ob)
+        # ac_, vpred_ = pi_.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
-            yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "vpred_": vpreds_, "new" : news,
-                    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new), "nextvpred_": vpred_ * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+            # yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "vpred_": vpreds_, "new" : news,
+            #         "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new), "nextvpred_": vpred_ * (1 - new),
+            #         "ep_rets" : ep_rets, "ep_lens" : ep_lens, "ep_drwds": ep_drwds}
+
+            yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
+                    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, "ep_drwds": ep_drwds}
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
             ep_lens = []
+            ep_drwds = []
         i = t % horizon
         obs[i] = ob
         vpreds[i] = vpred
         news[i] = new
         acs[i] = ac
-        vpreds_[i] = vpred_
         prevacs[i] = prevac
 
         ob, rew, new, _ = env.step(ac)
         rews[i] = rew
+
+        lastdrwds = rew + gamma * lastdrwds
 
         cur_ep_ret += rew
         cur_ep_len += 1
         if new:
             ep_rets.append(cur_ep_ret)
             ep_lens.append(cur_ep_len)
+            ep_drwds.append(lastdrwds)
+            lastdrwds = 0
             cur_ep_ret = 0
             cur_ep_len = 0
             ob = env.reset()
@@ -70,32 +80,27 @@ def add_vtarg_and_adv(seg, gamma, lam):
     """
     new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
     vpred = np.append(seg["vpred"], seg["nextvpred"])
-    vpred_ = np.append(seg["vpred_"], seg["nextvpred_"])
     T = len(seg["rew"])
     seg["adv"] = gaelam = np.empty(T, 'float32')
-    seg["adv_"] = gaelam_ = np.empty(T, 'float32')
     rew = seg["rew"]
     lastgaelam = 0
-    l = 0
     for t in reversed(range(T)):
         nonterminal = 1-new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
-        delta_ = rew[t] + gamma * vpred_[t+1] * nonterminal - vpred_[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-        gaelam_[t] = l = delta_ + gamma * lam * nonterminal * l
-
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
-    seg["tdlamret_"] = seg["adv_"] + seg["vpred_"]
 
 def learn(env, genv, i_trial,policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
-        clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
+        clip_param, entp, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
         gamma, lam, # advantage estimation
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
-        schedule='constant' # annealing for stepsize parameters (epsilon and adam)
+        schedule='constant', # annealing for stepsize parameters (epsilon and adam)
+        useentr=False,
+        retrace=False
         ):
     # Setup losses and stuff
     # ----------------------------------------
@@ -112,12 +117,11 @@ def learn(env, genv, i_trial,policy_fn, *,
     gret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
     lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
+    entcoeff = tf.placeholder(dtype=tf.float32, shape=[])
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
 
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
-
-    # gob = U.get_placeholder_cached(name='ob')
     gac = gpi.pdtype.sample_placeholder([None])
 
     kloldnew = oldpi.pd.kl(pi.pd)
@@ -134,6 +138,7 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
     ratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac)) # pnew / pold
+    compute_ratio = U.function([ob, gac], ratio)
     surr1 = ratio * gatarg # surrogate from conservative policy iteration
     surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * gatarg #
     pol_surr = - tf.reduce_mean(tf.minimum(surr1, surr2)) # PPO's pessimistic surrogate (L^CLIP)
@@ -143,6 +148,7 @@ def learn(env, genv, i_trial,policy_fn, *,
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     gratio = tf.exp(gpi.pd.logp(ac) - oldpi.pd.logp(ac))
+    compute_gratio = U.function([ob, ac], gratio)
     gsurr1 = gratio * atarg
     gsurr2 = tf.clip_by_value(gratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
     gpol_surr = - tf.reduce_mean(tf.minimum(gsurr1, gsurr2))
@@ -153,11 +159,11 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
     var_list = pi.get_trainable_variables()
-    lossandgrad = U.function([ob, gac, gatarg, gret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    lossandgrad = U.function([ob, gac, gatarg, gret, lrmult, entcoeff], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
     gvar_list = gpi.get_trainable_variables()
-    glossandgrad = U.function([ob, ac, atarg, ret, lrmult], glosses + [U.flatgrad(gtotal_loss, gvar_list)])
+    glossandgrad = U.function([ob, ac, atarg, ret, lrmult, entcoeff], glosses + [U.flatgrad(gtotal_loss, gvar_list)])
     gadam = MpiAdam(gvar_list, epsilon=adam_epsilon)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
@@ -167,8 +173,8 @@ def learn(env, genv, i_trial,policy_fn, *,
         for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
 
 
-    compute_losses = U.function([ob, gac, gatarg, gret, lrmult], losses)
-    gcompute_losses = U.function([ob, ac, atarg, ret, lrmult], glosses)
+    compute_losses = U.function([ob, gac, gatarg, gret, lrmult, entcoeff], losses)
+    gcompute_losses = U.function([ob, ac, atarg, ret, lrmult, entcoeff], glosses)
 
 
     U.initialize()
@@ -177,8 +183,8 @@ def learn(env, genv, i_trial,policy_fn, *,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(pi, gpi, env, timesteps_per_actorbatch, stochastic=True)
-    gseg_gen = traj_segment_generator(gpi, pi, genv, timesteps_per_actorbatch, stochastic=True)
+    seg_gen = traj_segment_generator(pi, gpi, env, timesteps_per_actorbatch, stochastic=True, gamma=gamma)
+    gseg_gen = traj_segment_generator(gpi, pi, genv, timesteps_per_actorbatch, stochastic=True, gamma=gamma)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -188,6 +194,8 @@ def learn(env, genv, i_trial,policy_fn, *,
     # lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
     grewbuffer = deque(maxlen=100)
+    drwdsbuffer = deque(maxlen=100)
+    gdrwdsbuffer = deque(maxlen=100)
 
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
@@ -209,9 +217,16 @@ def learn(env, genv, i_trial,policy_fn, *,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+            cur_lrmult =  max(1.0 - float(iters_so_far) / float(max_iters), 0)
         else:
             raise NotImplementedError
+
+        if useentr:
+            entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.01)
+            # entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0)
+        else:
+            entcoeff = 0.0
+
 
         print("********** Iteration %i ************"%iters_so_far)
 
@@ -225,23 +240,27 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
 
-        gob, gac, gatarg, gatarg_, gtdlamret, gtdlamret_ , gvpredbefore, gvpredbefore_ = gseg["ob"], gseg["ac"], \
-                                gseg["adv"], gseg["adv_"], gseg["tdlamret"], gseg["tdlamret_"], gseg["vpred"], gseg["vpred_"]
 
-        standarize(gatarg_)
+        gob, gac, gatarg, gtdlamret, gvpredbefore= gseg["ob"], gseg["ac"], \
+                                gseg["adv"], gseg["tdlamret"], gseg["vpred"]
+
+        ob, ac, atarg, tdlamret, vpredbefore = seg["ob"], seg["ac"],\
+                            seg["adv"], seg["tdlamret"], seg["vpred"],
+
+        # use retrace clip advantage into new range
+        if retrace:
+            gprob_r = compute_gratio(gob, gac)
+            gatarg = gatarg * np.minimum(1., gprob_r)
+            prob_r = compute_ratio(ob, ac)
+            atarg = atarg * np.minimum(1., prob_r)
+
         standarize(gatarg)
+        standarize(atarg)
 
-        gd = Dataset(dict(gob=gob, gac=gac, gatarg=gatarg, gatarg_=gatarg_, gvtarg=gtdlamret, gvtarg_=gtdlamret_),
+        gd = Dataset(dict(gob=gob, gac=gac, gatarg=gatarg, gvtarg=gtdlamret),
                      shuffle=not gpi.recurrent)
 
-        # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
-        ob, ac, atarg, atarg_, tdlamret, tdlamret_, vpredbefore, vpredbefore_ = seg["ob"], seg["ac"],\
-                            seg["adv"], seg["adv_"], seg["tdlamret"], seg["tdlamret_"], seg["vpred"], gseg["vpred_"]
-
-        standarize(atarg)
-        standarize(atarg_)
-
-        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, atarg_=atarg_, vtarg=tdlamret, vtarg_=tdlamret_),
+        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret),
                     shuffle=not pi.recurrent)
 
         optim_batchsize = optim_batchsize or ob.shape[0]
@@ -258,7 +277,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         for _ in range(optim_epochs):
             glosses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                *newlosses, g = glossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                *newlosses, g = glossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
                 gadam.update(g, optim_stepsize * cur_lrmult)
                 glosses.append(newlosses)
             # print(fmt_row(13, np.mean(glosses, axis=0)))
@@ -266,7 +285,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         # print("Evaluating losses...")
         glosses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = gcompute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            newlosses = gcompute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
             glosses.append(newlosses)
         gmeanlosses, _, _ = mpi_moments(glosses, axis=0)
         # print(fmt_row(13, gmeanlosses))
@@ -287,7 +306,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in gd.iterate_once(optim_batchsize):
-                *newlosses, g = lossandgrad(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
+                *newlosses, g = lossandgrad(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult, entcoeff)
                 adam.update(g, optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
             # print(fmt_row(13, np.mean(losses, axis=0)))
@@ -295,7 +314,7 @@ def learn(env, genv, i_trial,policy_fn, *,
         # print("Evaluating losses...")
         losses = []
         for batch in gd.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult)
+            newlosses = compute_losses(batch["gob"], batch["gac"], batch["gatarg"], batch["gvtarg"], cur_lrmult, entcoeff)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
         # print(fmt_row(13, meanlosses))
@@ -306,20 +325,26 @@ def learn(env, genv, i_trial,policy_fn, *,
 
 
 
-        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
+        lrlocal = (seg["ep_lens"], seg["ep_rets"], seg["ep_drwds"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
-        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lens, rews, drwds = map(flatten_lists, zip(*listoflrpairs))
 
-        glrlocal = (gseg["ep_lens"], gseg["ep_rets"]) # local values
+        glrlocal = (gseg["ep_lens"], gseg["ep_rets"], gseg["ep_drwds"]) # local values
         glistoflrpairs = MPI.COMM_WORLD.allgather(glrlocal) # list of tuples
-        glens, grews = map(flatten_lists, zip(*glistoflrpairs))
+        glens, grews, gdrwds = map(flatten_lists, zip(*glistoflrpairs))
 
         # lenbuffer.extend(lens)
         rewbuffer.extend(rews)
         grewbuffer.extend(grews)
+        drwdsbuffer.extend(drwds)
+        gdrwdsbuffer.extend(gdrwds)
+
         # logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
+        logger.record_tabular("EpDRewMean", np.mean(drwdsbuffer))
         logger.record_tabular("GEpRewMean", np.mean(grewbuffer))
+        logger.record_tabular("GEpDRewMean", np.mean(gdrwdsbuffer))
+
         # logger.record_tabular("EpThisIter", len(lens))
 
 
@@ -333,6 +358,7 @@ def learn(env, genv, i_trial,policy_fn, *,
 
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
+        logger.logkv("Name", 'PPOguidedentretrace')
 
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()

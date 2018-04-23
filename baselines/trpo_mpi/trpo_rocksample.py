@@ -10,7 +10,7 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.cg import cg
 from contextlib import contextmanager
 
-def traj_segment_generator(pi, env, horizon, stochastic):
+def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
@@ -20,8 +20,10 @@ def traj_segment_generator(pi, env, horizon, stochastic):
 
     cur_ep_ret = 0
     cur_ep_len = 0
+    lastdrwd = 0
     ep_rets = []
     ep_lens = []
+    ep_drwds = []
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
@@ -40,12 +42,13 @@ def traj_segment_generator(pi, env, horizon, stochastic):
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, "ep_drwds":ep_drwds}
             _, vpred = pi.act(stochastic, ob)
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
             ep_lens = []
+            ep_drwds = []
         i = t % horizon
         obs[i] = ob
         vpreds[i] = vpred
@@ -56,13 +59,17 @@ def traj_segment_generator(pi, env, horizon, stochastic):
         ob, rew, new, _ = env.step(ac)
         rews[i] = rew
 
+        lastdrwd = rew + gamma * lastdrwd
+
         cur_ep_ret += rew
         cur_ep_len += 1
         if new:
             ep_rets.append(cur_ep_ret)
             ep_lens.append(cur_ep_len)
+            ep_drwds.append(lastdrwd)
             cur_ep_ret = 0
             cur_ep_len = 0
+            lastdrwd = 0
             ob = env.reset()
         t += 1
 
@@ -176,7 +183,7 @@ def learn(env, policy_fn, *,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
+    seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True, gamma=gamma)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -184,6 +191,7 @@ def learn(env, policy_fn, *,
     tstart = time.time()
     lenbuffer = deque(maxlen=40) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=40) # rolling buffer for episode rewards
+    drwdsbuffer = deque(maxlen=40)
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0])==1
 
@@ -271,15 +279,17 @@ def learn(env, policy_fn, *,
 
         logger.logkv("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
 
-        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
+        lrlocal = (seg["ep_lens"], seg["ep_rets"], seg["ep_drwds"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
-        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lens, rews, drwds = map(flatten_lists, zip(*listoflrpairs))
         lenbuffer.extend(lens)
         rewbuffer.extend(rews)
+        drwdsbuffer.extend(drwds)
 
         logger.logkv("EpLenMean", np.mean(lenbuffer))
         logger.logkv("EpRewMean", np.mean(rewbuffer))
         logger.logkv("EpThisIter", len(lens))
+        logger.logkv("EpDRewMean", np.mean(drwdsbuffer))
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
         iters_so_far += 1
@@ -290,7 +300,7 @@ def learn(env, policy_fn, *,
         logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'TRPOent')
+        logger.logkv("Name", 'TRPOfullgamma095')
 
         if rank==0:
             logger.dump_tabular()

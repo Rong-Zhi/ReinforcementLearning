@@ -181,7 +181,9 @@ def learn(env, i_trial, policy_fn, *,
         print("********** Iteration %i ************"%iters_so_far)
 
         if useentr:
-            entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.04)
+
+            entcoeff = max(entp - float(iters_so_far) / float(max_iters), 0.01)
+            # entcoeff = entp - float(iters_so_far) / float(max_iters)
         else:
             entcoeff = 0.0
 
@@ -194,7 +196,7 @@ def learn(env, i_trial, policy_fn, *,
 
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
-        assign_old_eq_new() # set old parameter values to new parameter values
+
         if retrace is True:
             prob_r = compute_ratio(ob, ac)
             atarg = atarg * np.minimum(1., prob_r)
@@ -202,6 +204,8 @@ def learn(env, i_trial, policy_fn, *,
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
         d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
         optim_batchsize = optim_batchsize or ob.shape[0]
+
+        assign_old_eq_new()  # set old parameter values to new parameter values
 
         # Here we do a bunch of optimization epochs over the data
         for _ in range(optim_epochs):
@@ -230,7 +234,7 @@ def learn(env, i_trial, policy_fn, *,
         drwdbuffer.extend(drwds)
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
-        logger.record_tabular("DiscountRewardMean", np.mean(drwdbuffer))
+        logger.record_tabular("EpDRewMean", np.mean(drwdbuffer))
         logger.record_tabular("EpThisIter", len(lens))
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
@@ -240,7 +244,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'PPOfullretrace')
+        logger.logkv("Name", 'PPOfullentretrace05001')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 

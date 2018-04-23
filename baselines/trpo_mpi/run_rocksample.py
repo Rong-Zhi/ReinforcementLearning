@@ -11,7 +11,7 @@ import datetime
 import tensorflow as tf
 
 
-def train(num_timesteps, seed, num_trials=5):
+def train(num_timesteps, seed, num_trials=1):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -21,14 +21,14 @@ def train(num_timesteps, seed, num_trials=5):
             hid_size=32, num_hid_layers=2)
     for i_trial in range(num_trials):
         workerseed = seed + 10000 * MPI.COMM_WORLD.Get_rank()
-        env = make_rocksample_env(workerseed, map_name="5x7", observation_type="field_vision_full_pos",
-                                  observation_noise=True, n_steps=15)
+        env = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
+                                  observation_noise=False, n_steps=15)
 
         # genv = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
         #                           observation_noise=False, n_steps=15)
 
         trpo_rocksample.learn(env, policy_fn, timesteps_per_batch=5000, max_kl=0.01, cg_iters=10, cg_damping=0.1,
-            max_iters=600, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
+            max_iters=600, gamma=0.95, lam=0.99, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
 
         # ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=2048, max_kl=0.05,
         #           max_timesteps=num_timesteps,cg_iters=20, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
@@ -44,10 +44,10 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo5-5000-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo-full-gamma095-5000-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     # train(num_timesteps=args.num_timesteps, seed=args.seed)
     train(num_timesteps=args.num_timesteps, seed=args.seed)

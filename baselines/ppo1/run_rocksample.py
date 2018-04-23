@@ -24,9 +24,17 @@ def train(num_timesteps, seed, num_trials=1):
         env = make_rocksample_env(seed, map_name="5x7", observation_type="fully_observable",
                                    observation_noise=False, n_steps=15)
 
-        # guided way of normalized fully observable rocksample with history timestep 15
+        # # guided way of normalized fully observable rocksample with history timestep 15
         # genv = make_rocksample_env(seed, map_name="5x7", observation_type="fully_observable",
         #                               observation_noise=False, n_steps=15)
+        #
+        # ppo_guided.learn(env, genv, i_trial, policy_fn,
+        #         max_iters=600,
+        #         timesteps_per_actorbatch=5000,
+        #         clip_param=0.2, entp=0.5,
+        #         optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
+        #         gamma=0.99, lam=0.95, schedule='linear', useentr=True, retrace=True
+        #                     )
 
         # pposgd_simple.learn(env, genv, i_trial, policy_fn,
         #         max_timesteps=num_timesteps,
@@ -37,10 +45,10 @@ def train(num_timesteps, seed, num_trials=1):
 
         pporocksample.learn(env, i_trial, policy_fn,
                 max_iters=600,
-                timesteps_per_actorbatch=2048,
-                clip_param=0.2, entp=0.6,
+                timesteps_per_actorbatch=5000,
+                clip_param=0.2, entp=0.5,
                 optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-                gamma=0.95, lam=0.99, schedule='linear', useentr=True, retrace=True
+                gamma=0.99, lam=0.95, schedule='linear', useentr=True, retrace=True
                             )
         env.close()
 
@@ -54,10 +62,10 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoent-retrace-full-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppoguidedentretrace-5000-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     train(num_timesteps=args.num_timesteps, seed=args.seed)
 
