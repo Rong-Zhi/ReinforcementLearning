@@ -6,16 +6,16 @@ import matplotlib.animation as animation
 import os
 
 sns.set(color_codes=True)
+#
+# path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-full-04-19-15-27-53/progress.csv"
+# path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppo-04-12-17-01-47/progress.csv"
+# path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-04-12-17-52-57/progress.csv'
+# path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpoent5000-04-12-18-48-43/progress.csv'
 
-path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-full-04-19-15-27-53/progress.csv"
-path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppo-04-12-17-01-47/progress.csv"
-path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppoent-04-12-17-52-57/progress.csv'
-path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/trpoent5000-04-12-18-48-43/progress.csv'
-
-# path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpo5-5000-04-12-23-25-33/progress.csv'
-# path2 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpoent5-5000-04-12-22-31-23/progress.csv'
-# path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-13-02-08-29/progress.csv'
-# path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
+path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent-retrace-full-04-22-15-11-08/progress.csv'
+path2 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpoent5-5000-04-12-22-31-23/progress.csv'
+path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-13-02-08-29/progress.csv'
+path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppoent5-5000-04-13-02-09-29/progress.csv'
 
 
 fig, axes = plt.subplots(1, 3, figsize=(18,5))

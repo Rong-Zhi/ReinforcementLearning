@@ -16,16 +16,17 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
 
     cur_ep_ret = 0 # return in current episode
     cur_ep_len = 0 # len of current episode
-    cur_ep_drwd = 0
+    lastdrwd = 0
     ep_rets = [] # returns of completed episodes in this segment
     ep_lens = [] # lengths of ...
-    ep_drwd = []
+    ep_drwds = []
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
     news = np.zeros(horizon, 'int32')
+    # drwds = []
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
 
@@ -38,12 +39,12 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, 'ep_drwd': ep_drwd}
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, "ep_drwds":ep_drwds}
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
             ep_lens = []
-            ep_drwd = []
+            ep_drwds = []
         i = t % horizon
         obs[i] = ob
         vpreds[i] = vpred
@@ -54,16 +55,21 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
         ob, rew, new, _ = env.step(ac)
         rews[i] = rew
 
+        lastdrwd = rew + gamma * lastdrwd
+        # drwds.append(lastdrwd)
+
         cur_ep_ret += rew
         cur_ep_len += 1
-        cur_ep_drwd = rew + gamma * cur_ep_drwd
+
+
         if new:
             ep_rets.append(cur_ep_ret)
             ep_lens.append(cur_ep_len)
-            ep_drwd.append(cur_ep_drwd)
+            ep_drwds.append(lastdrwd)
             cur_ep_ret = 0
             cur_ep_len = 0
-            cur_ep_drwd = 0
+            lastdrwd = 0
+            # drwds = []
             ob = env.reset()
         t += 1
 
@@ -84,10 +90,6 @@ def add_vtarg_and_adv(seg, gamma, lam):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
-
-
-
-
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entp, # clipping parameter epsilon, entropy coeff
@@ -97,7 +99,8 @@ def learn(env, i_trial, policy_fn, *,
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
         schedule='constant',# annealing for stepsize parameters (epsilon and adam)
-        useentr=False
+        useentr=False,
+        retrace=True
         ):
     # Setup losses and stuff
     # ----------------------------------------
@@ -185,7 +188,6 @@ def learn(env, i_trial, policy_fn, *,
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
-
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"] # predicted value function before udpate
@@ -193,8 +195,9 @@ def learn(env, i_trial, policy_fn, *,
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         assign_old_eq_new() # set old parameter values to new parameter values
-        # prob_r = compute_ratio(ob, ac)
-        # atarg = atarg * np.minimum(1., prob_r)
+        if retrace is True:
+            prob_r = compute_ratio(ob, ac)
+            atarg = atarg * np.minimum(1., prob_r)
 
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
         d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
@@ -219,7 +222,7 @@ def learn(env, i_trial, policy_fn, *,
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_"+name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
-        lrlocal = (seg["ep_lens"], seg["ep_rets"], seg["ep_drwd"]) # local values
+        lrlocal = (seg["ep_lens"], seg["ep_rets"], seg["ep_drwds"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
         lens, rews, drwds = map(flatten_lists, zip(*listoflrpairs))
         lenbuffer.extend(lens)
@@ -237,7 +240,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'PPOent')
+        logger.logkv("Name", 'PPOfullretrace')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 
