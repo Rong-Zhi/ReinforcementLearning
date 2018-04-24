@@ -145,6 +145,7 @@ def learn(env, i_trial, policy_fn, *,
 
     U.initialize()
     adam.sync()
+    tf.global_variables_initializer()
 
     # Prepare for rollouts
     # ----------------------------------------
