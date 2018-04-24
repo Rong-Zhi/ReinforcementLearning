@@ -358,7 +358,7 @@ def learn(env, genv, i_trial,policy_fn, *,
 
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'PPOguidedentretrace')
+        logger.logkv("Name", 'PPOguided')
 
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()

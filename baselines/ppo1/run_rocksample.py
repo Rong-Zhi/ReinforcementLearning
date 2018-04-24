@@ -25,16 +25,16 @@ def train(num_timesteps, seed, num_trials=1):
                                    observation_noise=False, n_steps=15)
 
         # # guided way of normalized fully observable rocksample with history timestep 15
-        genv = make_rocksample_env(seed, map_name="5x7", observation_type="fully_observable",
-                                      observation_noise=False, n_steps=15)
-
-        ppo_guided.learn(env, genv, i_trial, policy_fn,
-                max_iters=600,
-                timesteps_per_actorbatch=5000,
-                clip_param=0.2, entp=0.5,
-                optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-                gamma=0.99, lam=0.95, schedule='linear', useentr=True, retrace=True
-                            )
+        # genv = make_rocksample_env(seed, map_name="5x7", observation_type="fully_observable",
+        #                               observation_noise=False, n_steps=15)
+        #
+        # ppo_guided.learn(env, genv, i_trial, policy_fn,
+        #         max_iters=600,
+        #         timesteps_per_actorbatch=5000,
+        #         clip_param=0.2, entp=0.5,
+        #         optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
+        #         gamma=0.99, lam=0.95, schedule='linear', useentr=True, retrace=True
+        #                     )
 
         # pposgd_simple.learn(env, genv, i_trial, policy_fn,
         #         max_timesteps=num_timesteps,
@@ -43,13 +43,13 @@ def train(num_timesteps, seed, num_trials=1):
         #         optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=32,
         #         gamma=0.99, lam=0.95, schedule='linear')
 
-        # pporocksample.learn(env, i_trial, policy_fn,
-        #         max_iters=600,
-        #         timesteps_per_actorbatch=5000,
-        #         clip_param=0.2, entp=0.5,
-        #         optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-        #         gamma=0.99, lam=0.95, schedule='linear', useentr=False, retrace=False
-        #                     )
+        pporocksample.learn(env, i_trial, policy_fn,
+                max_iters=600,
+                timesteps_per_actorbatch=5000,
+                clip_param=0.2, entp=0.5,
+                optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
+                gamma=0.99, lam=0.95, schedule='linear', useentr=False, retrace=False
+                            )
         env.close()
 
 

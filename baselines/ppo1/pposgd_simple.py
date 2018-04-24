@@ -155,7 +155,7 @@ def learn(env, i_trial, policy_fn, *,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+            cur_lrmult =  max(1.0 - float(iters_so_far) / float(max_iters), 0)
         else:
             raise NotImplementedError
 
@@ -211,6 +211,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.record_tabular("Iteration", iters_so_far)
         logger.record_tabular("trial",i_trial)
+        logger.record_tabular("Name", 'PPO')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 

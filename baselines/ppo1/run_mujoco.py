@@ -6,20 +6,36 @@ from baselines import logger
 import os
 import datetime
 
+
 def train(env_id, num_timesteps, seed):
-    from baselines.ppo1 import mlp_policy, pposgd_simple
+    from baselines.ppo1 import mlp_policy, pposgd_simple, ppo_guided
     U.make_session(num_cpu=1).__enter__()
     def policy_fn(name, ob_space, ac_space):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=64, num_hid_layers=2)
+            hid_size=32, num_hid_layers=2)
     # env = make_mujoco_env(env_id, seed)
     env = make_control_env(env_id, seed)
-    pposgd_simple.learn(env, policy_fn,
-            max_timesteps=num_timesteps,
+    i_trial = 1
+
+    # genv = make_control_env(env_id, seed)
+    #
+    #
+    # ppo_guided.learn(env, genv, i_trial, policy_fn,
+    #         max_iters=100,
+    #         timesteps_per_actorbatch=2048,
+    #         clip_param=0.2, entp=0.5,
+    #         optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
+    #         gamma=0.99, lam=0.95, schedule='linear', useentr=False, retrace=False
+    #                     )
+
+
+
+    pposgd_simple.learn(env, i_trial, policy_fn,
+            max_iters=100,
             timesteps_per_actorbatch=2048,
             clip_param=0.2, entcoeff=0.0,
             optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-            gamma=0.99, lam=0.95, schedule='linear',
+            gamma=0.99, lam=0.95, schedule='linear'
         )
     env.close()
 
