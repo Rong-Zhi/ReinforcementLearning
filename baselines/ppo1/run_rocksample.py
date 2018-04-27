@@ -8,12 +8,13 @@ import os
 import datetime
 
 
+
 def train(env_id, num_timesteps, seed, num_trials=1):
     from baselines.ppo1 import mlp_policy, ppo_guided, pporocksample, ppo_guided2
     U.make_session(num_cpu=1).__enter__()
     def policy_fn(name, ob_space, ac_space):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=32, num_hid_layers=2)
+            hid_size=64, num_hid_layers=2)
 
     for i_trial in range(num_trials):
 
@@ -46,13 +47,14 @@ def train(env_id, num_timesteps, seed, num_trials=1):
         #         gamma=0.99, lam=0.95, schedule='linear')
 
         pporocksample.learn(env, i_trial, policy_fn,
-                max_iters=1000,
+                max_iters=6000,
                 timesteps_per_actorbatch=2048,
                 clip_param=0.2, entp=0.5,
-                optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=32,
+                optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
                 gamma=0.99, lam=0.95, schedule='linear', useentr=False, retrace=False
                             )
         env.close()
+
 
 
 def get_dir(path):
@@ -65,11 +67,12 @@ def main():
     args= control_arg_parser().parse_args()
     # args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
+    video_path = get_dir(logger.get_dir()+'/videos')
     train(env_id=args.env, num_timesteps=args.num_timesteps, seed=args.seed)
 
 if __name__ == '__main__':

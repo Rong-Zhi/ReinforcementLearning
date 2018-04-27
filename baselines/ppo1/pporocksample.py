@@ -7,8 +7,12 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
+import imageio
+
+
 
 def traj_segment_generator(pi, env, horizon, stochastic, gamma):
+
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ac = np.clip(ac, env.action_space.low, env.action_space.high)
@@ -21,6 +25,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     ep_rets = [] # returns of completed episodes in this segment
     ep_lens = [] # lengths of ...
     ep_drwds = []
+    frames = []
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
@@ -47,6 +52,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
             ep_rets = []
             ep_lens = []
             ep_drwds = []
+            ob = env.reset()
         i = t % horizon
         obs[i] = ob
         vpreds[i] = vpred
@@ -75,6 +81,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
             ob = env.reset()
         t += 1
 
+
 def add_vtarg_and_adv(seg, gamma, lam):
     """
     Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
@@ -92,6 +99,23 @@ def add_vtarg_and_adv(seg, gamma, lam):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
+def play(env, pi, video_path, iters_so_far):
+    num_episodes = 0
+    ob = env.reset()
+    frames = []
+    while True:
+        frame = env.unwrapped.render(mode='rgb_array')
+        frames.append(frame)
+        action,_ = pi.act(stochastic=True, ob=ob)
+        action = np.clip(action, env.action_space.low, env.action_space.high)
+        ob, rew, done, _ = env.step(action)
+        if done:
+            print("Saved video.")
+            imageio.mimsave(video_path+'/'+str(iters_so_far)+'.gif', frames, fps=20)
+            break
+        num_episodes += 1
+
+
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entp, # clipping parameter epsilon, entropy coeff
@@ -106,6 +130,8 @@ def learn(env, i_trial, policy_fn, *,
         ):
     # Setup losses and stuff
     # ----------------------------------------
+
+
     ob_space = env.observation_space
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy
@@ -248,6 +274,9 @@ def learn(env, i_trial, policy_fn, *,
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
         logger.logkv("Name", 'PPOlunarlander')
+        if iters_so_far == 1 or iters_so_far % 1000 == 0:
+            play(env, pi, video_path=logger.get_dir()+'/videos', iters_so_far=iters_so_far)
+
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 
