@@ -11,6 +11,7 @@ from collections import deque
 def traj_segment_generator(pi, pi_, env, horizon, stochastic, gamma):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
+    ac = np.clip(ac, env.action_space.low, env.action_space.high)
     new = True # marks if we're on first timestep of an episode
     ob = env.reset()
 
@@ -33,6 +34,7 @@ def traj_segment_generator(pi, pi_, env, horizon, stochastic, gamma):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
+        ac = np.clip(ac, env.action_space.low, env.action_space.high)
         # ac_, vpred_ = pi_.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct

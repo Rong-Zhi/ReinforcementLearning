@@ -11,6 +11,7 @@ from collections import deque
 def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
+    ac = np.clip(ac, env.action_space.low, env.action_space.high)
     new = True # marks if we're on first timestep of an episode
     ob = env.reset()
 
@@ -33,6 +34,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
+        ac = np.clip(ac, env.action_space.low, env.action_space.high)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
@@ -245,7 +247,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'PPOfullentretrace05001')
+        logger.logkv("Name", 'PPOlunarlander')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 
