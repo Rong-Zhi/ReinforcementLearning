@@ -7,14 +7,14 @@ import os
 
 sns.set(color_codes=True)
 #
-# path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/trpo-04-29-13-10-31/progress.csv"
+path1 ="/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo-04-30-18-05-01/progress.csv"
 # path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullent-5000-05001-04-23-15-27-03/progress.csv"
 # path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlinear-5000-04-23-15-27-38/progress.csv'
 # path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlineargamma095-5000-04-23-15-28-01/progress.csv'
 # path5 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretracelinear-5000-04-23-15-29-04/progress.csv'
 # path6 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretrace05001-5000-04-23-15-29-36/progress.csv'
 
-path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/LunarLander-v2/trpo-04-29-17-30-07/progress.csv'
+# path1 ='/Users/zhirong/Documents/Masterthesis-code/tmp/LunarLander-v2/trpo-04-29-17-30-07/progress.csv'
 # path2 = '/Users/zhirong/Documents/Masterthesis-code/tmp/LunarLanderContinuous-v2/trpo-04-29-14-21-49/progress.csv'
 # path2 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/trpoent5-5000-04-12-22-31-23/progress.csv'
 # path3 = '/Users/zhirong/Documents/Masterthesis-code/tmp/RockSample/ppo5-5000-04-13-02-08-29/progress.csv'
@@ -38,9 +38,9 @@ def plots(i):
     data = d1
     # data = pd.concat([d1,d2])
 
-    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='eprewmean',unit='trial', condition='Name', ax=axes[0], ci=95)
     # sns.tsplot(data=d1, time='Iteration', value='EpDRewMean',unit='trial', condition='Name', ax=axes[1])
-    sns.tsplot(data=data, time='Iteration', value='loss_ent', unit='trial', condition='Name',ax=axes[1], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='policy_entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
 
     # sns.tsplot(data=d1, time='Iteration', value='GEpRewMean',unit='trial', condition='Name', ax=axes[2])
     # # sns.tsplot(data=d1, time='Iteration', value='GEpDRewMean',unit='trial', condition='Name', ax=axes[4])

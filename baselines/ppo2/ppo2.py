@@ -60,7 +60,7 @@ class Model(object):
                 [pg_loss, vf_loss, entropy, approxkl, clipfrac, _train],
                 td_map
             )[:-1]
-        self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
+        self.loss_names = ['policy_loss', 'value_loss', 'loss_ent', 'approxkl', 'clipfrac']
 
         def save(save_path):
             ps = sess.run(params)
@@ -154,7 +154,7 @@ def constfn(val):
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0):
+            save_interval=0, i_trial):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -227,9 +227,12 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv("total_timesteps", update*nbatch)
             logger.logkv("fps", fps)
             logger.logkv("explained_variance", float(ev))
-            logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
-            logger.logkv('eplenmean', safemean([epinfo['l'] for epinfo in epinfobuf]))
+            logger.logkv('EpRewMean', safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv('EpLenMean', safemean([epinfo['l'] for epinfo in epinfobuf]))
             logger.logkv('time_elapsed', tnow - tfirststart)
+            logger.logkv('trial', i_trial)
+            logger.logkv("Iteration", update)
+            logger.logkv('Name', 'PP02')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()

@@ -14,7 +14,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
-    ac = np.clip(ac, env.action_space.low, env.action_space.high)
+    # ac = np.clip(ac, env.action_space.low, env.action_space.high)
 
     new = True
     rew = 0.0

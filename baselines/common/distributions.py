@@ -82,6 +82,18 @@ class DiagGaussianPdType(PdType):
     def sample_dtype(self):
         return tf.float32
 
+class BetaPdType(PdType):
+    def __init__(self, size):
+        self.size = size
+    def pdclass(self):
+        return BetaPd
+    def param_shape(self):
+        return [2*self.size]
+    def sample_shape(self):
+        return [self.size]
+    def sample_dtype(self):
+        return tf.float32
+
 class BernoulliPdType(PdType):
     def __init__(self, size):
         self.size = size
@@ -199,6 +211,30 @@ class DiagGaussianPd(Pd):
     @classmethod
     def fromflat(cls, flat):
         return cls(flat)
+
+
+class BetaPd(Pd):
+    def __init__(self, flat):
+        self.flat = flat
+        alpha, beta = tf.split(axis=len(flat.shape)-1, num_or_size_splits=2, value=flat)
+        self.dist = tf.distributions.Beta(concentration1=alpha, concentration0=beta, validate_args=True, allow_nan_stats=False)
+    def flatparam(self):
+        return self.flat
+    def mode(self):
+        return self.dist.mode()
+    def neglogp(self, x):
+        return tf.reduce_sum(-self.dist.log_prob(x), axis=-1)
+    def kl(self, other):
+        assert isinstance(other, BetaPd)
+        return self.dist.kl_divergence(other)
+    def entropy(self):
+        return self.dist.entropy()
+    def sample(self):
+        return self.dist.sample()
+    @classmethod
+    def fromflat(cls, flat):
+        return cls(flat)
+
 
 class BernoulliPd(Pd):
     def __init__(self, logits):

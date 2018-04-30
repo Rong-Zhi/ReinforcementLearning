@@ -15,7 +15,6 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
 
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
-    ac = np.clip(ac, env.action_space.low, env.action_space.high)
     new = True # marks if we're on first timestep of an episode
     ob = env.reset()
 
@@ -39,7 +38,6 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
-        ac = np.clip(ac, env.action_space.low, env.action_space.high)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
@@ -203,7 +201,7 @@ def learn(env, i_trial, policy_fn, *,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(iters_so_far) / float(max_iters), 0)
+            cur_lrmult =  max(1.0 - 2 * float(iters_so_far) / float(max_iters), 3e-5)
         else:
             raise NotImplementedError
 
@@ -273,7 +271,7 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'PPOlunarlander')
+        logger.logkv("Name", 'PPO')
         # if iters_so_far == 1 or iters_so_far % 1000 == 0:
         #     play(env, pi, video_path=logger.get_dir()+'/videos', iters_so_far=iters_so_far)
 

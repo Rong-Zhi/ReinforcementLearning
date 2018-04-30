@@ -58,6 +58,8 @@ class Monitor(Wrapper):
     def step(self, action):
         if self.needs_reset:
             raise RuntimeError("Tried to step environment that needs reset")
+        if isinstance(self.action_space, gym.spaces.Box):
+            action = np.clip(action, self.action_space.low, self.action_space.high)
         ob, rew, done, info = self.env.step(action)
         self.rewards.append(rew)
         if done:
