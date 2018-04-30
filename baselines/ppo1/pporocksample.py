@@ -274,8 +274,8 @@ def learn(env, i_trial, policy_fn, *,
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
         logger.logkv("Name", 'PPOlunarlander')
-        if iters_so_far == 1 or iters_so_far % 1000 == 0:
-            play(env, pi, video_path=logger.get_dir()+'/videos', iters_so_far=iters_so_far)
+        # if iters_so_far == 1 or iters_so_far % 1000 == 0:
+        #     play(env, pi, video_path=logger.get_dir()+'/videos', iters_so_far=iters_so_far)
 
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()

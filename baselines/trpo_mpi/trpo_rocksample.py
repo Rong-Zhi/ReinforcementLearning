@@ -14,6 +14,8 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
+    ac = np.clip(ac, env.action_space.low, env.action_space.high)
+
     new = True
     rew = 0.0
     ob = env.reset()
@@ -36,6 +38,8 @@ def traj_segment_generator(pi, env, horizon, stochastic, gamma):
     while True:
         prevac = ac
         ac, vpred = pi.act(stochastic, ob)
+        ac = np.clip(ac, env.action_space.low, env.action_space.high)
+
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
@@ -175,6 +179,7 @@ def learn(env, policy_fn, *,
         return out
 
     U.initialize()
+    tf.global_variables_initializer()
     th_init = get_flat()
     MPI.COMM_WORLD.Bcast(th_init, root=0)
     set_from_flat(th_init)
@@ -300,7 +305,7 @@ def learn(env, policy_fn, *,
         logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'TRPOfullgamma095')
+        logger.logkv("Name", 'TRPOlunarlanderdiscrete')
 
         if rank==0:
             logger.dump_tabular()
