@@ -11,7 +11,7 @@ import imageio
 
 class Model(object):
     def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
-                nsteps, ent_coef, vf_coef, max_grad_norm):
+                nsteps, vf_coef, max_grad_norm):
         sess = tf.get_default_session()
 
         act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, reuse=False)
@@ -24,6 +24,7 @@ class Model(object):
         OLDVPRED = tf.placeholder(tf.float32, [None])
         LR = tf.placeholder(tf.float32, [])
         CLIPRANGE = tf.placeholder(tf.float32, [])
+        ENT_DYNAMIC = tf.placeholder(dtype=tf.float32, shape=[])
 
         neglogpac = train_model.pd.neglogp(A)
         entropy = tf.reduce_mean(train_model.pd.entropy())
@@ -39,7 +40,7 @@ class Model(object):
         pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
         approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - OLDNEGLOGPAC))
         clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), CLIPRANGE)))
-        loss = pg_loss - entropy * ent_coef + vf_loss * vf_coef
+        loss = pg_loss - entropy * ENT_DYNAMIC + vf_loss * vf_coef
         with tf.variable_scope('model'):
             params = tf.trainable_variables()
         grads = tf.gradients(loss, params)
@@ -49,11 +50,11 @@ class Model(object):
         trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
         _train = trainer.apply_gradients(grads)
 
-        def train(lr, cliprange, obs, returns, masks, actions, values, neglogpacs, states=None):
+        def train(lr, cliprange, obs, returns, masks, actions, values, neglogpacs, ent_dynamic,states=None):
             advs = returns - values
             advs = (advs - advs.mean()) / (advs.std() + 1e-8)
             td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
-                    CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values}
+                    CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values, ENT_DYNAMIC:ent_dynamic}
             if states is not None:
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
@@ -99,22 +100,22 @@ class Runner(object):
         self.states = model.initial_state
         self.dones = [False for _ in range(nenv)]
 
-    # def play(self, genv, video_path, iters_so_far):
-    #     obs = genv.reset()
-    #     state = self.model.initial_state
-    #     num_episodes = 0
-    #     done = False
-    #     frames = []
-    #     while True:
-    #         frame = self.env.unwrapped.render(mode='rgb_array')
-    #         frames.append(frame)
-    #         action, _, states, _ = self.model.step(obs, state, done)
-    #         obs, rewards, done, _ = genv.step(action)
-    #         if self.dones:
-    #             print("Saved video.")
-    #             imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
-    #             break
-    #         num_episodes += 1
+    def play(self, video_path, iters_so_far):
+        obs = self.env.reset()
+        state = self.model.initial_state
+        num_episodes = 0
+        done = False
+        frames = []
+        while True:
+            frame = self.env.unwrapedrender()
+            frames.append(frame)
+            action, _, states, _ = self.model.step(obs, state, done)
+            obs, rewards, done, _ = self.env.step(action)
+            if done or num_episodes>500:
+                print("Saved video.")
+                imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
+                break
+            num_episodes += 1
 
 
     def run(self):
@@ -170,10 +171,10 @@ def constfn(val):
         return val
     return f
 
-def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
+def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0, i_trial):
+            save_interval=0, useentr=False, i_trial):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -188,7 +189,7 @@ def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
     nbatch_train = nbatch // nminibatches
 
     make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
-                    nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
+                    nsteps=nsteps, vf_coef=vf_coef,
                     max_grad_norm=max_grad_norm)
     if save_interval and logger.get_dir():
         import cloudpickle
@@ -201,7 +202,14 @@ def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
     tfirststart = time.time()
 
     nupdates = total_timesteps//nbatch
+
+
     for update in range(1, nupdates+1):
+        if useentr:
+            ent_coef = max(ent_coef - float(update) / float(nupdates), 0.01)
+            # ent_coef = entp - float(iters_so_far) / float(max_iters)
+        else:
+            ent_coef = 0.0
         assert nbatch % nminibatches == 0
         nbatch_train = nbatch // nminibatches
         tstart = time.time()
@@ -219,7 +227,7 @@ def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
                     end = start + nbatch_train
                     mbinds = inds[start:end]
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices))
+                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, ent_dynamic=ent_coef))
         else: # recurrent version
             assert nenvs % nminibatches == 0
             envsperbatch = nenvs // nminibatches
@@ -234,7 +242,7 @@ def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
                     mbflatinds = flatinds[mbenvinds].ravel()
                     slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mbstates = states[mbenvinds]
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates))
+                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates, ent_dynamic=ent_coef))
 
         lossvals = np.mean(mblossvals, axis=0)
         tnow = time.time()
@@ -251,13 +259,13 @@ def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02')
+            logger.logkv('Name', 'PP02ent')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
 
-        # if update == 1 or update == nupdates:
-        #     runner.play(genv=genv, video_path=logger.get_dir()+'/videos', iters_so_far=update)
+        if update == 1 or update == nupdates:
+            runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
 
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
             checkdir = osp.join(logger.get_dir(), 'checkpoints')

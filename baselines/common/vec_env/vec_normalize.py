@@ -16,6 +16,7 @@ class VecNormalize(VecEnvWrapper):
         self.gamma = gamma
         self.epsilon = epsilon
 
+
     def step_wait(self):
         """
         Apply sequence of actions to sequence of environments
@@ -45,3 +46,6 @@ class VecNormalize(VecEnvWrapper):
         """
         obs = self.venv.reset()
         return self._obfilt(obs)
+
+    def unwrapedrender(self):
+        return self.venv.unwrapedrender()

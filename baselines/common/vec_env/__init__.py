@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from baselines import logger
+from gym.core import Wrapper
 
 class AlreadySteppingError(Exception):
     """
@@ -23,10 +24,11 @@ class VecEnv(ABC):
     """
     An abstract asynchronous, vectorized environment.
     """
-    def __init__(self, num_envs, observation_space, action_space):
+    def __init__(self, num_envs, observation_space, action_space, env):
         self.num_envs = num_envs
         self.observation_space = observation_space
         self.action_space = action_space
+        self.env = env
 
     @abstractmethod
     def reset(self):
@@ -77,8 +79,9 @@ class VecEnv(ABC):
         self.step_async(actions)
         return self.step_wait()
 
-    def render(self):
-        logger.warn('Render not defined for %s'%self)
+    def unwrapedrender(self):
+        return self.env.unwrapped.render(mode='rgb_array')
+
 
 class VecEnvWrapper(VecEnv):
     def __init__(self, venv, observation_space=None, action_space=None):
@@ -86,7 +89,7 @@ class VecEnvWrapper(VecEnv):
         VecEnv.__init__(self, 
             num_envs=venv.num_envs,
             observation_space=observation_space or venv.observation_space, 
-            action_space=action_space or venv.action_space)
+            action_space=action_space or venv.action_space, env=venv)
 
     def step_async(self, actions):
         self.venv.step_async(actions)
@@ -102,8 +105,8 @@ class VecEnvWrapper(VecEnv):
     def close(self):
         return self.venv.close()
 
-    def render(self):
-        self.venv.render()
+    def unwrapedrender(self):
+        self.venv.unwrapedrender()
 
 class CloudpickleWrapper(object):
     """

@@ -69,8 +69,8 @@ def main():
     args= control_arg_parser().parse_args()
     # args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo1-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)

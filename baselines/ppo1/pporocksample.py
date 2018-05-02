@@ -103,6 +103,7 @@ def play(env, pi, video_path, iters_so_far):
     frames = []
     while True:
         frame = env.unwrapped.render(mode='rgb_array')
+        print(type(frame))
         frames.append(frame)
         action,_ = pi.act(stochastic=True, ob=ob)
         action = np.clip(action, env.action_space.low, env.action_space.high)

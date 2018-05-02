@@ -125,12 +125,12 @@ def control_arg_parser():
     parser = arg_parser()
 
     # parser.add_argument('--env', help='environment ID', type=str, default='LunarLander-v2')
-    # parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
-    parser.add_argument('--env', help='environment ID', type=str, default='BipedalWalker-v2')
+    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
+    # parser.add_argument('--env', help='environment ID', type=str, default='BipedalWalker-v2')
     # parser.add_argument('--env', help='environment ID', type=str, default='CartPole-v0')
     # parser.add_argument('--env', help='environment ID', type=str, default='Pendulum-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(1.5e6))
+    parser.add_argument('--num-timesteps', type=int, default=int(1.6e6))
     return parser
 
 def rocksample_arg_parser():

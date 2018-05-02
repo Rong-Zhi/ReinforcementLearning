@@ -1,12 +1,13 @@
 import numpy as np
 import gym
 from . import VecEnv
+from gym.core import Wrapper
 
 class DummyVecEnv(VecEnv):
     def __init__(self, env_fns):
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
-        VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space)
+        VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space, env)
 
         obs_spaces = self.observation_space.spaces if isinstance(self.observation_space, gym.spaces.Tuple) else (self.observation_space,)
         self.buf_obs = [np.zeros((self.num_envs,) + tuple(s.shape), s.dtype) for s in obs_spaces]
@@ -49,3 +50,6 @@ class DummyVecEnv(VecEnv):
             return np.copy(self.buf_obs[0])
         else:
             return tuple(np.copy(x) for x in self.buf_obs)
+
+    # def unwraprender(self):
+    #     return self.envs[0].unwrapped.render(mode='rgb_array')
