@@ -7,6 +7,7 @@ import tensorflow as tf
 from baselines import logger
 from collections import deque
 from baselines.common import explained_variance
+import imageio
 
 class Model(object):
     def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
@@ -98,6 +99,24 @@ class Runner(object):
         self.states = model.initial_state
         self.dones = [False for _ in range(nenv)]
 
+    # def play(self, genv, video_path, iters_so_far):
+    #     obs = genv.reset()
+    #     state = self.model.initial_state
+    #     num_episodes = 0
+    #     done = False
+    #     frames = []
+    #     while True:
+    #         frame = self.env.unwrapped.render(mode='rgb_array')
+    #         frames.append(frame)
+    #         action, _, states, _ = self.model.step(obs, state, done)
+    #         obs, rewards, done, _ = genv.step(action)
+    #         if self.dones:
+    #             print("Saved video.")
+    #             imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
+    #             break
+    #         num_episodes += 1
+
+
     def run(self):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [],[],[],[],[],[]
         mb_states = self.states
@@ -151,7 +170,7 @@ def constfn(val):
         return val
     return f
 
-def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
+def learn(*, policy, env, genv, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
             save_interval=0, i_trial):
@@ -236,6 +255,10 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
+
+        # if update == 1 or update == nupdates:
+        #     runner.play(genv=genv, video_path=logger.get_dir()+'/videos', iters_so_far=update)
+
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)

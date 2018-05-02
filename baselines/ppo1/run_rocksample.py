@@ -49,11 +49,11 @@ def train(env_id, num_timesteps, seed, num_trials=5):
         #         gamma=0.99, lam=0.95, schedule='linear')
 
         pporocksample.learn(env, i_trial, policy_fn,
-                max_iters=1000,
+                max_iters=800,
                 timesteps_per_actorbatch=2048,
-                clip_param=0.2, entp=0.0,
+                clip_param=0.2, entp=0.3,
                 optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=32,
-                gamma=0.99, lam=0.95, schedule='linear', useentr=False, retrace=False
+                gamma=0.99, lam=0.95, schedule='linear', useentr=True, retrace=False
                             )
         env.close()
 
@@ -69,10 +69,10 @@ def main():
     args= control_arg_parser().parse_args()
     # args = rocksample_arg_parser().parse_args()
     args.seed = 0
-    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo1-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     video_path = get_dir(logger.get_dir()+'/videos')
     train(env_id=args.env, num_timesteps=args.num_timesteps, seed=args.seed)
