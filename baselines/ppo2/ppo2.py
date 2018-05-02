@@ -111,7 +111,7 @@ class Runner(object):
             frames.append(frame)
             action, _, states, _ = self.model.step(obs, state, done)
             obs, rewards, done, _ = self.env.step(action)
-            if done or num_episodes>500:
+            if done:
                 print("Saved video.")
                 imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
                 break
@@ -264,7 +264,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
 
-        if update == 1 or update == nupdates:
+        if update == 1 or update % 100==0 or update==nupdates:
             runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
 
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
