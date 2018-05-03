@@ -106,16 +106,19 @@ class Runner(object):
         num_episodes = 0
         done = False
         frames = []
+        rwds = []
         while True:
             frame = self.env.unwrapedrender()
             frames.append(frame)
             action, _, states, _ = self.model.step(obs, state, done)
-            obs, rewards, done, _ = self.env.step(action)
+            obs, reward, done, _ = self.env.step(action)
+            rwds.append(reward)
             if done:
                 print("Saved video.")
                 imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
                 break
             num_episodes += 1
+        return rwds
 
 
     def run(self):
@@ -259,13 +262,15 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02ent')
+            logger.logkv('Name', 'PP02-llm')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
 
         if update == 1 or update % 100==0 or update==nupdates:
-            runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
+            rwd=runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
+            print('Average Retrun:{0}'.format(np.sum(rwd)/float(len(rwd))))
+            print('Sum of Return:{0}'.format(np.sum(rwd)))
 
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
             checkdir = osp.join(logger.get_dir(), 'checkpoints')

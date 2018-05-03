@@ -7,7 +7,7 @@ import os
 
 sns.set(color_codes=True)
 #
-path1 ="/home/zhi/Documents/ReinforcementLearning/ppo2-bipedalwalker/progress.csv"
+path1 = "/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-llm-05-03-14-46-19/progress.csv"
 path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullent-5000-05001-04-23-15-27-03/progress.csv"
 # path3 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlinear-5000-04-23-15-27-38/progress.csv'
 # path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlineargamma095-5000-04-23-15-28-01/progress.csv'

@@ -37,7 +37,7 @@ def train(env_id, num_timesteps, seed, num_trials):
                 ent_coef=0.5,
                 lr=3e-4,
                 cliprange=0.2,
-                total_timesteps=num_timesteps, useentr=True, i_trial=i_trial)
+                total_timesteps=num_timesteps, useentr=False, i_trial=i_trial)
 
 def get_dir(path):
     if not os.path.exists(path):
@@ -52,7 +52,7 @@ def main():
     # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
     log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2ent-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-llm-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     video_path = get_dir(logger.get_dir() + '/videos')
     train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, num_trials=1)
