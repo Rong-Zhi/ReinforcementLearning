@@ -29,6 +29,7 @@ class Model(object):
         neglogpac = train_model.pd.neglogp(A)
         entropy = tf.reduce_mean(train_model.pd.entropy())
 
+
         vpred = train_model.vf
         vpredclipped = OLDVPRED + tf.clip_by_value(train_model.vf - OLDVPRED, - CLIPRANGE, CLIPRANGE)
         vf_losses1 = tf.square(vpred - R)
@@ -209,7 +210,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
     for update in range(1, nupdates+1):
         if useentr:
-            ent_coef = max(ent_coef - float(update) / float(nupdates), 0.01)
+            ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
             # ent_coef = entp - float(iters_so_far) / float(max_iters)
         else:
             ent_coef = 0.0
@@ -262,7 +263,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02-awake')
+            logger.logkv('Name', 'PP02-ent4')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()

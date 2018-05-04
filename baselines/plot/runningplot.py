@@ -7,11 +7,9 @@ import os
 
 sns.set(color_codes=True)
 #
-path1= '/home/zhi/Documents/ReinforcementLearning/ppo2-lunarlander/progress.csv'
-path3 = "/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-llm-05-03-14-46-19/progress.csv"
-path2 ="/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-awake-05-03-16-13-10/progress.csv"
-# path4 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentlineargamma095-5000-04-23-15-28-01/progress.csv'
-# path5 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretracelinear-5000-04-23-15-29-04/progress.csv'
+# path3= '/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-ent2-05-03-18-41-39/progress.csv'
+# path2 = '/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-ent1-05-03-18-43-10/progress.csv'
+path1 = '/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-ent4-05-03-18-48-38/progress.csv'
 # path6 = '/home/zhi/Documents/ReinforcementLearning/tmp/RockSample/ppofullentretrace05001-5000-04-23-15-29-36/progress.csv'
 
 
@@ -30,16 +28,15 @@ def plots(i):
     for ax in axes:
         ax.clear()
     d1 = pd.read_csv(path1)
-    d2= pd.read_csv(path2)
-
-    d3 = pd.read_csv(path3)
-    d3=d3[:781]
+    # d2= pd.read_csv(path2)
+    # d3 = pd.read_csv(path3)
+    # d3=d3[:781]
     # d4 = pd.read_csv(path4)
     # d5 = pd.read_csv(path5)
     # d6 = pd.read_csv(path6)
     # data = pd.concat([d3, d5])
-    # data = d1
-    data = pd.concat([d1,d2,d3])
+    data = d1
+    # data = pd.concat([d1, d2, d3])
 
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
     # sns.tsplot(data=d1, time='Iteration', value='EpDRewMean',unit='trial', condition='Name', ax=axes[1])
