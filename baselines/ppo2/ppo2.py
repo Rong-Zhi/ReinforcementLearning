@@ -210,7 +210,8 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
     for update in range(1, nupdates+1):
         if useentr:
-            ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
+            # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
+            ent_coef = 0.01
             # ent_coef = entp - float(iters_so_far) / float(max_iters)
         else:
             ent_coef = 0.0
@@ -263,7 +264,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02-ent4')
+            logger.logkv('Name', 'PP02-const-ent')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()

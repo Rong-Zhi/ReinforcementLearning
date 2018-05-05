@@ -33,7 +33,7 @@ def train(env_id, num_timesteps, seed, num_trials):
         with tf.Session(config=config) as sess:
             policy = MlpPolicy
             ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
-                lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
+                lam=0.95, gamma=0.99, noptepochs=5, log_interval=1,
                 ent_coef=0.25,
                 lr=3e-4,
                 cliprange=0.2,
@@ -48,14 +48,13 @@ def main():
     # args = mujoco_arg_parser().parse_args()
     args = control_arg_parser().parse_args()
     args.seed = 0
-    ntrial = 1
-    # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
+    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
-    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-ent4-%m-%d-%H-%M-%S"))
+    log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-const-ent-5runs-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
     video_path = get_dir(logger.get_dir() + '/videos')
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, num_trials=1)
+    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, num_trials=5)
 
 
 if __name__ == '__main__':
