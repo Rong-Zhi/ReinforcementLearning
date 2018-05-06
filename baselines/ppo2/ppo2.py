@@ -180,6 +180,8 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
             save_interval=0, useentr=False, i_trial):
 
+
+
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
     if isinstance(cliprange, float): cliprange = constfn(cliprange)
@@ -200,6 +202,8 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
         with open(osp.join(logger.get_dir(), 'make_model.pkl'), 'wb') as fh:
             fh.write(cloudpickle.dumps(make_model))
     model = make_model()
+    # if load_path:
+    #     model.load(load_path=load_path)
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
     epinfobuf = deque(maxlen=100)
@@ -211,7 +215,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     for update in range(1, nupdates+1):
         if useentr:
             # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
-            ent_coef = 0.01
+            ent_coef = 0.001
             # ent_coef = entp - float(iters_so_far) / float(max_iters)
         else:
             ent_coef = 0.0
@@ -264,7 +268,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02-const-ent')
+            logger.logkv('Name', 'PP02-15ep-ent0001')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
@@ -274,8 +278,8 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             print('Average Retrun:{0}'.format(np.sum(rwd)/float(len(rwd))))
             print('Sum of Return:{0}'.format(np.sum(rwd)))
 
-        if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
-            checkdir = osp.join(logger.get_dir(), 'checkpoints')
+        if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
+            checkdir = osp.join(logger.get_dir(), '{0}_checkpoints'.format(i_trial))
             os.makedirs(checkdir, exist_ok=True)
             savepath = osp.join(checkdir, '%.5i'%update)
             print('Saving to', savepath)
