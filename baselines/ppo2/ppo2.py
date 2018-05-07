@@ -215,7 +215,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     for update in range(1, nupdates+1):
         if useentr:
             # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
-            ent_coef = 0.001
+            ent_coef = 0.01
             # ent_coef = entp - float(iters_so_far) / float(max_iters)
         else:
             ent_coef = 0.0
