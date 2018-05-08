@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # noinspection PyUnresolvedReferences
-from baselines.common.cmd_util import make_rocksample_env, rocksample_arg_parser
 from baselines.common.cmd_util import make_control_env, control_arg_parser
 from baselines.common import tf_util as U
 from baselines import logger
