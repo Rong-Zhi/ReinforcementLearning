@@ -19,7 +19,7 @@ import tensorflow as tf
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 
 def train(env_id, num_timesteps, seed, num_trials):
-    ncpu = 4
+    ncpu = 8
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
