@@ -64,7 +64,7 @@ def make_session(num_cpu=None, make_default=False):
 
 def single_threaded_session():
     """Returns a session which will only use a single CPU"""
-    return make_session(num_cpu=1)
+    return make_session(num_cpu=4)
 
 def in_session(f):
     @functools.wraps(f)

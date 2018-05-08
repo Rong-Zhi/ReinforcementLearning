@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # noinspection PyUnresolvedReferences
 from mpi4py import MPI
-from baselines.common.cmd_util import make_rocksample_env, rocksample_arg_parser
 from baselines.common.cmd_util import make_control_env, control_arg_parser
 
 from baselines import logger
@@ -29,8 +28,8 @@ def train(env_id, num_timesteps, seed, num_trials=5):
         # genv = make_rocksample_env(workerseed, map_name="5x7", observation_type="fully_observable",
         #                           observation_noise=False, n_steps=15)
 
-        trpo_rocksample.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=10, cg_damping=0.01,
-            max_iters=1500, gamma=0.99, lam=0.95, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
+        trpo_rocksample.learn(env, policy_fn, timesteps_per_batch=1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
+            max_iters=1500, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, i_trial=i_trial)
 
         # ppo_entropy_constraint.learn(env, policy_fn,timesteps_per_batch=2048, max_kl=0.05,
         #           max_timesteps=num_timesteps,cg_iters=20, gamma=0.99, lam=0.95, entcoeff=0.0, cg_damping=0.1,
@@ -48,7 +47,8 @@ def main():
     args = control_arg_parser().parse_args()
     args.seed = 0
     # log_path = get_dir("/Users/zhirong/Documents/Masterthesis-code/tmp")
-    log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
+    log_path = get_dir('/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    # log_path = get_dir("/home/zhi/Documents/ReinforcementLearning/tmp")
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("trpo-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)

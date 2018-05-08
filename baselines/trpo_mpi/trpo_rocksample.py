@@ -305,7 +305,7 @@ def learn(env, policy_fn, *,
         logger.logkv("TimeElapsed", time.time() - tstart)
         logger.logkv('trial', i_trial)
         logger.logkv("Iteration", iters_so_far)
-        logger.logkv("Name", 'TRPOlunarlanderdiscrete')
+        logger.logkv("Name", 'TRPO')
 
         if rank==0:
             logger.dump_tabular()
