@@ -6,6 +6,8 @@ sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
 import datetime
 
 from baselines.common import set_global_seeds
