@@ -60,7 +60,7 @@ def main():
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-long-10ep-ent001-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
-    video_path = get_dir(logger.get_dir() + '/videos')
+    # video_path = get_dir(logger.get_dir() + '/videos')
     train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, num_trials=5)
 
 
