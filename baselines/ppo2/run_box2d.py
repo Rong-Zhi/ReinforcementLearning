@@ -6,7 +6,6 @@ sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 import datetime
 
@@ -19,7 +18,7 @@ import tensorflow as tf
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 
 def train(env_id, num_timesteps, seed, num_trials):
-    ncpu = 16
+    ncpu = 4
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
