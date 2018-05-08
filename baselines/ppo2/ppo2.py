@@ -95,7 +95,7 @@ class Runner(object):
         self.model = model
         nenv = env.num_envs
         self.obs = np.zeros((nenv,) + env.observation_space.shape, dtype=model.train_model.X.dtype.name)
-        self.obs[:] = env.reset()
+        self.obs = env.reset()
         self.gamma = gamma
         self.lam = lam
         self.nsteps = nsteps
@@ -269,7 +269,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02-15ep-ent0001')
+            logger.logkv('Name', 'PP02-10ep-ent001')
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
