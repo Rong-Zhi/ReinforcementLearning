@@ -179,7 +179,7 @@ def constfn(val):
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0, useentr=False, i_trial):
+            save_interval=100, useentr=False, i_trial):
 
 
 
@@ -274,10 +274,10 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
 
-        if update == 1 or update % 100==0 or update==nupdates:
-            rwd=runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
-            print('Average Retrun:{0}'.format(np.sum(rwd)/float(len(rwd))))
-            print('Sum of Return:{0}'.format(np.sum(rwd)))
+        # if update == 1 or update % 100==0 or update==nupdates:
+        #     rwd=runner.play(video_path=logger.get_dir()+'/videos', iters_so_far=update)
+        #     print('Average Retrun:{0}'.format(np.sum(rwd)/float(len(rwd))))
+        #     print('Sum of Return:{0}'.format(np.sum(rwd)))
 
         if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
             checkdir = osp.join(logger.get_dir(), '{0}_checkpoints'.format(i_trial))
