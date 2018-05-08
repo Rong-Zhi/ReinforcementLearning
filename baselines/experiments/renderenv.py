@@ -1,29 +1,33 @@
 import gym
-import seaborn as sns
 import pandas as pd
-import matplotlib.pyplot as plt
-sns.set(color_codes=True)
+import imageio
+import os
 
-fig, axes = plt.subplots(3, 3, figsize=(10, 10))
-axes = axes.flatten()
-
-for ax in axes:
-     ax.clear()
+def get_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
 
 env = gym.make('LunarLanderContinuousPOMDP-v0')
+video_path = get_dir('/Users/zhirong/Documents/Masterthesis-code/tmp/LunarLanderContinuousPOMDP-v0/videos')
+
 ob = env.reset()
-d = {'Pos_x':[], 'Pos_y':[], 'Vel_x':[], 'Vel_y':[], 'Angle':[],
-     'Ang_Vel':[], 'Touch_l':[], 'Touch_r':[], 'Block':[]}
-observation = pd.DataFrame(data=d)
-t = 0
+
+# d = {'Pos_x':[], 'Pos_y':[], 'Vel_x':[], 'Vel_y':[], 'Angle':[],
+#      'Ang_Vel':[], 'Touch_l':[], 'Touch_r':[], 'Block':[]}
+# observation = pd.DataFrame(data=d)
+
+frames = []
 while True:
-     env.render()
+     frame = env.render(mode='rgb_array')
+     frames.append(frame)
      act = env.action_space.sample()
      ob, rwd, done, _ = env.step(act)
-     print(ob)
+     # print(ob)
      if done:
-          break
-     t += 1
+         imageio.mimsave(video_path + '/' + 'example.gif', frames, fps=20)
+         print('Saved video')
+         break
 
 
 
