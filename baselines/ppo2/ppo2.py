@@ -8,6 +8,7 @@ from baselines import logger
 from collections import deque
 from baselines.common import explained_variance
 import imageio
+os.environ["CUDA_VISIBLE_DEVICES"]="-1" 
 
 class Model(object):
     def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
