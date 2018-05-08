@@ -22,6 +22,7 @@ def train(env_id, num_timesteps, seed, num_trials):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
+    config.gpu_options.allow_growth = True
 
     def make_env():
         env = gym.make(env_id)
@@ -54,8 +55,8 @@ def main():
     args = control_arg_parser().parse_args()
     args.seed = 0
     # log_path = get_dir('/Users/zhirong/Documents/Masterthesis-code/tmp')
-    # log_path = get_dir('/home/zhi/Documents/ReinforcementLearning/tmp')
-    log_path = get_dir('/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    log_path = get_dir('/home/zhi/Documents/ReinforcementLearning/tmp')
+    # log_path = get_dir('/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-long-10ep-ent001-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
