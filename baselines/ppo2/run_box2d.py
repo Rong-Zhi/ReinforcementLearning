@@ -2,8 +2,8 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -56,8 +56,8 @@ def main():
     args = control_arg_parser().parse_args()
     args.seed = 0
     # log_path = get_dir('/Users/zhirong/Documents/Masterthesis-code/tmp')
-    # log_path = get_dir('/home/zhi/Documents/ReinforcementLearning/tmp')
-    log_path = get_dir('/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    log_path = get_dir('/home/zhi/Documents/ReinforcementLearning/tmp')
+    # log_path = get_dir('/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     ENV_path = get_dir(os.path.join(log_path, args.env))
     log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-long-10ep-ent001-%m-%d-%H-%M-%S"))
     logger.configure(dir=log_dir)
