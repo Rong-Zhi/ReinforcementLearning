@@ -38,7 +38,7 @@ def plots(i):
     # d5 = pd.read_csv(path5)
     # d6 = pd.read_csv(path6)
     # data = pd.concat([d3, d5])
-    data = d1[:5856]
+    data = d1
     # data = pd.concat([d1, d2, d3, d4])
 
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
