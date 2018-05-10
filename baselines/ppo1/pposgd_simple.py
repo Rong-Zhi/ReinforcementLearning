@@ -3,6 +3,8 @@ from baselines import logger
 import baselines.common.tf_util as U
 import tensorflow as tf, numpy as np
 import time
+import os
+import os.path as osp
 from baselines.common.mpi_adam import MpiAdam
 from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
@@ -82,6 +84,8 @@ def learn(env, i_trial, policy_fn, *,
         clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
         gamma, lam, # advantage estimation
+        save_model,
+        restore_model,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
@@ -127,6 +131,12 @@ def learn(env, i_trial, policy_fn, *,
 
     U.initialize()
     adam.sync()
+
+    if restore_model:
+        saver = tf.train.Saver()
+        saver.restore(tf.get_default_session(), restore_model)
+        logger.log("Loaded Model from {}".format(restore_model))
+
 
     # Prepare for rollouts
     # ----------------------------------------
@@ -214,6 +224,12 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("Name", 'ppo1-ent001')
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
+        if iters_so_far % 500 ==0:
+            if save_model:
+                basepath = os.path.dirname(os.path.abspath(__file__))
+                modelf = basepath + '/' + save_model + '_afterIter_' + str(iters_so_far) +'.model'
+                U.save_state(modelf)
+                logger.log("Saved model to file:{}".format(modelf))
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
