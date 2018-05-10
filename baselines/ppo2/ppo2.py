@@ -148,7 +148,7 @@ class Runner(object):
         mb_dones = np.asarray(mb_dones, dtype=np.bool)
         last_values = self.model.value(self.obs, self.states, self.dones)
         #discount/bootstrap off value fn
-        mb_ret urns = np.zeros_like(mb_rewards)
+        mb_returns = np.zeros_like(mb_rewards)
         mb_advs = np.zeros_like(mb_rewards)
         lastgaelam = 0
         for t in reversed(range(self.nsteps)):
