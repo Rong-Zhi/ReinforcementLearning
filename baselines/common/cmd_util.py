@@ -12,6 +12,9 @@ from baselines.common.atari_wrappers import make_atari, wrap_deepmind
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from mpi4py import MPI
 
+from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
+from baselines.env.lunar_lander import LunarLanderContinuous
+
 # from rllab.envs.normalized_env import normalize
 # from rllab.envs.pomdp.rock_sample_env import RockSampleEnv
 # from rllab.envs.history_env import HistoryEnv
@@ -42,12 +45,15 @@ def make_mujoco_env(env_id, seed):
     env.seed(seed)
     return env
 
-def make_control_env(env_id, seed):
+def make_control_env(env_id, seed, hist_len):
     """
     Create a wrapped, monitored gym.Env for MuJoCo.
     """
     set_global_seeds(seed)
-    env = gym.make(env_id)
+    if env_id == 'LunarLanderContinuousPOMDP-v0':
+        env = LunarLanderContinuousPOMDP(hist_len=hist_len)
+    else:
+        env = gym.make(env_id)
     env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     env.seed(seed)
     return env
@@ -124,19 +130,16 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-
-    # parser.add_argument('--env', help='environment ID', type=str, default='LunarLander-v2')
-    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
-    # parser.add_argument('--env', help='environment ID', type=str, default='BipedalWalker-v2')
-    # parser.add_argument('--env', help='environment ID', type=str, default='CartPole-v0')
-    # parser.add_argument('--env', help='environment ID', type=str, default='Pendulum-v0')
-    parser.add_argument('--method', help='method', type=str, default='entropy')
     parser.add_argument('--log_dir',type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     parser.add_argument('--net_size', help='Network size', default=(64,64))
-    parser.add_argument('--batch_size', help='batch size', default=64)
-    parser.add_argument('--his_len', help='History Length', type=int, default=0)
+    parser.add_argument('--hist_len', help='History Length', type=int, default=0)
+    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
+    parser.add_argument('--batch_size', help='batch size', type=int, default=64)
+    parser.add_argument('--epoch', help='epoch', type=int, default=15)
+    parser.add_argument('--method', help='method', type=str, default='entropy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(3e6))
+    parser.add_argument('--num-timesteps', type=int, default=int(1e4))
     return parser
 
 def rocksample_arg_parser():

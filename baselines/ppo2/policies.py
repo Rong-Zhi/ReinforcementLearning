@@ -130,18 +130,19 @@ class CnnPolicy(object):
         self.value = value
 
 class MlpPolicy(object):
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False): #pylint: disable=W0613
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, reuse=False): #pylint: disable=W0613
         ob_shape = (nbatch,) + ob_space.shape
         actdim = ac_space.shape[0]
         X = tf.placeholder(tf.float32, ob_shape, name='Ob') #obs
+        last_outpi = X
+        last_outvf = X
         with tf.variable_scope("model", reuse=reuse):
             activ = tf.tanh
-            h1 = activ(fc(X, 'pi_fc1', nh=64, init_scale=np.sqrt(2)))
-            h2 = activ(fc(h1, 'pi_fc2', nh=64, init_scale=np.sqrt(2)))
-            pi = fc(h2, 'pi', actdim, init_scale=0.01)
-            h1 = activ(fc(X, 'vf_fc1', nh=64, init_scale=np.sqrt(2)))
-            h2 = activ(fc(h1, 'vf_fc2', nh=64, init_scale=np.sqrt(2)))
-            vf = fc(h2, 'vf', 1)[:,0]
+            for i in range(len(hid_size)):
+                last_outpi = activ(fc(last_outpi, "pi_fc%i"%(i+1), nh=hid_size[i], init_scale=np.sqrt(2)))
+                last_outvf = activ(fc(last_outvf, "vf_fc%i"%(i+1), nh=hid_size[i], init_scale=np.sqrt(2)))
+            pi = fc(last_outpi, 'pi', actdim, init_scale=0.01)
+            vf = fc(last_outvf, 'vf', 1)[:,0]
             logstd = tf.get_variable(name="logstd", shape=[1, actdim],
                 initializer=tf.zeros_initializer())
 

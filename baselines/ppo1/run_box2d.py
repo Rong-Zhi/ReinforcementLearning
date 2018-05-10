@@ -9,7 +9,7 @@ import datetime
 
 
 def train(env_id, num_timesteps, seed, num_trials=5):
-    from baselines.ppo1 import mlp_policy, ppo_guided, pporocksample, ppo_guided2, pposgd_simple
+    from baselines.ppo1 import mlp_policy, ppo_guided, pposgd_simple
     U.make_session(num_cpu=4).__enter__()
     def policy_fn(name, ob_space, ac_space):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,

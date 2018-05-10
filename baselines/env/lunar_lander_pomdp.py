@@ -86,7 +86,7 @@ class LunarLanderPOMDP(gym.Env):
 
     continuous = False
 
-    def __init__(self, hist_len=5):
+    def __init__(self, hist_len=0):
         self.seed()
         self.viewer = None
 
@@ -102,7 +102,11 @@ class LunarLanderPOMDP(gym.Env):
         # high = np.array([np.inf]*8)  # useful range is -1 .. +1, but spikes can be higher
         # Add another dimension notifying if the agent enters into the block area
         high = np.array([np.inf]*9)
-        self.observation_space = spaces.Box(-high, high)
+        history_high = np.array([np.inf] * hist_len*(9+2))
+        if hist_len:
+            self.observation_space = spaces.Box(-history_high, history_high)
+        else:
+            self.observation_space = spaces.Box(-high, high)
 
         if self.continuous:
             # Action is two floats [main engine, left-right engines].
@@ -400,7 +404,7 @@ class LunarLanderContinuousPOMDP(LunarLanderPOMDP):
 
 def heuristic(env, s):
     # Heuristic for:
-    # 1. Testing. 
+    # 1. Testing.
     # 2. Demonstration rollout.
     angle_targ = s[0]*0.5 + s[2]*1.0         # angle should point towards center (s[0] is horizontal coordinate, s[2] hor speed)
     if angle_targ >  0.4: angle_targ =  0.4  # more than 0.4 radians (22 degrees) is bad
