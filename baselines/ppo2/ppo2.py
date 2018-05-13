@@ -287,7 +287,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
         #     print('Sum of Return:{0}'.format(np.sum(rwd)))
 
         if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
-            checkdir = get_dir(osp.join(logger.get_dir(), '{0}_checkpoints'.format(i_trial)))
+            checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
             savepath = osp.join(checkdir, '%.5i'%update)
             print('Saving to', savepath)
             model.save(savepath)

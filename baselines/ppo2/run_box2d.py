@@ -23,7 +23,7 @@ from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, hist_len, net_size, num_trials):
+          method, hist_len, net_size, i_trial):
     ncpu = 4
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
@@ -39,7 +39,6 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
         env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
         return env
 
-    for i_trial in range(num_trials):
         tf.reset_default_graph()
         set_global_seeds(seed)
         env = DummyVecEnv([make_env])
@@ -78,16 +77,15 @@ def get_dir(path):
 
 def main():
     args = control_arg_parser().parse_args()
-    args.seed = 0
     if args.train:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
-        log_dir = os.path.join(ENV_path, datetime.datetime.now().strftime("ppo2-long-10ep-ent001-%m-%d-%H-%M-%S"))
-        log_dir = osp.split(osp.split(args.load_path)[0])[0]
+        log_dir = os.path.join(ENV_path, args.method + datetime.datetime.now().strftime("%m-%d-%H-%M")
+                               +"-"+ args.seed)
         logger.configure(dir=log_dir)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, hist_len=args.hist_len,net_size=args.net_size,
-              num_trials=5)
+              i_trial=args.seed)
     if args.render:
         log_dir = osp.split(osp.split(args.load_path)[0])[0]
         logger.configure(dir=log_dir)
