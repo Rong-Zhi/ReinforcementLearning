@@ -132,7 +132,7 @@ def control_arg_parser():
     parser = arg_parser()
     parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
-    parser.add_argument('--net_size', help='Network size', default=(64,64))
+    parser.add_argument('--net_size', help='Network size', type=tuple, default=(64,64))
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
     parser.add_argument('--batch_size', help='batch size', type=int, default=64)
