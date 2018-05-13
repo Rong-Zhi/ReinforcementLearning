@@ -130,7 +130,7 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-    parser.add_argument('--log_dir',type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     parser.add_argument('--net_size', help='Network size', default=(64,64))
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
@@ -139,7 +139,13 @@ def control_arg_parser():
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
     parser.add_argument('--method', help='method', type=str, default='entropy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(1e4))
+    parser.add_argument('--num-timesteps', type=int, default=int(1e6))
+    parser.add_argument('--train', help='train', type=bool, default=True)
+    parser.add_argument('--render', help='render', type=bool, default=False)
+    parser.add_argument('--load_path', type=str, default='/Users/zhirong/Documents/Masterthesis-code/'
+                                                         'tmp/LunarLanderContinuousPOMDP-v0/'
+                                                         'ppo2-long-10ep-ent001-05-13-20-52-21/'
+                                                         '0_checkpoints/00001.pkl')
     return parser
 
 def rocksample_arg_parser():

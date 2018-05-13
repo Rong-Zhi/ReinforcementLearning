@@ -176,12 +176,15 @@ def constfn(val):
         return val
     return f
 
+def get_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=100, useentr=False, net_size, i_trial):
-
-
+            save_interval=200, useentr=False, net_size, load_path=None, i_trial):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -198,13 +201,16 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
                     nsteps=nsteps, vf_coef=vf_coef,
                     max_grad_norm=max_grad_norm, net_size=net_size)
-    if save_interval and logger.get_dir():
+    if save_interval:
         import cloudpickle
         with open(osp.join(logger.get_dir(), 'make_model.pkl'), 'wb') as fh:
             fh.write(cloudpickle.dumps(make_model))
+
     model = make_model()
-    # if load_path:
-    #     model.load(load_path=load_path)
+
+    if load_path:
+        model.load(load_path=load_path)
+
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
     epinfobuf = deque(maxlen=100)
@@ -214,6 +220,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
 
     for update in range(1, nupdates+1):
+
         if useentr:
             # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
             ent_coef = 0.01
@@ -280,11 +287,33 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
         #     print('Sum of Return:{0}'.format(np.sum(rwd)))
 
         if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
-            checkdir = osp.join(logger.get_dir(), '{0}_checkpoints'.format(i_trial))
-            os.makedirs(checkdir, exist_ok=True)
+            checkdir = get_dir(osp.join(logger.get_dir(), '{0}_checkpoints'.format(i_trial)))
             savepath = osp.join(checkdir, '%.5i'%update)
             print('Saving to', savepath)
             model.save(savepath)
+            # np.save('{}/mean'.format(checkdir + '/'), runner.env.obs.mean)
+            # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
+    env.close()
+
+def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5,
+           gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far=0):
+
+    nenvs = env.num_envs
+    ob_space = env.observation_space
+    ac_space = env.action_space
+    nbatch = nenvs * nsteps
+    nbatch_train = nbatch // nminibatches
+
+    make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
+                               nbatch_train=nbatch_train,
+                               nsteps=nsteps, vf_coef=vf_coef,
+                               max_grad_norm=max_grad_norm, net_size=net_size)
+    model = make_model()
+    model.load(load_path=load_path)
+    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
+    video_path = get_dir(osp.join(logger.get_dir(), 'videos'))
+    rwd = runner.play(video_path=video_path, iters_so_far=iters_so_far)
+    print("Average Return:{0}".format(np.sum(rwd)))
     env.close()
 
 def safemean(xs):
