@@ -139,7 +139,7 @@ def control_arg_parser():
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
     parser.add_argument('--method', help='method', type=str, default='entropy001')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(3e6))
+    parser.add_argument('--num_timesteps', type=int, default=int(3e6))
     parser.add_argument('--train', help='train', type=bool, default=True)
     parser.add_argument('--render', help='render', type=bool, default=False)
     parser.add_argument('--load_path', type=str, default='/Users/zhirong/Documents/Masterthesis-code/'
