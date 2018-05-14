@@ -130,7 +130,7 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning')
+    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     parser.add_argument('--net_size', help='Network size', type=tuple, default=(64,64))
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
