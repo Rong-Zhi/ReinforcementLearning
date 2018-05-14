@@ -79,8 +79,10 @@ def main():
     args = control_arg_parser().parse_args()
     if args.train:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
-        log_dir = os.path.join(ENV_path, args.method + datetime.datetime.now().strftime("%m-%d-%H-%M")
-                               +"-"+ args.seed)
+        log_dir = os.path.join(ENV_path, args.method +"-"+
+                               '{0}'.format(args.seed))+"-" +\
+                  datetime.datetime.now().strftime("%m-%d-%H-%M")
+
         logger.configure(dir=log_dir)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
