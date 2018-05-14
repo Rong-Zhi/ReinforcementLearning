@@ -140,12 +140,11 @@ def control_arg_parser():
     parser.add_argument('--method', help='method', type=str, default='entropy001')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(3e6))
-    parser.add_argument('--train', help='train', type=bool, default=True)
-    parser.add_argument('--render', help='render', type=bool, default=False)
-    parser.add_argument('--load_path', type=str, default='/Users/zhirong/Documents/Masterthesis-code/'
-                                                         'tmp/LunarLanderContinuousPOMDP-v0/'
-                                                         'ppo2-long-10ep-ent001-05-13-20-52-21/'
-                                                         '0_checkpoints/00001.pkl')
+    parser.add_argument('--train', help='train', type=bool, default=False)
+    parser.add_argument('--render', help='render', type=bool, default=True)
+    parser.add_argument('--load_path', default=None)
+    parser.add_argument('--checkpoint', type=bool, default=False)
+    parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
     return parser
 
 def rocksample_arg_parser():

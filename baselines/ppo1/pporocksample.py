@@ -130,7 +130,6 @@ def learn(env, i_trial, policy_fn, *,
     # Setup losses and stuff
     # ----------------------------------------
 
-
     ob_space = env.observation_space
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy

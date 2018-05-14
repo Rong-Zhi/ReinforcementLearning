@@ -102,7 +102,7 @@ class Runner(object):
         self.states = model.initial_state
         self.dones = [False for _ in range(nenv)]
 
-    def play(self, video_path, iters_so_far):
+    def play(self, path, iters_so_far):
         obs = self.env.reset()
         state = self.model.initial_state
         num_episodes = 0
@@ -117,7 +117,7 @@ class Runner(object):
             rwds.append(reward)
             if done:
                 print("Saved video.")
-                imageio.mimsave(video_path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
+                imageio.mimsave(path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
                 break
             num_episodes += 1
         return rwds
@@ -184,7 +184,7 @@ def get_dir(path):
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=200, useentr=False, net_size, load_path=None, i_trial):
+            save_interval=200, useentr=False, net_size, load_path=None, i_trial, method):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -276,7 +276,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             logger.logkv('time_elapsed', tnow - tfirststart)
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
-            logger.logkv('Name', 'PP02-10ep-ent001')
+            logger.logkv('Name', method)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
@@ -296,7 +296,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     env.close()
 
 def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5,
-           gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far=0):
+           gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
 
     nenvs = env.num_envs
     ob_space = env.observation_space
@@ -311,8 +311,8 @@ def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5,
     model = make_model()
     model.load(load_path=load_path)
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    video_path = get_dir(osp.join(logger.get_dir(), 'videos'))
-    rwd = runner.play(video_path=video_path, iters_so_far=iters_so_far)
+    path = get_dir(osp.join(video_path, 'videos'))
+    rwd = runner.play(path=path, iters_so_far=iters_so_far)
     print("Average Return:{0}".format(np.sum(rwd)))
     env.close()
 

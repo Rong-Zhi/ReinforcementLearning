@@ -23,7 +23,7 @@ from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, hist_len, net_size, i_trial):
+          method, hist_len, net_size, i_trial, load_path):
     ncpu = 4
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
@@ -51,9 +51,9 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1,
             ent_coef=0.01, lr=3e-4, cliprange=0.2,
             total_timesteps=num_timesteps, useentr=True, net_size=net_size,
-            i_trial=i_trial)
+            i_trial=i_trial, load_path=load_path, method=method)
 
-def render(env_id, nsteps, batch_size, hist_len, net_size, load_path):
+def render(env_id, nsteps, batch_size, hist_len, net_size, load_path, video_path, iters):
 
     def make_env():
         if env_id == 'LunarLanderContinuousPOMDP-v0':
@@ -68,7 +68,7 @@ def render(env_id, nsteps, batch_size, hist_len, net_size, load_path):
     with tf.Session() as sess:
         policy = MlpPolicy
         ppo2.render(policy=policy, env=env, nsteps=nsteps, lam=0.95, gamma=0.99, nminibatches=batch_size,
-                    net_size=net_size, load_path=load_path, iters_so_far=0)
+                    net_size=net_size, load_path=load_path, video_path=video_path, iters_so_far=iters)
 
 def get_dir(path):
     if not os.path.exists(path):
@@ -87,12 +87,11 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, hist_len=args.hist_len,net_size=args.net_size,
-              i_trial=args.seed)
+              i_trial=args.seed, load_path=args.load_path)
     if args.render:
-        log_dir = osp.split(osp.split(args.load_path)[0])[0]
-        logger.configure(dir=log_dir)
+        video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, hist_len=args.hist_len,
-               net_size=args.net_size, load_path=args.load_path)
+               net_size=args.net_size, load_path=args.load_path, video_path=video_path, iters=args.iters)
 
 if __name__ == '__main__':
     main()

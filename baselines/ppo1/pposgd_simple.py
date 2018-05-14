@@ -9,6 +9,7 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
+import imageio
 
 def traj_segment_generator(pi, env, horizon, stochastic):
     t = 0
@@ -79,26 +80,59 @@ def add_vtarg_and_adv(seg, gamma, lam):
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
+
+
+def play(env, pi, path, iters_so_far):
+    num_episodes = 0
+    ob = env.reset()
+    frames = []
+    rwds = []
+    while True:
+        frame = env.unwrapped.render(mode='rgb_array')
+        print(type(frame))
+        frames.append(frame)
+        action,_ = pi.act(stochastic=True, ob=ob)
+        action = np.clip(action, env.action_space.low, env.action_space.high)
+        ob, rew, done, _ = env.step(action)
+        rwds.append(rew)
+        if done:
+            print("Saved video.")
+            imageio.mimsave(path+'/'+str(iters_so_far)+'.gif', frames, fps=20)
+            break
+        num_episodes += 1
+    return rwds
+
+def get_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
 def learn(env, i_trial, policy_fn, *,
         timesteps_per_actorbatch, # timesteps per actor per update
-        clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
+        clip_param, entp, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_stepsize, optim_batchsize,# optimization hypers
         gamma, lam, # advantage estimation
-        save_model,
-        restore_model,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0,  # time constraint
         callback=None, # you can do anything in the callback, since it takes locals(), globals()
         adam_epsilon=1e-5,
-        schedule='constant' # annealing for stepsize parameters (epsilon and adam)
+        schedule='constant',# annealing for stepsize parameters (epsilon and adam)
+        useentr=True,
+        retrace=False,
+        save_interval=100,
+        usecheckpoint=False,
+        load_path,
+        method
         ):
     # Setup losses and stuff
     # ----------------------------------------
+    sess = tf.get_default_session()
     ob_space = env.observation_space
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy
     oldpi = policy_fn("oldpi", ob_space, ac_space) # Network for old policy
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+    entcoeff = tf.placeholder(dtype=tf.float32, shape=[])
 
     lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
     clip_param = clip_param * lrmult # Annealed cliping parameter epislon
@@ -122,21 +156,19 @@ def learn(env, i_trial, policy_fn, *,
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     var_list = pi.get_trainable_variables()
-    lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    lossandgrad = U.function([ob, ac, atarg, ret, lrmult, entcoeff], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
-
+    compute_losses = U.function([ob, ac, atarg, ret, lrmult, entcoeff], losses)
     U.initialize()
     adam.sync()
-
-    if restore_model:
-        saver = tf.train.Saver()
-        saver.restore(tf.get_default_session(), restore_model)
-        logger.log("Loaded Model from {}".format(restore_model))
-
+    saver = tf.train.Saver()
+    # Load a previous checkpoint if we find one
+    if usecheckpoint:
+        logger.log("Loading model checkpoint {}...\n".format(load_path))
+        saver.restore(tf.get_default_session(), load_path)
 
     # Prepare for rollouts
     # ----------------------------------------
@@ -165,11 +197,17 @@ def learn(env, i_trial, policy_fn, *,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(iters_so_far) / float(max_iters), 0)
+            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
         else:
             raise NotImplementedError
 
-        print("********** Iteration %i ************"%iters_so_far)
+        if useentr:
+            entcoeff = max(entp - float(timesteps_so_far) / max_timesteps, 0.01)
+            # entcoeff = entp - float(iters_so_far) / float(max_iters)
+        else:
+            entcoeff = 0.0
+
+        logger.log("********** Iteration %i ************"%iters_so_far)
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
@@ -184,24 +222,24 @@ def learn(env, i_trial, policy_fn, *,
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         assign_old_eq_new() # set old parameter values to new parameter values
-        print("Optimizing...")
-        print(fmt_row(13, loss_names))
+        logger.log("Optimizing...")
+        logger.log(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
                 adam.update(g, optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
-            print(fmt_row(13, np.mean(losses, axis=0)))
+            logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
-        print("Evaluating losses...")
+        logger.log("Evaluating losses...")
         losses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            newlosses = compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult, entcoeff)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
-        print(fmt_row(13, meanlosses))
+        logger.log(fmt_row(13, meanlosses))
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_"+name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
@@ -219,17 +257,30 @@ def learn(env, i_trial, policy_fn, *,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        logger.record_tabular("Iteration", iters_so_far)
-        logger.record_tabular("trial",i_trial)
-        logger.record_tabular("Name", 'ppo1-ent001')
+        logger.logkv('trial', i_trial)
+        logger.logkv("Iteration", iters_so_far)
+        logger.log("Name", method)
+
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
-        if iters_so_far % 500 ==0:
-            if save_model:
-                basepath = os.path.dirname(os.path.abspath(__file__))
-                modelf = basepath + '/' + save_model + '_afterIter_' + str(iters_so_far) +'.model'
-                U.save_state(modelf)
-                logger.log("Saved model to file:{}".format(modelf))
+
+        if save_interval and (iters_so_far % save_interval == 0 or iters_so_far == 1 or timesteps_so_far==max_timesteps) and logger.get_dir():
+            checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
+            savepath = osp.join(checkdir, '%.5i'%iters_so_far)
+            saver.save(savepath)
+            logger.log('Saving to', savepath)
+
+def render(policy, env, load_path, video_path, iters_so_far):
+    sess = tf.get_default_session()
+    ob_space = env.observation_space
+    ac_space = env.action_space
+    pi = policy("pi", ob_space, ac_space)
+    saver = tf.train.Saver()
+    saver.restore(sess, load_path)
+    path = get_dir(osp.join(video_path, 'videos'))
+    rwd = play(env=env, pi=pi, path=path, iters_so_far=iters_so_far)
+    logger.log("Average Return:{0}".format(np.sum(rwd)))
+
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
