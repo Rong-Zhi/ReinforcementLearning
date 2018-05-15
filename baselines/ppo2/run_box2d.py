@@ -51,7 +51,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1,
             ent_coef=0.01, lr=3e-4, cliprange=0.2,
-            total_timesteps=num_timesteps, useentr=True, net_size=net_size,
+            total_timesteps=num_timesteps, useentr=False, net_size=net_size,
             i_trial=i_trial, load_path=load_path, method=method)
 
 def render(env_id, nsteps, batch_size, hist_len, net_size, load_path, video_path, iters):
