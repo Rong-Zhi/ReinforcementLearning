@@ -13,12 +13,14 @@ import timeit
 import datetime
 
 from baselines.common import set_global_seeds
-from baselines.common.vec_env.vec_normalize import VecNormalize
+
 from baselines.ppo2 import ppo2
 from baselines.ppo2.policies import MlpPolicy
 import gym
 import tensorflow as tf
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
+from baselines.common.vec_env.vec_normalize import VecNormalize
+from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 
 
@@ -41,10 +43,9 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
 
     tf.reset_default_graph()
     set_global_seeds(seed)
+    # env = SubprocVecEnv([make_env])
     env = DummyVecEnv([make_env])
     env = VecNormalize(env)
-
-    # with tf.Session() as sess:
     with tf.Session(config=config) as sess:
         policy = MlpPolicy
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,

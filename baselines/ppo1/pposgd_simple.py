@@ -267,7 +267,7 @@ def learn(env, i_trial, policy_fn, *,
         if save_interval and (iters_so_far % save_interval == 0 or iters_so_far == 1 or timesteps_so_far==max_timesteps) and logger.get_dir():
             checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
             savepath = osp.join(checkdir, '%.5i'%iters_so_far)
-            saver.save(savepath)
+            saver.save(tf.get_default_session(), save_path=savepath)
             logger.log('Saving to', savepath)
 
 def render(policy, env, load_path, video_path, iters_so_far):
