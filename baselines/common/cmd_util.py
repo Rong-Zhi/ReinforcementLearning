@@ -146,6 +146,7 @@ def control_arg_parser():
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', type=bool, default=False)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
+    parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', default=True)
     return parser
 
 def rocksample_arg_parser():
