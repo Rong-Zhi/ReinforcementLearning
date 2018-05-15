@@ -25,7 +25,7 @@ class Model(object):
         OLDVPRED = tf.placeholder(tf.float32, [None])
         LR = tf.placeholder(tf.float32, [])
         CLIPRANGE = tf.placeholder(tf.float32, [])
-        ENT_DYNAMIC = tf.placeholder(dtype=tf.float32, shape=[])
+        ENT_DYNAMIC = tf.placeholder(tf.float32, [])
 
         neglogpac = train_model.pd.neglogp(A)
         entropy = tf.reduce_mean(train_model.pd.entropy())
@@ -218,15 +218,14 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
     nupdates = total_timesteps//nbatch
 
+    if useentr:
+        # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
+        ent_coef = 0.01
+        # ent_coef = entp - float(iters_so_far) / float(max_iters)
+    else:
+        ent_coef = 0.0
 
     for update in range(1, nupdates+1):
-
-        if useentr:
-            # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
-            ent_coef = 0.01
-            # ent_coef = entp - float(iters_so_far) / float(max_iters)
-        else:
-            ent_coef = 0.0
         assert nbatch % nminibatches == 0
         nbatch_train = nbatch // nminibatches
         tstart = time.time()
