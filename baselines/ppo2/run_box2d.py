@@ -2,8 +2,8 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/Masterthesis-code/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
