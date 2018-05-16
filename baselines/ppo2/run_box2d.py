@@ -88,7 +88,7 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, hist_len=args.hist_len,net_size=args.net_size,
-              i_trial=args.seed, load_path=args.load_path, use_entr=args.use_entr)
+              i_trial=args.seed, load_path=args.load_path, use_entr=int(args.use_entr))
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, hist_len=args.hist_len,

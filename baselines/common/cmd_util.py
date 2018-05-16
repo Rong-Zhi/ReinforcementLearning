@@ -141,12 +141,12 @@ def control_arg_parser():
     parser.add_argument('--method', help='method', type=str, default='entropy001')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(2e6))
-    parser.add_argument('--train', help='train', default=True)
-    parser.add_argument('--render', help='render', default=False)
+    parser.add_argument('--train', help='train', type=bool, default=True)
+    parser.add_argument('--render', help='render', type=bool, default=False)
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', type=bool, default=False)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
-    parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', default=True)
+    parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', type=bool, default=True)
     return parser
 
 def rocksample_arg_parser():

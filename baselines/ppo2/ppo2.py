@@ -184,7 +184,7 @@ def get_dir(path):
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=200, useentr=False, net_size, load_path=None, i_trial, method):
+            save_interval=200, useentr, net_size, load_path=None, i_trial, method):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -218,14 +218,14 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
     nupdates = total_timesteps//nbatch
 
-    if useentr:
-        # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
-        ent_coef = 0.01
-        # ent_coef = entp - float(iters_so_far) / float(max_iters)
-    else:
-        ent_coef = 0.0
+
+    # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
+    ent_coef = useentr * ent_coef
+    # ent_coef = entp - float(iters_so_far) / float(max_iters)
 
     for update in range(1, nupdates+1):
+        # ent_coef = useentr * 0.01
+        # ent_coef = max(ent_coef - 0.25 * float(update) / float(nupdates), 0.001)
         assert nbatch % nminibatches == 0
         nbatch_train = nbatch // nminibatches
         tstart = time.time()
