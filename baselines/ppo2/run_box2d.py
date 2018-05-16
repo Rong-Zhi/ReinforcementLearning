@@ -78,7 +78,7 @@ def get_dir(path):
 
 def main():
     args = control_arg_parser().parse_args()
-    if args.train:
+    if args.train is True:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+
                                '{0}'.format(args.seed))+"-" +\
@@ -89,7 +89,7 @@ def main():
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, hist_len=args.hist_len,net_size=args.net_size,
               i_trial=args.seed, load_path=args.load_path, use_entr=args.use_entr)
-    if args.render:
+    if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, hist_len=args.hist_len,
                net_size=args.net_size, load_path=args.load_path, video_path=video_path, iters=args.iters)
