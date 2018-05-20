@@ -30,7 +30,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     pposgd_simple.learn(env, i_trial=i_trial, policy_fn=policy_fn,
             max_timesteps=num_timesteps,
             timesteps_per_actorbatch=nsteps,
-            clip_param=0.2, entp=0.01,
+            clip_param=0.2, entp=0.5,
             optim_epochs=epoch, optim_stepsize=3e-4, optim_batchsize=batch_size,
             gamma=0.99, lam=0.95, schedule='linear', useentr=use_entr,
             load_path=load_path, method=method, usecheckpoint=checkpoint)
@@ -54,13 +54,12 @@ def get_dir(path):
 
 def save_args(args):
     for arg in vars(args):
-        logger.log("{}: ".format(arg), getattr(args, arg))
+        logger.log("{}".format(arg), getattr(args, arg))
 
 def main():
     args = control_arg_parser().parse_args()
     if args.env == 'LunarLanderContinuousPOMDP-v0':
         newenv(hist_len=args.hist_len)
-
     if args.train:
         print(args.train)
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
@@ -73,7 +72,7 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, nsteps=args.nsteps,
               batch_size=args.batch_size, epoch=args.epoch, method=args.method, hist_len=args.hist_len,
               net_size=args.net_size, i_trial=args.seed, load_path=args.load_path,
-              checkpoint=args.checkpoint, num_cpu=args.ncpu, use_entr=int(args.use_entr))
+              checkpoint=args.checkpoint, num_cpu=args.ncpu, use_entr=args.use_entr)
 
     if args.render:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
