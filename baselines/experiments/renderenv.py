@@ -55,7 +55,7 @@ def main():
 
     def make_env():
         if args.env == 'LunarLanderContinuousPOMDP-v0':
-            from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
+            from baselines.env.box2d.lunar_lander_pomdp import LunarLanderContinuousPOMDP
             env = LunarLanderContinuousPOMDP(hist_len=args.hist_len)
         else:
             env = gym.make(args.env)

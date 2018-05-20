@@ -11,9 +11,7 @@ from baselines.common import set_global_seeds
 from baselines.common.atari_wrappers import make_atari, wrap_deepmind
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from mpi4py import MPI
-
-from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
-from baselines.env.lunar_lander import LunarLanderContinuous
+from baselines.env.envsetting import newenv
 
 # from rllab.envs.normalized_env import normalize
 # from rllab.envs.pomdp.rock_sample_env import RockSampleEnv
@@ -51,9 +49,8 @@ def make_control_env(env_id, seed, hist_len):
     """
     set_global_seeds(seed)
     if env_id == 'LunarLanderContinuousPOMDP-v0':
-        env = LunarLanderContinuousPOMDP(hist_len=hist_len)
-    else:
-        env = gym.make(env_id)
+        newenv(hist_len)
+    env = gym.make(env_id)
     env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     env.seed(seed)
     return env
@@ -130,19 +127,20 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/Masterthesis-code/tmp')
+    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
     parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
-    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
+    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--net_size', help='Network size', type=tuple, default=(64,64,64))
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
     parser.add_argument('--batch_size', help='batch size', type=int, default=64)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
-    parser.add_argument('--method', help='method', type=str, default='entropy001')
+    parser.add_argument('--method', help='method', type=str, default='ppo1-clip-3l')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(2e6))
     parser.add_argument('--train', help='train', type=bool, default=True)
     parser.add_argument('--render', help='render', type=bool, default=False)
+    parser.add_argument('--ncpu', help='Number of CPU', type=int, default=None)
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', type=bool, default=False)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)

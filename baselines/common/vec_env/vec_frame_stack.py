@@ -6,7 +6,7 @@ class VecFrameStack(VecEnvWrapper):
     """
     Vectorized environment base class
     """
-    def __init__(self, venv, nstack):
+    def v__init__(self, venv, nstack):
         self.venv = venv
         self.nstack = nstack
         wos = venv.observation_space # wrapped ob space

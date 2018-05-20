@@ -1,4 +1,4 @@
-from baselines.env.lunar_lander_pomdp import LunarLanderContinuousPOMDP
+from baselines.env.box2d.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 from baselines import bench, logger
 
 import gym
