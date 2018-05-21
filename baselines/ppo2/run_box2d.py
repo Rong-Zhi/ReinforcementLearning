@@ -96,8 +96,9 @@ def save_args(args):
 
 def main():
     args = control_arg_parser().parse_args()
-    # rank = MPI.COMM_WORLD.Get_rank()
-    if args.env == 'LunarLanderContinuousPOMDP-v0' and args.seed == 0:
+    rank = MPI.COMM_WORLD.Get_rank()
+    print("This is rank {}".format(rank))
+    if args.env == 'LunarLanderContinuousPOMDP-v0' and rank == 0:
         newenv(hist_len=args.hist_len, block_high=float(args.block_high))
     if args.train is True:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
@@ -110,7 +111,7 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, net_size=tuple(args.net_size), ncpu=args.ncpu,
-              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed)
+              load_path=args.load_path, use_entr=int(args.use_entr), rank=rank)
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
