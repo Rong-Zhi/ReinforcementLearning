@@ -54,7 +54,7 @@ def get_dir(path):
 
 def save_args(args):
     for arg in vars(args):
-        logger.log("{}".format(arg), getattr(args, arg))
+        logger.log("{}:".format(arg), getattr(args, arg))
 
 def main():
     args = control_arg_parser().parse_args()

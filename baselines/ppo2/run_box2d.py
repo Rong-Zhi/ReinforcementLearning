@@ -25,11 +25,11 @@ from mpi4py import MPI
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, net_size, load_path, use_entr, ncpu):
+          method, net_size, load_path, use_entr, ncpu, rank):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
-    rank = MPI.COMM_WORLD.Get_rank()
+
     config.gpu_options.allow_growth = True
     tf.reset_default_graph()
 
@@ -79,17 +79,19 @@ def get_dir(path):
 
 def save_args(args):
     for arg in vars(args):
-        logger.logkv("{}".format(arg), getattr(args, arg))
-    logger.dumpkvs()
+        logger.log("{}:".format(arg), getattr(args, arg))
+    # logger.dumpkvs()
 
 def main():
     args = control_arg_parser().parse_args()
+    rank = MPI.COMM_WORLD.Get_rank()
     if args.env == 'LunarLanderContinuousPOMDP-v0':
         newenv(hist_len=args.hist_len)
     if args.train is True:
-        ENV_path = get_dir(os.path.join(args.log_dir, args.env))
+        if rank == 0:
+            ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+
-                               '{0}'.format(args.seed))+"-" +\
+                               '{0}'.format(rank))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
 
         logger.configure(dir=log_dir)
@@ -97,7 +99,7 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, net_size=args.net_size, ncpu=args.ncpu,
-              load_path=args.load_path, use_entr=int(args.use_entr))
+              load_path=args.load_path, use_entr=int(args.use_entr), rank=rank)
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
