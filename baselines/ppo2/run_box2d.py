@@ -98,7 +98,7 @@ def main():
     args = control_arg_parser().parse_args()
     # rank = MPI.COMM_WORLD.Get_rank()
     # print("This is rank:", rank, "Seed:", args.seed)
-    if args.env == 'LunarLanderContinuousPOMDP-v0' and args.seed == 0:
+    if args.env == 'LunarLanderContinuousPOMDP-v0':
         newenv(hist_len=args.hist_len, block_high=float(args.block_high))
     if args.train is True:
         ENV_path = get_dir(args.log_dir+'/'+ args.env)
