@@ -2,9 +2,9 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -97,7 +97,7 @@ def save_args(args):
 def main():
     args = control_arg_parser().parse_args()
     # rank = MPI.COMM_WORLD.Get_rank()
-    if args.env == 'LunarLanderContinuousPOMDP-v0':
+    if args.env == 'LunarLanderContinuousPOMDP-v0' and args.seed == 0:
         newenv(hist_len=args.hist_len, block_high=float(args.block_high))
     if args.train is True:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
