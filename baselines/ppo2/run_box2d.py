@@ -29,7 +29,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
-    rank = MPI.COMM.Get_rank()
+    rank = MPI.COMM_WORLD.Get_rank()
     config.gpu_options.allow_growth = True
     tf.reset_default_graph()
 
