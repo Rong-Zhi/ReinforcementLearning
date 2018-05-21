@@ -21,7 +21,7 @@ import tensorflow as tf
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.env.envsetting import newenv
-import mpi4py as MPI
+from mpi4py import MPI
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
