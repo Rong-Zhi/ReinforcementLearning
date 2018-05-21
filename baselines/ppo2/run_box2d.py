@@ -61,24 +61,23 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
             total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size,
             i_trial=rank, load_path=load_path, method=method)
 
-def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
+def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, ncpu):
 
-    def make_env():
-        env = gym.make(env_id)
-        env = bench.Monitor(env, os.path.join(logger.get_dir(), 'render-result'))
-        return env
+    # def make_env():
+    #     env = gym.make(env_id)
+    #     env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
+    #     return env
 
-    # def make_env(seed):
-    #     def _thunk():
-    #         env = gym.make(env_id)
-    #         env.seed(seed)
-    #         if logger.get_dir():
-    #             env = bench.Monitor(env, logger.get_dir())
-    #         return env
-    #     return _thunk
+    def make_env(seed):
+        def _thunk():
+            env = gym.make(env_id)
+            env.seed(seed)
+            env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
+            return env
+        return _thunk
 
-    env = DummyVecEnv([make_env])
-    # env = SubprocVecEnv([make_env(seed=0)])
+    # env = DummyVecEnv([make_env])
+    env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy
@@ -115,7 +114,7 @@ def main():
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
-               load_path=args.load_path, video_path=video_path, iters=args.iters)
+               load_path=args.load_path, video_path=video_path, iters=args.iters, ncpu=args.ncpu)
 
 if __name__ == '__main__':
     main()
