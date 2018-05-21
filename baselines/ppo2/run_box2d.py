@@ -2,9 +2,9 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -38,8 +38,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
         def _thunk():
             env = gym.make(env_id)
             env.seed(seed + icpu)
-            if logger.get_dir():
-                env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
+            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
             return env
         return _thunk
 
@@ -66,7 +65,7 @@ def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
 
     def make_env():
         env = gym.make(env_id)
-        env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
+        env = bench.Monitor(env, os.path.join(logger.get_dir(), 'render-result'))
         return env
 
     # def make_env(seed):

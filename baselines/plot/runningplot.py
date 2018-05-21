@@ -14,7 +14,7 @@ sns.set(color_codes=True)
 # path5 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/entropy001-hist10-0-05-15-19-30/progress1.csv'
 # path6 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/entropy001-hist15-0-05-15-19-32/progress1.csv'
 
-path1 = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo1-clip-3l-0-05-20-19-51/progress.csv'
+path1 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/clip-3l-0-05-21-16-06/progress.csv'
 path2 = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo1-clip-2l-0-05-20-19-52/progress.csv'
 path3 ='/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo1-clip-3l-ent-0-05-20-21-31/progress.csv'
 # path4 = '/Users/zhirong/Documents/Masterthesis-code/tmp/LunarLanderContinuous-v2/ppo2-20ep-5runs-05-05-21-26-21/progress.csv'
