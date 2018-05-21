@@ -21,24 +21,24 @@ import tensorflow as tf
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.env.envsetting import newenv
+import mpi4py as MPI
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, net_size, i_trial, load_path, use_entr, ncpu):
+          method, net_size, load_path, use_entr, ncpu):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
+    rank = MPI.COMM.Get_rank()
     config.gpu_options.allow_growth = True
-
     tf.reset_default_graph()
-    set_global_seeds(seed)
 
-    def make_env(rank):
+    def make_env(icpu):
         def _thunk():
             env = gym.make(env_id)
-            env.seed(seed + rank)
+            env.seed(seed + icpu)
             if logger.get_dir():
-                env = bench.Monitor(env, os.path.join(logger.get_dir(), 'train-{}.monitor.json'.format(rank)))
+                env = bench.Monitor(env, os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
             return env
         return _thunk
 
@@ -46,17 +46,19 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     #     env = gym.make(env_id)
     #     env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
     #     return env
+    # env = DummyVecEnv([make_env])
+
 
     env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
-    # env = DummyVecEnv([make_env])
     env = VecNormalize(env)
+    set_global_seeds(seed)
     with tf.Session(config=config) as sess:
         policy = MlpPolicy
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1,
             ent_coef=0.01, lr=3e-4, cliprange=0.2,
             total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size,
-            i_trial=i_trial, load_path=load_path, method=method)
+            i_trial=rank, load_path=load_path, method=method)
 
 def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
     def make_env():
@@ -95,7 +97,7 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, net_size=args.net_size, ncpu=args.ncpu,
-              i_trial=args.seed, load_path=args.load_path, use_entr=int(args.use_entr))
+              load_path=args.load_path, use_entr=int(args.use_entr))
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
