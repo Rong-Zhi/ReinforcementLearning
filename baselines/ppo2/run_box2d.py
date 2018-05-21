@@ -96,12 +96,13 @@ def save_args(args):
 
 def main():
     args = control_arg_parser().parse_args()
-    rank = MPI.COMM_WORLD.Get_rank()
-    print("This is rank:", rank, "Seed:", args.seed)
-    if args.env == 'LunarLanderContinuousPOMDP-v0' and int(args.seed) == 0:
+    # rank = MPI.COMM_WORLD.Get_rank()
+    # print("This is rank:", rank, "Seed:", args.seed)
+    if args.env == 'LunarLanderContinuousPOMDP-v0' and args.seed == 0:
         newenv(hist_len=args.hist_len, block_high=float(args.block_high))
     if args.train is True:
-        ENV_path = get_dir(os.path.join(args.log_dir, args.env))
+        if args.seed == 0:
+            ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+
                                '{}'.format(args.seed))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
