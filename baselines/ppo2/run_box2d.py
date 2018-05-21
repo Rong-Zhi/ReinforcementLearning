@@ -84,22 +84,21 @@ def save_args(args):
 
 def main():
     args = control_arg_parser().parse_args()
-    rank = MPI.COMM_WORLD.Get_rank()
+    # rank = MPI.COMM_WORLD.Get_rank()
     if args.env == 'LunarLanderContinuousPOMDP-v0':
         newenv(hist_len=args.hist_len)
     if args.train is True:
-        if rank == 0:
-            ENV_path = get_dir(os.path.join(args.log_dir, args.env))
+        ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+
-                               '{0}'.format(rank))+"-" +\
+                               '{}'.format(args.seed))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
         logger.configure(dir=log_dir)
-        logger.log("This is rank {}".format(rank))
+        # logger.log("This is rank {}".format(rank))
         save_args(args)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, net_size=args.net_size, ncpu=args.ncpu,
-              load_path=args.load_path, use_entr=int(args.use_entr), rank=rank)
+              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed)
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
