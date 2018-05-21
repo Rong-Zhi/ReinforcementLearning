@@ -2,9 +2,9 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -111,7 +111,7 @@ def main():
         save_args(args)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
-              method=args.method, net_size=args.net_size, ncpu=args.ncpu,
+              method=args.method, net_size=tuple(args.net_size), ncpu=args.ncpu,
               load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed)
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]

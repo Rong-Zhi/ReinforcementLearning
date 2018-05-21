@@ -127,10 +127,10 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_mujoco.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
+    # parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
-    parser.add_argument('--net_size', help='Network size', type=tuple, default=(64,64,64))
+    parser.add_argument('--net_size', help='Network size', nargs='+', type=int, default=None)
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2', type=int, default=17/32)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
