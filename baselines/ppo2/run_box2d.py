@@ -93,8 +93,8 @@ def main():
         log_dir = os.path.join(ENV_path, args.method +"-"+
                                '{0}'.format(rank))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
-
         logger.configure(dir=log_dir)
+        logger.log("This is rank {}".format(rank))
         save_args(args)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
