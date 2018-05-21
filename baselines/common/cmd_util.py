@@ -124,6 +124,9 @@ def robotics_arg_parser():
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
+def frac2float(v):
+    num = v.split('/')
+    return float(num[0])/float(num[1])
 
 def control_arg_parser():
     """
@@ -135,7 +138,8 @@ def control_arg_parser():
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--net_size', help='Network size', nargs='+', type=int, default=None)
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
-    parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2', default=17/32)
+    parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
+                        default=17/32, type=frac2float)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
     parser.add_argument('--batch_size', help='batch size', type=int, default=64)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
