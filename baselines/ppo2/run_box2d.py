@@ -2,9 +2,9 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -18,15 +18,13 @@ from baselines.ppo2 import ppo2
 from baselines.ppo2.policies import MlpPolicy
 import gym
 import tensorflow as tf
-from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
-# from baselines.env.box2d.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 from baselines.env.envsetting import newenv
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, net_size, i_trial, load_path, use_entr, ncpu=1):
+          method, net_size, i_trial, load_path, use_entr, ncpu):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
@@ -65,7 +63,7 @@ def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
         env = gym.make(env_id)
         env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
         return env
-    env = DummyVecEnv([make_env])
+    env = SubprocVecEnv([make_env])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy

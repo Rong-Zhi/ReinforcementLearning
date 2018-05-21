@@ -163,7 +163,10 @@ class Runner(object):
         mb_returns = mb_advs + mb_values
         return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
             mb_states, epinfos)
-# obs, returns, masks, actions, values, neglogpacs, states = runner.run()
+
+
+
+
 def sf01(arr):
     """
     swap and then flatten axes 0 and 1

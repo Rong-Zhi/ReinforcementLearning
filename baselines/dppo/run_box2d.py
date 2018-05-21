@@ -23,22 +23,28 @@ from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 # from baselines.env.box2d.lunar_lander_pomdp import LunarLanderContinuousPOMDP
 from baselines.env.envsetting import newenv
+import mpi4py as MPI
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, net_size, i_trial, load_path, use_entr, ncpu=1):
+          method, net_size, i_trial, load_path, use_entr, ncpu):
+    # rank = MPI.COMM_WORLD.Get_rank()
+    # if rank != 0:
+    #     logger.set_level(logger.DISABLED)
+
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
     config.gpu_options.allow_growth = True
 
+    # workerseed = seed + 10000 * rank
     tf.reset_default_graph()
     set_global_seeds(seed)
+
 
     def make_env(rank):
         def _thunk():
             env = gym.make(env_id)
-            env.seed(seed + rank)
             if logger.get_dir():
                 env = bench.Monitor(env, os.path.join(logger.get_dir(), 'train-{}.monitor.json'.format(rank)))
             return env
@@ -65,7 +71,7 @@ def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
         env = gym.make(env_id)
         env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
         return env
-    env = DummyVecEnv([make_env])
+    env = SubprocVecEnv([make_env])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy
@@ -92,6 +98,7 @@ def main():
                                '{0}'.format(args.seed))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
 
+        # if MPI.COMM_WORLD.Get_rank() == 0:
         logger.configure(dir=log_dir)
         save_args(args)
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
