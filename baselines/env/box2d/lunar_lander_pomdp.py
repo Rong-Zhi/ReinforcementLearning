@@ -86,7 +86,7 @@ class LunarLanderPOMDP(gym.Env):
 
     continuous = False
 
-    def __init__(self, hist_len=0):
+    def __init__(self, hist_len=0, block_high=0.5):
         self.seed()
         self.viewer = None
 
@@ -96,6 +96,7 @@ class LunarLanderPOMDP(gym.Env):
         self.particles = []
 
         self.hist_len = hist_len
+        self.block_high = block_high
 
         self.prev_reward = None
 
@@ -173,7 +174,7 @@ class LunarLanderPOMDP(gym.Env):
             self.sky_polys.append( [p1, p2, (p2[0],H), (p1[0],H)] )
 
         # Block sensor data
-        self.BLOCK_HIGHT=[H/2,3*H/4]
+        self.BLOCK_HIGHT=[H/2,self.block_high*H]
         self.block_polys = [(W, self.BLOCK_HIGHT[0]), (0, self.BLOCK_HIGHT[0]),
                             (0, self.BLOCK_HIGHT[1]), (W, self.BLOCK_HIGHT[1])]
 

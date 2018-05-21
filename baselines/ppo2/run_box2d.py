@@ -20,6 +20,7 @@ import gym
 import tensorflow as tf
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+from baselines.common.vec_env.dummy_vec_env import  DummyVecEnv
 from baselines.env.envsetting import newenv
 from mpi4py import MPI
 
@@ -38,9 +39,10 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
             env = gym.make(env_id)
             env.seed(seed + icpu)
             if logger.get_dir():
-                env = bench.Monitor(env, os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
+                env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
             return env
         return _thunk
+
 
     # def make_env():
     #     env = gym.make(env_id)
@@ -61,11 +63,23 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
             i_trial=rank, load_path=load_path, method=method)
 
 def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters):
+
     def make_env():
         env = gym.make(env_id)
         env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
         return env
-    env = SubprocVecEnv([make_env])
+
+    # def make_env(seed):
+    #     def _thunk():
+    #         env = gym.make(env_id)
+    #         env.seed(seed)
+    #         if logger.get_dir():
+    #             env = bench.Monitor(env, logger.get_dir())
+    #         return env
+    #     return _thunk
+
+    env = DummyVecEnv([make_env])
+    # env = SubprocVecEnv([make_env(seed=0)])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy
@@ -86,7 +100,7 @@ def main():
     args = control_arg_parser().parse_args()
     # rank = MPI.COMM_WORLD.Get_rank()
     if args.env == 'LunarLanderContinuousPOMDP-v0':
-        newenv(hist_len=args.hist_len)
+        newenv(hist_len=args.hist_len, block_high=args.block_high)
     if args.train is True:
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+

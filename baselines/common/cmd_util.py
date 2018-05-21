@@ -132,6 +132,7 @@ def control_arg_parser():
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--net_size', help='Network size', type=tuple, default=(64,64,64))
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
+    parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2', type=int, default=17/32)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
     parser.add_argument('--batch_size', help='batch size', type=int, default=64)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
@@ -140,11 +141,11 @@ def control_arg_parser():
     parser.add_argument('--num_timesteps', type=int, default=int(2e6))
     parser.add_argument('--train', help='train', type=bool, default=True)
     parser.add_argument('--render', help='render', type=bool, default=False)
-    parser.add_argument('--ncpu', help='Number of CPU', type=int, default=8)
+    parser.add_argument('--ncpu', help='Number of CPU', type=int, default=2)
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', type=bool, default=False)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
-    parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', type=bool, default=True)
+    parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', type=bool, default=False)
     return parser
 
 def rocksample_arg_parser():

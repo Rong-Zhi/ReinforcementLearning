@@ -2,12 +2,13 @@ import gym
 from gym.envs.registration import register
 
 class newenv(object):
-    def __init__(self, hist_len=0):
+    def __init__(self, hist_len=0, block_high=0.5):
         self.hist_len= hist_len
+        self.block_high = block_high
         register(
             id='LunarLanderContinuousPOMDP-v0',
             entry_point='baselines.env.box2d:LunarLanderContinuousPOMDP',
             max_episode_steps=1000,
             reward_threshold=200,
-            kwargs={'hist_len':self.hist_len}
+            kwargs={'hist_len':self.hist_len, 'block_high':self.block_high}
         )
