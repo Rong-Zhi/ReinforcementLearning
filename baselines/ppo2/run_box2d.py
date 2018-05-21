@@ -101,8 +101,7 @@ def main():
     if args.env == 'LunarLanderContinuousPOMDP-v0' and args.seed == 0:
         newenv(hist_len=args.hist_len, block_high=float(args.block_high))
     if args.train is True:
-        if args.seed == 0:
-            ENV_path = get_dir(os.path.join(args.log_dir, args.env))
+        ENV_path = get_dir(args.log_dir+'/'+ args.env)
         log_dir = os.path.join(ENV_path, args.method +"-"+
                                '{}'.format(args.seed))+"-" +\
                   datetime.datetime.now().strftime("%m-%d-%H-%M")
