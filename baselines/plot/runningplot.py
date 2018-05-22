@@ -22,9 +22,11 @@ sns.set(color_codes=True)
 # path13 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh9-0-05-22-12-09/progress1.csv'
 # path14 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh17-0-05-22-12-09/progress1.csv'
 
-path1 = '/home/zhi/Documents/baselines/tmp/LunarLanderContinuous-v2/05-22-16-08-0/progress.csv'
-path2 = '/home/zhi/Documents/baselines/tmp/LunarLanderContinuous-v2/05-22-16-09-0/progress.csv'
-path3 = '/home/zhi/Documents/baselines/tmp/LunarLanderContinuous-v2/05-22-16-10-0/progress.csv'
+# path1 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-36-0/progress1.csv'
+# path2 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-37-0/progress1.csv'
+path3 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-52-0/progress1.csv'
+path4 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-51-0/progress1.csv'
+
 # path1 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/clip-3l-0-05-21-19-46/progress1.csv'
 # path2 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/ent-2l-0-05-21-19-45/progress1.csv'
 # path3 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/ent-3l-0-05-21-19-36/progress1.csv'
@@ -44,10 +46,10 @@ axes = axes.flatten()
 def plots(i):
     for ax in axes:
         ax.clear()
-    d1 = pd.read_csv(path1)
-    d2 = pd.read_csv(path2)
-    d3 = pd.read_csv(path3)
-    # d4 = pd.read_csv(path4)
+    # d1 = pd.read_csv(path1)
+    # d2 = pd.read_csv(path2)
+    d4 = pd.read_csv(path3)
+    d3 = pd.read_csv(path4)
     # d5 = pd.read_csv(path5)
     # d6 = pd.read_csv(path6)
     # d7 = pd.read_csv(path7)
@@ -58,8 +60,8 @@ def plots(i):
     # d12 = pd.read_csv(path12)
     # d13 = pd.read_csv(path13)
     # d14 = pd.read_csv(path14)
-    data = pd.concat([d1, d2, d3])
-    # data = d7
+    data = pd.concat([d3, d4])
+    # data = d1
     # data = pd.concat([d1, d2, d3, d4, d5, d6])
 
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)

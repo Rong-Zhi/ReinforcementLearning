@@ -42,6 +42,7 @@ class Model(object):
         pg_loss = tf.reduce_mean(tf.maximum(pg_losses, pg_losses2))
         approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - OLDNEGLOGPAC))
         clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), CLIPRANGE)))
+
         loss = pg_loss - entropy * ENT_DYNAMIC + vf_loss * vf_coef
         with tf.variable_scope('model'):
             params = tf.trainable_variables()
@@ -220,12 +221,12 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
 
     # ent_coef = max(ent_coef - 0.25*float(update) / float(nupdates), 0.001)
-    ent_coef = useentr * ent_coef
+    # ent_coef = useentr * ent_coef
     # ent_coef = entp - float(iters_so_far) / float(max_iters)
 
     for update in range(1, nupdates+1):
         # ent_coef = useentr * 0.01
-        # ent_coef = max(ent_coef - 0.25 * float(update) / float(nupdates), 0.001)
+        ent_coef = max(ent_coef - 0.25 * float(update) / float(nupdates), 0.01)
         assert nbatch % nminibatches == 0
         nbatch_train = nbatch // nminibatches
         tstart = time.time()

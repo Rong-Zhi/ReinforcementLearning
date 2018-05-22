@@ -35,9 +35,9 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     tf.reset_default_graph()
 
     def make_env(icpu):
-        print("This is make env")
+        # print("This is make env")
         def _thunk():
-            print('This is thunk')
+            # print('This is thunk')
             env = gym.make(env_id)
             env.seed(seed + icpu)
             env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
@@ -59,7 +59,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
         policy = MlpPolicy
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1,
-            ent_coef=0.01, lr=3e-4, cliprange=0.2,
+            ent_coef=0.2, lr=3e-4, cliprange=0.2,
             total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size,
             i_trial=rank, load_path=load_path, method=method, checkpoint=checkpoint)
 
