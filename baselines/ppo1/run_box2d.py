@@ -64,8 +64,8 @@ def main():
         print(args.train)
         ENV_path = get_dir(os.path.join(args.log_dir, args.env))
         log_dir = os.path.join(ENV_path, args.method +"-"+
-                               '{0}'.format(args.seed))+"-" +\
-                  datetime.datetime.now().strftime("%m-%d-%H-%M")
+                               '{0}'.format(args.seed)+"-" +\
+                  datetime.datetime.now().strftime("%m-%d-%H-%M"))
 
         logger.configure(dir=log_dir)
         save_args(args)

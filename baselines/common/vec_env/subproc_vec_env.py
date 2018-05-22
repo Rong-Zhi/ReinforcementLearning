@@ -24,6 +24,8 @@ def worker(remote, parent_remote, env_fn_wrapper):
             break
         elif cmd == 'get_spaces':
             remote.send((env.observation_space, env.action_space))
+        elif cmd == 'render':
+            remote.send((env.render(mode='rgb')))
         else:
             raise NotImplementedError
 
@@ -36,7 +38,8 @@ class SubprocVecEnv(VecEnv):
         self.waiting = False
         self.closed = False
         nenvs = len(env_fns)
-        env = env_fns[0]
+        envs = [fn() for fn in env_fns]
+        env = envs[0]
         self.remotes, self.work_remotes = zip(*[Pipe() for _ in range(nenvs)])
         self.ps = [Process(target=worker, args=(work_remote, remote, CloudpickleWrapper(env_fn)))
             for (work_remote, remote, env_fn) in zip(self.work_remotes, self.remotes, env_fns)]
@@ -48,8 +51,8 @@ class SubprocVecEnv(VecEnv):
 
         self.remotes[0].send(('get_spaces', None))
         observation_space, action_space = self.remotes[0].recv()
-        oenv = CloudpickleWrapper(env_fns[0])
-        VecEnv.__init__(self, len(env_fns), observation_space, action_space, env=env())
+        # oenv = CloudpickleWrapper(env_fns[0])
+        VecEnv.__init__(self, len(env_fns), observation_space, action_space, env)
         #
         # VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space, env)
 
@@ -85,3 +88,7 @@ class SubprocVecEnv(VecEnv):
         for p in self.ps:
             p.join()
         self.closed = True
+
+    def unwrapedrender(self):
+        return self.remotes[0].send('render')
+        # return self.remotes[0].recv()

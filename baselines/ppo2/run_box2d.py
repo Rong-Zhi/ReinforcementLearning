@@ -26,7 +26,7 @@ from mpi4py import MPI
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
-          method, net_size, load_path, use_entr, ncpu, rank):
+          method, net_size, load_path, use_entr, ncpu, rank, checkpoint):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
@@ -35,7 +35,9 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     tf.reset_default_graph()
 
     def make_env(icpu):
+        print("This is make env")
         def _thunk():
+            print('This is thunk')
             env = gym.make(env_id)
             env.seed(seed + icpu)
             env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
@@ -59,7 +61,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1,
             ent_coef=0.01, lr=3e-4, cliprange=0.2,
             total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size,
-            i_trial=rank, load_path=load_path, method=method)
+            i_trial=rank, load_path=load_path, method=method, checkpoint=checkpoint)
 
 def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, ncpu):
 
@@ -67,17 +69,16 @@ def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, n
     #     env = gym.make(env_id)
     #     env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
     #     return env
-
     def make_env(seed):
         def _thunk():
             env = gym.make(env_id)
             env.seed(seed)
-            env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
+            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'render-result'), allow_early_resets=True)
             return env
         return _thunk
 
     # env = DummyVecEnv([make_env])
-    env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    env = SubprocVecEnv([make_env(seed=icpu) for icpu in range(ncpu)])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy
@@ -111,9 +112,10 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch,
               method=args.method, net_size=tuple(args.net_size), ncpu=args.ncpu,
-              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed)
+              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed, checkpoint=args.checkpoint)
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
+        logger.configure(dir=video_path)
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
                load_path=args.load_path, video_path=video_path, iters=args.iters, ncpu=args.ncpu)
 
