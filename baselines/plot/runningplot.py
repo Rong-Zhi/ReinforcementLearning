@@ -22,9 +22,9 @@ sns.set(color_codes=True)
 # path13 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh9-0-05-22-12-09/progress1.csv'
 # path14 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh17-0-05-22-12-09/progress1.csv'
 
-path1 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist0-bh17-batch32-0-05-23-12-01/progress1.csv'
-path2 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist10-bh17-batch32-2-05-23-15-49/progress1.csv'
-path3 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist20-bh17-batch32-0-05-23-12-01/progress1.csv'
+path1 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist20-bh5-batch32-0-05-23-15-51/progress1.csv'
+path2 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist10-bh5-batch32-0-05-23-15-50/progress1.csv'
+path3 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist0-bh5-batch32-0-05-23-15-50/progress1.csv'
 # path4 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-51-0/progress1.csv'
 
 # path1 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/clip-3l-0-05-21-19-46/progress1.csv'
