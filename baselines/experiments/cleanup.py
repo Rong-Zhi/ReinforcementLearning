@@ -7,8 +7,8 @@ import pandas as pd
 # path5 = '/Users/zhirong/Documents/share/LunarLanderContinuous-v2/ent-3l-4-05-21-19-36/progress.csv'
 
 
-path1 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-37-0/progress.csv'
-path2 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-37-1/progress.csv'
+path1 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-19-15-1/progress.csv'
+path2 = '/home/zhi/Documents/share/LunarLanderContinuous-v205-22-19-15-2/progress.csv'
 path3 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-37-2/progress.csv'
 path4 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-37-3/progress.csv'
 # path5 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-52-4/progress.csv'
