@@ -226,7 +226,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
 
     for update in range(1, nupdates+1):
         # ent_coef = useentr * 0.01
-        ent_coef = max(ent_coef - 0.25 * float(update) / float(nupdates), 0.01)
+        ent_coef = max(ent_coef - 0.1 * float(update) / float(nupdates), 0.01)
         assert nbatch % nminibatches == 0
         nbatch_train = nbatch // nminibatches
         tstart = time.time()

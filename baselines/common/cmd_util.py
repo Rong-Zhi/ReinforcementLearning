@@ -139,8 +139,8 @@ def control_arg_parser():
     # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
     # parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
     parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
-    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
-    parser.add_argument('--net_size', help='Network size', default=[64],type=str2list)
+    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
+    parser.add_argument('--net_size', help='Network size', default=[64,64],type=str2list)
     parser.add_argument('--hist_len', help='History Length', type=int, default=0)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
                         default=17/32, type=frac2float)
