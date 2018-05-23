@@ -22,8 +22,8 @@ sns.set(color_codes=True)
 # path13 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh9-0-05-22-12-09/progress1.csv'
 # path14 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-3l-hist20-bh17-0-05-22-12-09/progress1.csv'
 
-path1 = '/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-dynammic-ent-batch32-0-05-23-10-39/progress.csv'
-path2 = '/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuous-v2/ppo2-dynammic-ent-batch32-0-05-23-11-09/progress.csv'
+path1 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist20-bh17-batch32-0-05-23-12-01/progress1.csv'
+path2 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-dynammic01-2l-hist0-bh17-batch32-0-05-23-12-01/progress1.csv'
 # path3 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-52-0/progress1.csv'
 # path4 = '/home/zhi/Documents/share/LunarLanderContinuous-v2/05-22-16-51-0/progress1.csv'
 
@@ -46,8 +46,8 @@ axes = axes.flatten()
 def plots(i):
     for ax in axes:
         ax.clear()
-    d2 = pd.read_csv(path1)
-    d1 = pd.read_csv(path2)
+    d1 = pd.read_csv(path1)
+    d2 = pd.read_csv(path2)
     # d4 = pd.read_csv(path3)
     # d3 = pd.read_csv(path4)
     # d5 = pd.read_csv(path5)
