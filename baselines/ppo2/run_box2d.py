@@ -2,8 +2,8 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
@@ -65,20 +65,20 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
 
 def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, ncpu):
 
-    # def make_env():
-    #     env = gym.make(env_id)
-    #     env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
-    #     return env
-    def make_env(seed):
-        def _thunk():
-            env = gym.make(env_id)
-            env.seed(seed)
-            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'render-result'), allow_early_resets=True)
-            return env
-        return _thunk
+    def make_env():
+        env = gym.make(env_id)
+        env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
+        return env
+    # def make_env(seed):
+    #     def _thunk():
+    #         env = gym.make(env_id)
+    #         env.seed(seed)
+    #         env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'render-result'), allow_early_resets=True)
+    #         return env
+    #     return _thunk
 
-    # env = DummyVecEnv([make_env])
-    env = SubprocVecEnv([make_env(seed=icpu) for icpu in range(ncpu)])
+    env = DummyVecEnv([make_env])
+    # env = SubprocVecEnv([make_env(seed=icpu) for icpu in range(ncpu)])
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy
