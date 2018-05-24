@@ -2,8 +2,8 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
-sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
@@ -50,11 +50,11 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch,
     #     env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
     #     return env
     # env = DummyVecEnv([make_env])
-
+    workerseed = seed*1000
 
     env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
     env = VecNormalize(env)
-    set_global_seeds(seed)
+    set_global_seeds(workerseed)
     with tf.Session(config=config) as sess:
         policy = MlpPolicy
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
