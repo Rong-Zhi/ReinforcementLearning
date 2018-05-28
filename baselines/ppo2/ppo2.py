@@ -16,7 +16,6 @@ class Model(object):
         sess = tf.get_default_session()
 
         act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, hist_len, reuse=False)
-        print(nbatch_train, nbatch_act)
         train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, hist_len, reuse=True)
 
         A = train_model.pdtype.sample_placeholder([None])
@@ -57,6 +56,7 @@ class Model(object):
         def train(lr, cliprange, obs, returns, masks, actions, values, neglogpacs, ent_dynamic,states=None):
             advs = returns - values
             advs = (advs - advs.mean()) / (advs.std() + 1e-8)
+            #TODO: the following line is for cnn policy
             obs = np.expand_dims(obs, -1)
             td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
                     CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values, ENT_DYNAMIC:ent_dynamic}
@@ -93,17 +93,12 @@ class Model(object):
 
 class Runner(object):
 
-    def __init__(self, *, env, model, nsteps, gamma, lam, obs_shape):
+    def __init__(self, *, env, model, nsteps, gamma, lam):
         self.env = env
         self.model = model
         nenv = env.num_envs
-        nh, ns = obs_shape.shape
-        self.obs =  np.zeros((nenv, nh, ns), dtype=model.train_model.X.dtype.name)
-        # self.obs = np.zeros((nenv, nh, ns, 1), dtype=model.train_model.X.dtype.name)
-        # print(self.obs.shape)
-        #TODO: CHECK subprocenv and normenv
+        self.obs = np.zeros((nenv,) + env.observation_space.shape, dtype=model.train_model.X.dtype.name)
         self.obs = env.reset()
-        # print(self.obs.shape)
         self.gamma = gamma
         self.lam = lam
         self.nsteps = nsteps
@@ -201,9 +196,6 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     total_timesteps = int(total_timesteps)
 
     nenvs = env.num_envs
-    # if policy_name == 'mdPolicy' and env_name == 'LunarLanderContinuousPOMDP-v0':
-    #     ob_space = (hist_len, 11)
-    # else:
     ob_space = env.observation_space
     ac_space = env.action_space
     nbatch = nenvs * nsteps
@@ -224,7 +216,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     if checkpoint:
         model.load(load_path=load_path)
 
-    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam, obs_shape=ob_space)
+    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
     epinfobuf = deque(maxlen=100)
     tfirststart = time.time()

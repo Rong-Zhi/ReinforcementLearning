@@ -54,7 +54,6 @@ def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='
     wshape = [rf, rf, nin, nf]
     with tf.variable_scope(scope):
         w = tf.get_variable("w", wshape, initializer=ortho_init(init_scale))
-        print(w)
         b = tf.get_variable("b", [1, nf, 1, 1], initializer=tf.constant_initializer(0.0))
         if data_format == 'NHWC': b = tf.reshape(b, bshape)
         return b + tf.nn.conv2d(x, w, strides=strides, padding=pad, data_format=data_format)
