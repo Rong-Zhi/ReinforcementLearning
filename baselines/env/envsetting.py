@@ -3,7 +3,7 @@ from gym.envs.registration import register
 
 class newenv(object):
     def __init__(self, hist_len=0, block_high=0.5, policy_name=None):
-        self.hist_len= hist_len
+        self.hist_len = hist_len
         self.block_high = block_high
         self.policy_name = policy_name
         register(

@@ -80,7 +80,7 @@ class VecEnv(ABC):
         return self.step_wait()
 
     def unwrapedrender(self):
-        return self.env.render(mode='rgb_array')
+        return self.env.unwrapped.render(mode='rgb_array')
 
 
 class VecEnvWrapper(VecEnv):

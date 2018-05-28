@@ -16,6 +16,7 @@ class Model(object):
         sess = tf.get_default_session()
 
         act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, hist_len, reuse=False)
+        print(nbatch_train, nbatch_act)
         train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, hist_len, reuse=True)
 
         A = train_model.pdtype.sample_placeholder([None])
@@ -56,6 +57,7 @@ class Model(object):
         def train(lr, cliprange, obs, returns, masks, actions, values, neglogpacs, ent_dynamic,states=None):
             advs = returns - values
             advs = (advs - advs.mean()) / (advs.std() + 1e-8)
+            obs = np.expand_dims(obs, -1)
             td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
                     CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values, ENT_DYNAMIC:ent_dynamic}
             if states is not None:
@@ -95,8 +97,13 @@ class Runner(object):
         self.env = env
         self.model = model
         nenv = env.num_envs
-        self.obs = np.zeros((nenv,) + obs_shape, dtype=model.train_model.X.dtype.name)
+        nh, ns = obs_shape.shape
+        self.obs =  np.zeros((nenv, nh, ns), dtype=model.train_model.X.dtype.name)
+        # self.obs = np.zeros((nenv, nh, ns, 1), dtype=model.train_model.X.dtype.name)
+        # print(self.obs.shape)
+        #TODO: CHECK subprocenv and normenv
         self.obs = env.reset()
+        # print(self.obs.shape)
         self.gamma = gamma
         self.lam = lam
         self.nsteps = nsteps
@@ -194,15 +201,17 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     total_timesteps = int(total_timesteps)
 
     nenvs = env.num_envs
-    if policy_name == 'cnnPolicy' and env_name == 'LunarLanderContinuousPOMDP-v0':
-        ob_space = (11, hist_len)
-    else:
-        ob_space = env.observation_space
+    # if policy_name == 'mdPolicy' and env_name == 'LunarLanderContinuousPOMDP-v0':
+    #     ob_space = (hist_len, 11)
+    # else:
+    ob_space = env.observation_space
     ac_space = env.action_space
     nbatch = nenvs * nsteps
     nbatch_train = nbatch // nminibatches
 
-    make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
+    make_model = lambda : Model(policy=policy, ob_space=ob_space,
+                    ac_space=ac_space, nbatch_act=nenvs,
+                    nbatch_train=nbatch_train,
                     nsteps=nsteps, vf_coef=vf_coef, hist_len=hist_len,
                     max_grad_norm=max_grad_norm, net_size=net_size)
     if save_interval:
@@ -302,10 +311,10 @@ def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, po
            gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
 
     nenvs = env.num_envs
-    if policy_name == 'mdPolicy' and env_name == 'LunarLanderCountinuousPOMDP-v0':
-        ob_space = (9, hist_len)
-    else:
-        ob_space = env.observation_space
+    # if policy_name == 'mdPolicy' and env_name == 'LunarLanderCountinuousPOMDP-v0':
+    #     ob_space = (9, hist_len)
+    # else:
+    ob_space = env.observation_space
     ac_space = env.action_space
     nbatch = nenvs * nsteps
     nbatch_train = nbatch // nminibatches

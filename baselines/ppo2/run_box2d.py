@@ -2,9 +2,9 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
 import os
@@ -55,7 +55,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
     env = VecNormalize(env)
     set_global_seeds(workerseed)
     with tf.Session(config=config) as sess:
-        if policy_name =='cnnPolicy':
+        if policy_name =='mdPolicy':
             policy = mdPolicy
         else:
             policy = MlpPolicy

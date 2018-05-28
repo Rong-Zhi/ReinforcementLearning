@@ -131,14 +131,15 @@ class CnnPolicy(object):
 
 def md_net(X):
     activ = tf.tanh
-    h1 = activ(conv(X, 'c1', nf=64, rf=3, stride=1, init_scale=np.sqrt(2)))
+    h1 = activ(conv(X, 'c1', nf=16, rf=3, stride=1, init_scale=np.sqrt(2)))
     h2 = conv_to_fc(h1)
     return activ(fc(h2, 'fc1', nh=64, init_scale=np.sqrt(2)))
 
 
 class mdPolicy(object):
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, hist_len, reuse=False):  # pylint: disable=W0613
-        ob_shape = (nbatch,) + ob_space
+        nh, ns = ob_space.shape
+        ob_shape = (nbatch, nh, ns, 1)
         actdim = ac_space.shape[0]
         X = tf.placeholder(tf.float32, ob_shape, name='Ob')  # obs
         with tf.variable_scope("model", reuse=reuse):
@@ -158,10 +159,12 @@ class mdPolicy(object):
         self.initial_state = None
 
         def step(ob, *_args, **_kwargs):
+            ob = np.expand_dims(ob, -1)
             a, v, neglogp = sess.run([a0, vf, neglogp0], {X: ob})
             return a, v, self.initial_state, neglogp
 
         def value(ob, *_args, **_kwargs):
+            ob = np.expand_dims(ob, -1)
             return sess.run(vf, {X: ob})
 
         self.X = X
