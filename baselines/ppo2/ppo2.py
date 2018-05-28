@@ -12,11 +12,11 @@ import imageio
 
 class Model(object):
     def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
-                nsteps, vf_coef, max_grad_norm, net_size, hist_len):
+                nsteps, vf_coef, max_grad_norm, net_size, hist_len, filter_size):
         sess = tf.get_default_session()
 
-        act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, hist_len, reuse=False)
-        train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, hist_len, reuse=True)
+        act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, hist_len, filter_size, reuse=False)
+        train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, hist_len, filter_size, reuse=True)
 
         A = train_model.pdtype.sample_placeholder([None])
         ADV = tf.placeholder(tf.float32, [None])
@@ -187,7 +187,8 @@ def get_dir(path):
 def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_name,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95, policy_name,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=200, useentr, net_size, load_path=None, i_trial, method, checkpoint):
+            save_interval=200, useentr, net_size, load_path=None,
+            i_trial, method, checkpoint, filter_size):
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)
@@ -201,11 +202,9 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     nbatch = nenvs * nsteps
     nbatch_train = nbatch // nminibatches
 
-    make_model = lambda : Model(policy=policy, ob_space=ob_space,
-                    ac_space=ac_space, nbatch_act=nenvs,
-                    nbatch_train=nbatch_train,
-                    nsteps=nsteps, vf_coef=vf_coef, hist_len=hist_len,
-                    max_grad_norm=max_grad_norm, net_size=net_size)
+    make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
+                    nbatch_train=nbatch_train, nsteps=nsteps, vf_coef=vf_coef, hist_len=hist_len,
+                    max_grad_norm=max_grad_norm, net_size=net_size, filter_size=filter_size)
     if save_interval:
         import cloudpickle
         with open(osp.join(logger.get_dir(), 'make_model.pkl'), 'wb') as fh:

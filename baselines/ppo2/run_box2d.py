@@ -25,7 +25,7 @@ from baselines.env.envsetting import newenv
 
 
 def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_name, policy_name,
-          method, net_size, load_path, use_entr, ncpu, rank, checkpoint):
+          method, net_size, load_path, use_entr, ncpu, rank, checkpoint, filter_size):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
@@ -64,10 +64,11 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1, env_name=env_name,
             ent_coef=0.1, lr=3e-4, cliprange=0.2, hist_len=hist_len, policy_name=policy_name,
-            total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size,
+            total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size, filter_size=filter_size,
             i_trial=rank, load_path=load_path, method=method, checkpoint=checkpoint)
 
-def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, hist_len, policy_name, env_name):
+def render(env_id, nsteps, batch_size, net_size, load_path,
+           video_path, iters, hist_len, policy_name, env_name, filter_size):
 
 
     # SubprocVecEnv, render function hasn't been setup yet
@@ -120,14 +121,15 @@ def main():
         train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, hist_len=args.hist_len,
               nsteps=args.nsteps, batch_size=args.batch_size, epoch=args.epoch, env_name=args.env,
               method=args.method, net_size=tuple(args.net_size), ncpu=args.ncpu, policy_name=args.policy_name,
-              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed, checkpoint=args.checkpoint)
+              load_path=args.load_path, use_entr=int(args.use_entr), rank=args.seed,
+              checkpoint=args.checkpoint, filter_size=args.filter_size)
 
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
         logger.configure(dir=video_path)
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
                policy_name=args.policy_name, env_name=args.env, load_path=args.load_path,
-               video_path=video_path, iters=args.iters, hist_len=args.hist_len)
+               video_path=video_path, iters=args.iters, hist_len=args.hist_len, filter_size=args.filter_size)
 
 if __name__ == '__main__':
     main()
