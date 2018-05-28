@@ -86,7 +86,7 @@ class LunarLanderPOMDP(gym.Env):
 
     continuous = False
 
-    def __init__(self, hist_len=0, block_high=0.5):
+    def __init__(self, hist_len=0, block_high=0.5, policy_name=None):
         self.seed()
         self.viewer = None
 
@@ -99,6 +99,7 @@ class LunarLanderPOMDP(gym.Env):
         self.block_high = block_high
 
         self.prev_reward = None
+        self.policy_name = policy_name
 
         # high = np.array([np.inf]*8)  # useful range is -1 .. +1, but spikes can be higher
         # Add another dimension notifying if the agent enters into the block area
@@ -347,11 +348,14 @@ class LunarLanderPOMDP(gym.Env):
         else:
             self.prev_obs = state
 
-        if self.hist_len:
+        if self.hist_len!=0:
             self.history = getNewHistoryStandard(self.history, state, action, 9, 2)
             obs = self.history
         else:
             obs = np.array(state)
+
+        if self.policy_name == 'cnnPolicy':
+            obs = obs.reshape((self.hist_len, 11))
 
         return obs, reward, done, {}
 

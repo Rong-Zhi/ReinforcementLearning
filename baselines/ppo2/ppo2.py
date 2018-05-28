@@ -12,11 +12,11 @@ import imageio
 
 class Model(object):
     def __init__(self, *, policy, ob_space, ac_space, nbatch_act, nbatch_train,
-                nsteps, vf_coef, max_grad_norm, net_size):
+                nsteps, vf_coef, max_grad_norm, net_size, hist_len):
         sess = tf.get_default_session()
 
-        act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, reuse=False)
-        train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, reuse=True)
+        act_model = policy(sess, ob_space, ac_space, nbatch_act, 1, net_size, hist_len, reuse=False)
+        train_model = policy(sess, ob_space, ac_space, nbatch_train, nsteps, net_size, hist_len, reuse=True)
 
         A = train_model.pdtype.sample_placeholder([None])
         ADV = tf.placeholder(tf.float32, [None])
@@ -91,11 +91,11 @@ class Model(object):
 
 class Runner(object):
 
-    def __init__(self, *, env, model, nsteps, gamma, lam):
+    def __init__(self, *, env, model, nsteps, gamma, lam, obs_shape):
         self.env = env
         self.model = model
         nenv = env.num_envs
-        self.obs = np.zeros((nenv,) + env.observation_space.shape, dtype=model.train_model.X.dtype.name)
+        self.obs = np.zeros((nenv,) + obs_shape, dtype=model.train_model.X.dtype.name)
         self.obs = env.reset()
         self.gamma = gamma
         self.lam = lam
@@ -182,8 +182,8 @@ def get_dir(path):
         os.mkdir(path)
     return path
 
-def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
-            vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
+def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_name,
+            vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95, policy_name,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
             save_interval=200, useentr, net_size, load_path=None, i_trial, method, checkpoint):
 
@@ -194,13 +194,16 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     total_timesteps = int(total_timesteps)
 
     nenvs = env.num_envs
-    ob_space = env.observation_space
+    if policy_name == 'cnnPolicy' and env_name == 'LunarLanderContinuousPOMDP-v0':
+        ob_space = (11, hist_len)
+    else:
+        ob_space = env.observation_space
     ac_space = env.action_space
     nbatch = nenvs * nsteps
     nbatch_train = nbatch // nminibatches
 
     make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
-                    nsteps=nsteps, vf_coef=vf_coef,
+                    nsteps=nsteps, vf_coef=vf_coef, hist_len=hist_len,
                     max_grad_norm=max_grad_norm, net_size=net_size)
     if save_interval:
         import cloudpickle
@@ -212,7 +215,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
     if checkpoint:
         model.load(load_path=load_path)
 
-    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
+    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam, obs_shape=ob_space)
 
     epinfobuf = deque(maxlen=100)
     tfirststart = time.time()
@@ -295,17 +298,20 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr,
             # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
     env.close()
 
-def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5,
+def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, policy_name, env_name,
            gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
 
     nenvs = env.num_envs
-    ob_space = env.observation_space
+    if policy_name == 'mdPolicy' and env_name == 'LunarLanderCountinuousPOMDP-v0':
+        ob_space = (9, hist_len)
+    else:
+        ob_space = env.observation_space
     ac_space = env.action_space
     nbatch = nenvs * nsteps
     nbatch_train = nbatch // nminibatches
 
     make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
-                               nbatch_train=nbatch_train,
+                               nbatch_train=nbatch_train, hist_len=hist_len,
                                nsteps=nsteps, vf_coef=vf_coef,
                                max_grad_norm=max_grad_norm, net_size=net_size)
     model = make_model()

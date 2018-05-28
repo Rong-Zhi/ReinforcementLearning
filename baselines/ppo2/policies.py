@@ -129,22 +129,24 @@ class CnnPolicy(object):
         self.step = step
         self.value = value
 
-class MlpPolicy(object):
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, reuse=False): #pylint: disable=W0613
-        ob_shape = (nbatch,) + ob_space.shape
+def md_net(X):
+    activ = tf.tanh
+    h1 = activ(conv(X, 'c1', nf=64, rf=3, stride=1, init_scale=np.sqrt(2)))
+    h2 = conv_to_fc(h1)
+    return activ(fc(h2, 'fc1', nh=64, init_scale=np.sqrt(2)))
+
+
+class mdPolicy(object):
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, hist_len, reuse=False):  # pylint: disable=W0613
+        ob_shape = (nbatch,) + ob_space
         actdim = ac_space.shape[0]
-        X = tf.placeholder(tf.float32, ob_shape, name='Ob') #obs
-        last_outpi = X
-        last_outvf = X
+        X = tf.placeholder(tf.float32, ob_shape, name='Ob')  # obs
         with tf.variable_scope("model", reuse=reuse):
-            activ = tf.tanh
-            for i in range(len(hid_size)):
-                last_outpi = activ(fc(last_outpi, "pi_fc%i"%(i+1), nh=hid_size[i], init_scale=np.sqrt(2)))
-                last_outvf = activ(fc(last_outvf, "vf_fc%i"%(i+1), nh=hid_size[i], init_scale=np.sqrt(2)))
-            pi = fc(last_outpi, 'pi', actdim, init_scale=0.01)
-            vf = fc(last_outvf, 'vf', 1)[:,0]
+            h = md_net(X)
+            pi = fc(h, 'pi', actdim, init_scale=0.01)
+            vf = fc(h, 'vf', 1)[:, 0]
             logstd = tf.get_variable(name="logstd", shape=[1, actdim],
-                initializer=tf.zeros_initializer())
+                                     initializer=tf.zeros_initializer())
 
         pdparam = tf.concat([pi, pi * 0.0 + logstd], axis=1)
 
@@ -156,11 +158,51 @@ class MlpPolicy(object):
         self.initial_state = None
 
         def step(ob, *_args, **_kwargs):
-            a, v, neglogp = sess.run([a0, vf, neglogp0], {X:ob})
+            a, v, neglogp = sess.run([a0, vf, neglogp0], {X: ob})
             return a, v, self.initial_state, neglogp
 
         def value(ob, *_args, **_kwargs):
-            return sess.run(vf, {X:ob})
+            return sess.run(vf, {X: ob})
+
+        self.X = X
+        self.pi = pi
+        self.vf = vf
+        self.step = step
+        self.value = value
+
+
+class MlpPolicy(object):
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, hist_len=None, reuse=False):  # pylint: disable=W0613
+        ob_shape = (nbatch,) + ob_space.shape
+        actdim = ac_space.shape[0]
+        X = tf.placeholder(tf.float32, ob_shape, name='Ob')  # obs
+        last_outpi = X
+        last_outvf = X
+        with tf.variable_scope("model", reuse=reuse):
+            activ = tf.tanh
+            for i in range(len(hid_size)):
+                last_outpi = activ(fc(last_outpi, "pi_fc%i" % (i + 1), nh=hid_size[i], init_scale=np.sqrt(2)))
+                last_outvf = activ(fc(last_outvf, "vf_fc%i" % (i + 1), nh=hid_size[i], init_scale=np.sqrt(2)))
+            pi = fc(last_outpi, 'pi', actdim, init_scale=0.01)
+            vf = fc(last_outvf, 'vf', 1)[:, 0]
+            logstd = tf.get_variable(name="logstd", shape=[1, actdim],
+                                     initializer=tf.zeros_initializer())
+
+        pdparam = tf.concat([pi, pi * 0.0 + logstd], axis=1)
+
+        self.pdtype = make_pdtype(ac_space)
+        self.pd = self.pdtype.pdfromflat(pdparam)
+
+        a0 = self.pd.sample()
+        neglogp0 = self.pd.neglogp(a0)
+        self.initial_state = None
+
+        def step(ob, *_args, **_kwargs):
+            a, v, neglogp = sess.run([a0, vf, neglogp0], {X: ob})
+            return a, v, self.initial_state, neglogp
+
+        def value(ob, *_args, **_kwargs):
+            return sess.run(vf, {X: ob})
 
         self.X = X
         self.pi = pi
