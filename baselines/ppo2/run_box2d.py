@@ -33,26 +33,28 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
     config.gpu_options.allow_growth = True
     tf.reset_default_graph()
 
-    def make_env(icpu):
-        # print("This is make env")
-        def _thunk():
-            # print('This is thunk')
-            env = gym.make(env_id)
-            env.seed(seed + icpu)
-            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
-            return env
-        return _thunk
-
-
-    # def make_env():
-    #     env = gym.make(env_id)
-    #     env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
-    #     return env
-    # env = DummyVecEnv([make_env])
     workerseed = seed*1000
 
-    env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    # you should always use same definition for train and render
+
+    def make_env():
+        env = gym.make(env_id)
+        env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
+        return env
+    env = DummyVecEnv([make_env])
     env = VecNormalize(env)
+
+    # def make_env(icpu):
+    #     def _thunk():
+    #         env = gym.make(env_id)
+    #         env.seed(seed + icpu)
+    #         env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
+    #         return env
+    #     return _thunk
+
+    # env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    # env = VecNormalize(env)
+
     set_global_seeds(workerseed)
     with tf.Session(config=config) as sess:
         if policy_name =='mdPolicy':
@@ -67,11 +69,8 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
 
 def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, hist_len, policy_name, env_name):
 
-    def make_env():
-        env = gym.make(env_id)
-        env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
-        return env
 
+    # SubprocVecEnv, render function hasn't been setup yet
     # def make_env(seed):
     #     def _thunk():
     #         env = gym.make(env_id)
@@ -79,9 +78,14 @@ def render(env_id, nsteps, batch_size, net_size, load_path, video_path, iters, h
     #         env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'render-result'), allow_early_resets=True)
     #         return env
     #     return _thunk
-
-    env = DummyVecEnv([make_env])
     # env = SubprocVecEnv([make_env(seed=icpu) for icpu in range(ncpu)])
+
+    def make_env():
+        env = gym.make(env_id)
+        env = bench.Monitor(env, os.path.join(video_path, 'render-result'), allow_early_resets=True)
+        return env
+    env = DummyVecEnv([make_env])
+
     env = VecNormalize(env)
     with tf.Session() as sess:
         policy = MlpPolicy

@@ -78,6 +78,11 @@ def getNewHistoryStandard(oldHist, obs, action, nO, nA):
     newHistory[0,:] = np.concatenate((np.array(obs), np.array(action)))
     return newHistory
 
+def getHistory(oldHist, obs, action, nO, nA):
+    newHistory = np.roll(oldHist, (nO + nA), axis=0)
+    newHistory[0:(nO+nA)] = np.concatenate((np.array(obs), np.array(action)))
+    return newHistory
+
 class LunarLanderPOMDP(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
@@ -103,23 +108,33 @@ class LunarLanderPOMDP(gym.Env):
 
         # high = np.array([np.inf]*8)  # useful range is -1 .. +1, but spikes can be higher
         # Add another dimension notifying if the agent enters into the block area
-        high = np.array([np.inf]*9)
-        history_high = np.full((hist_len, 11), np.inf)
-        if hist_len:
-            self.observation_space = spaces.Box(-history_high, history_high)
-        else:
-            self.observation_space = spaces.Box(-high, high)
+        # high = np.array([np.inf]*9)
 
-        if self.continuous:
-            # Action is two floats [main engine, left-right engines].
-            # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
-            # Left-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off
-            self.action_space = spaces.Box(-1, +1, (2,))
-            self.history = np.zeros((self.hist_len , (9 + 2)))  # ob dim = 9, act dim = 2 for continuous case
+        if hist_len!=0 and policy_name!='mdPolicy':
+            high = np.array([np.inf] * hist_len * (9 + 2))
+            self.observation_space = spaces.Box(-high, high)
+            self.history = np.zeros([self.hist_len * (9 + 2)])
+
+        elif hist_len!=0 and policy_name=='mdPolicy':
+            history_high = np.full((hist_len, 11), np.inf)
+            self.observation_space = spaces.Box(-history_high, history_high)
+            self.history = np.zeros((self.hist_len, (9 + 2)))
+
+        elif hist_len==0 and policy_name != 'mdPolciy':
+            high = np.array([np.inf] * 9)
+            self.observation_space = spaces.Box(-high, high)
         else:
-            # Nop, fire left engine, main engine, right engine
-            self.action_space = spaces.Discrete(4)
-            self.history = np.zeros((self.hist_len , (9 + 4)))  # ob dim = 9, act dim = 2 for continuous case
+            raise NotImplementedError
+        # We assume this environment is continuous
+        # if self.continuous:
+        # Action is two floats [main engine, left-right engines].
+        # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
+        # Left-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off
+        self.action_space = spaces.Box(-1, +1, (2,))
+        # else:
+        #     # Nop, fire left engine, main engine, right engine
+        #     self.action_space = spaces.Discrete(4)
+        #     self.history = np.zeros((self.hist_len , (9 + 4)))  # ob dim = 9, act dim = 2 for continuous case
 
         self.prev_obs = None
         # self.reset()
@@ -347,15 +362,15 @@ class LunarLanderPOMDP(gym.Env):
         else:
             self.prev_obs = state
 
-        if self.hist_len!=0:
-            history_tmp = getNewHistoryStandard(self.history, state, action, 9, 2)
-            obs = history_tmp
-            self.history = history_tmp
+        if self.hist_len!=0 and self.policy_name =='mdPolicy':
+            self.history = getNewHistoryStandard(self.history, state, action, 9, 2)
+            obs = self.history
+            obs = obs.reshape((self.hist_len, 11))
+        elif self.hist_len!=0 and self.policy_name!='mdPolicy':
+            self.history = getHistory(self.history, state, action, 9, 2)
+            obs=self.history
         else:
             obs = np.array(state)
-
-        if self.policy_name == 'mdPolicy' and self.hist_len!=0:
-            obs = obs.reshape((self.hist_len, 11))
 
         return obs, reward, done, {}
 
@@ -400,8 +415,8 @@ class LunarLanderPOMDP(gym.Env):
         scalex = VIEWPORT_W/SCALE/2
         scaley = self.helipad_y+LEG_DOWN/SCALE
         for i in range(10):
-            # ob = self.history[i*11:i*11+11]
-            ob = self.history[i,:]
+            ob = self.history[i*11:i*11+11]
+            # ob = self.history[i,:]
             x = ob[0] * scalex + scalex
             y = ob[1] * scalex + scaley
             self.viewer.draw_line(start=(x, y), end=(x + 0.1, y + 0.1), color=(1, 1, 1))

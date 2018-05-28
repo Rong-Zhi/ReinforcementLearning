@@ -37,7 +37,6 @@ print(env.action_space)
 frames = []
 while True:
     frame = env.unwrapedrender()
-    print(frame.shape)
     frames.append(frame)
     act = env.action_space.sample()
     ob, rwd, done, _ = env.step(act)
