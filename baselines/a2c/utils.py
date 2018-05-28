@@ -39,7 +39,7 @@ def ortho_init(scale=1.0):
         return (scale * q[:shape[0], :shape[1]]).astype(np.float32)
     return _ortho_init
 
-def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='NHWC'):
+def conv(x, scope, *, nf, rf, rf_, stride, pad='VALID', init_scale=1.0, data_format='NHWC'):
     if data_format == 'NHWC':
         channel_ax = 3
         strides = [1, stride, stride, 1]
@@ -51,7 +51,7 @@ def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='
     else:
         raise NotImplementedError
     nin = x.get_shape()[channel_ax].value
-    wshape = [rf, rf, nin, nf]
+    wshape = [rf_, rf, nin, nf]
     with tf.variable_scope(scope):
         w = tf.get_variable("w", wshape, initializer=ortho_init(init_scale))
         b = tf.get_variable("b", [1, nf, 1, 1], initializer=tf.constant_initializer(0.0))

@@ -129,9 +129,9 @@ class CnnPolicy(object):
         self.step = step
         self.value = value
 
-def md_net(X):
+def md_net(X, ns):
     activ = tf.tanh
-    h1 = activ(conv(X, 'c1', nf=16, rf=3, stride=1, init_scale=np.sqrt(2)))
+    h1 = activ(conv(X, 'c1', nf=16, rf=ns, rf_=3, stride=1, init_scale=np.sqrt(2)))
     h2 = conv_to_fc(h1)
     return activ(fc(h2, 'fc1', nh=64, init_scale=np.sqrt(2)))
 
@@ -143,7 +143,7 @@ class mdPolicy(object):
         actdim = ac_space.shape[0]
         X = tf.placeholder(tf.float32, ob_shape, name='Ob')  # obs
         with tf.variable_scope("model", reuse=reuse):
-            h = md_net(X)
+            h = md_net(X, ns)
             pi = fc(h, 'pi', actdim, init_scale=0.01)
             vf = fc(h, 'vf', 1)[:, 0]
             logstd = tf.get_variable(name="logstd", shape=[1, actdim],

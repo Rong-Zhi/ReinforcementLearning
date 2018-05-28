@@ -35,25 +35,25 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
 
     workerseed = seed*1000
 
-    # you should always use same definition for train and render
+    # one should always use same definition for train and render
 
-    def make_env():
-        env = gym.make(env_id)
-        env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
-        return env
-    env = DummyVecEnv([make_env])
-    env = VecNormalize(env)
-
-    # def make_env(icpu):
-    #     def _thunk():
-    #         env = gym.make(env_id)
-    #         env.seed(seed + icpu)
-    #         env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
-    #         return env
-    #     return _thunk
-
-    # env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    # def make_env():
+    #     env = gym.make(env_id)
+    #     env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
+    #     return env
+    # env = DummyVecEnv([make_env])
     # env = VecNormalize(env)
+
+    def make_env(icpu):
+        def _thunk():
+            env = gym.make(env_id)
+            env.seed(seed + icpu)
+            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
+            return env
+        return _thunk
+
+    env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    env = VecNormalize(env)
 
     set_global_seeds(workerseed)
     with tf.Session(config=config) as sess:
