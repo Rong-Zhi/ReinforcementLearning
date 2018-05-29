@@ -155,7 +155,7 @@ def control_arg_parser():
     parser.add_argument('--train', help='train', default=False, type=str2bool)
     parser.add_argument('--render', help='render', default=False, type=str2bool)
     parser.add_argument('--ncpu', help='Number of CPU', type=int, default=1)
-    parser.add_argument('--load_path', default='/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/ppo-mlp-try-0-05-29-10-25/checkpoints/00976')
+    parser.add_argument('--load_path', default='/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/ppo-mlp-bh5-0-05-29-14-50/checkpoints/00976')
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', default=False, type=str2bool)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
     parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', default=False, type=str2bool)
