@@ -2,8 +2,8 @@
 import argparse
 # from baselines.common.cmd_util import mujoco_arg_parser
 import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 from baselines import bench, logger
@@ -37,23 +37,23 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
 
     # one should always use same definition for train and render
 
-    # def make_env():
-    #     env = gym.make(env_id)
-    #     env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
-    #     return env
-    # env = DummyVecEnv([make_env])
-    # env = VecNormalize(env)
-
-    def make_env(icpu):
-        def _thunk():
-            env = gym.make(env_id)
-            env.seed(seed + icpu)
-            env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
-            return env
-        return _thunk
-
-    env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    def make_env():
+        env = gym.make(env_id)
+        env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
+        return env
+    env = DummyVecEnv([make_env])
     env = VecNormalize(env)
+
+    # def make_env(icpu):
+    #     def _thunk():
+    #         env = gym.make(env_id)
+    #         env.seed(seed + icpu)
+    #         env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), 'train-{}-monitor'.format(icpu)))
+    #         return env
+    #     return _thunk
+    #
+    # env = SubprocVecEnv([make_env(i) for i in range(ncpu)])
+    # env = VecNormalize(env)
 
     set_global_seeds(workerseed)
     with tf.Session(config=config) as sess:
@@ -91,7 +91,7 @@ def render(env_id, nsteps, batch_size, net_size, load_path,
     with tf.Session() as sess:
         policy = MlpPolicy
         ppo2.render(policy=policy, env=env, nsteps=nsteps, lam=0.95, gamma=0.99, nminibatches=batch_size,
-                    policy_name=policy_name, env_name=env_name, net_size=net_size,
+                    policy_name=policy_name, env_name=env_name, net_size=net_size, filter_size=filter_size,
                     load_path=load_path, video_path=video_path, iters_so_far=iters, hist_len=hist_len)
 
 def get_dir(path):
@@ -126,6 +126,7 @@ def main():
 
     if args.render is True:
         video_path = osp.split(osp.split(args.load_path)[0])[0]
+        video_path = get_dir(osp.join(video_path, 'videos'))
         logger.configure(dir=video_path)
         render(args.env, nsteps=args.nsteps, batch_size=args.batch_size, net_size=args.net_size,
                policy_name=args.policy_name, env_name=args.env, load_path=args.load_path,

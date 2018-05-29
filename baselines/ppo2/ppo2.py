@@ -57,7 +57,7 @@ class Model(object):
             advs = returns - values
             advs = (advs - advs.mean()) / (advs.std() + 1e-8)
             #TODO: the following line is for cnn policy
-            obs = np.expand_dims(obs, -1)
+            # obs = np.expand_dims(obs, -1)
             td_map = {train_model.X:obs, A:actions, ADV:advs, R:returns, LR:lr,
                     CLIPRANGE:cliprange, OLDNEGLOGPAC:neglogpacs, OLDVPRED:values, ENT_DYNAMIC:ent_dynamic}
             if states is not None:
@@ -112,18 +112,24 @@ class Runner(object):
         done = False
         frames = []
         rwds = []
+        epinfos = []
         while True:
             frame = self.env.unwrapedrender()
             frames.append(frame)
             action, _, states, _ = self.model.step(obs, state, done)
-            obs, reward, done, _ = self.env.step(action)
+            obs, reward, done, infos = self.env.step(action)
+            # print('reward:{0}, info:{1}'.format(reward, infos))
+            for info in infos:
+                maybeepinfo = info.get('episode')
+                if maybeepinfo:epinfos.append(maybeepinfo)
             rwds.append(reward)
             if done:
                 print("Saved video.")
                 imageio.mimsave(path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
                 break
             num_episodes += 1
-        return rwds
+
+        return epinfos
 
 
     def run(self):
@@ -317,9 +323,10 @@ def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, po
     model = make_model()
     model.load(load_path=load_path)
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    path = get_dir(osp.join(video_path, 'videos'))
-    rwd = runner.play(path=path, iters_so_far=iters_so_far)
-    print("Average Return:{0}".format(np.sum(rwd)))
+    infos = runner.play(path=video_path, iters_so_far=iters_so_far)
+    # print(rwd)
+    # print("Average Return:{0}".format(np.sum(rwd)))
+    print("Info:", infos)
     env.close()
 
 def safemean(xs):
