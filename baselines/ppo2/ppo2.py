@@ -298,7 +298,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
             # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
     env.close()
 
-def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, policy_name, env_name,
+def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, policy_name, env_name, filter_size,
            gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
 
     nenvs = env.num_envs
@@ -312,7 +312,7 @@ def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, po
 
     make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
                                nbatch_train=nbatch_train, hist_len=hist_len,
-                               nsteps=nsteps, vf_coef=vf_coef,
+                               nsteps=nsteps, vf_coef=vf_coef, filter_size=filter_size,
                                max_grad_norm=max_grad_norm, net_size=net_size)
     model = make_model()
     model.load(load_path=load_path)

@@ -63,7 +63,7 @@ def train(env_id, num_timesteps, seed, nsteps, batch_size, epoch, hist_len, env_
             policy = MlpPolicy
         ppo2.learn(policy=policy, env=env, nsteps=nsteps, nminibatches=batch_size,
             lam=0.95, gamma=0.99, noptepochs=epoch, log_interval=1, env_name=env_name,
-            ent_coef=0.1, lr=3e-4, cliprange=0.2, hist_len=hist_len, policy_name=policy_name,
+            ent_coef=0.2, lr=3e-4, cliprange=0.2, hist_len=hist_len, policy_name=policy_name,
             total_timesteps=num_timesteps, useentr=use_entr, net_size=net_size, filter_size=filter_size,
             i_trial=rank, load_path=load_path, method=method, checkpoint=checkpoint)
 

@@ -175,7 +175,7 @@ class mdPolicy(object):
 
 
 class MlpPolicy(object):
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, hist_len=None, reuse=False):  # pylint: disable=W0613
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, hid_size, hist_len, filter_size, reuse=False):  # pylint: disable=W0613
         ob_shape = (nbatch,) + ob_space.shape
         actdim = ac_space.shape[0]
         X = tf.placeholder(tf.float32, ob_shape, name='Ob')  # obs
