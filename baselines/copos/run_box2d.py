@@ -25,7 +25,7 @@ import os.path as osp
 # import timeit
 import datetime
 
-def train_copos(env_id, num_timesteps, seed, trial):
+def train_copos(env_id, num_timesteps, seed, trial, hist_len):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -38,7 +38,7 @@ def train_copos(env_id, num_timesteps, seed, trial):
     set_global_seeds(workerseed)
     # env = gym.make(env_id)
 
-    env = make_control_env(env_id, seed, hist_len=None)
+    env = make_control_env(env_id, seed, hist_len=hist_len)
     env.seed(workerseed)
 
     timesteps_per_batch=2048
@@ -80,7 +80,7 @@ def main():
     save_args(args)
     # if args.env == 'LunarLanderContinuousPOMDP-v0':
     #     newenv(hist_len=args.hist_len, block_high=float(args.block_high), policy_name=args.policy_name)
-    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed)
+    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len)
 
 
 if __name__ == '__main__':
