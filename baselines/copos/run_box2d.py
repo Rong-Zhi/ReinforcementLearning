@@ -60,18 +60,6 @@ def train_copos(env_id, num_timesteps, seed):
                     max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3)
     env.close()
 
-def argparser():
-    """
-    Create an argparse.ArgumentParser.
-    """
-    parser = arg_parser()
-    parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
-    parser.add_argument('--method', help='method', type=str, default='copos-try')
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(2e6))
-    return parser
-
 
 def get_dir(path):
     if not os.path.exists(path):
@@ -83,7 +71,7 @@ def save_args(args):
         logger.log("{}:".format(arg), getattr(args, arg))
 
 def main():
-    args = argparser().parse_args()
+    args = control_arg_parser().parse_args()
     ENV_path = get_dir(os.path.join(args.log_dir, args.env))
     log_dir = os.path.join(ENV_path, args.method + "-" +
                            '{}'.format(args.seed)) + "-" + \
