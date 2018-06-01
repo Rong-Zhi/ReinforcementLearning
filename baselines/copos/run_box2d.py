@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # noinspection PyUnresolvedReferences
 from mpi4py import MPI
+import sys
+
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
 from baselines import logger
@@ -13,11 +18,6 @@ import tensorflow as tf
 import numpy as np
 
 import gym
-import sys
-
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 # from baselines import bench, logger
 import os

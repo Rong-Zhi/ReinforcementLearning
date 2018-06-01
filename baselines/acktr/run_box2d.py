@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-
+import sys
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 import tensorflow as tf
 from baselines import logger
 from baselines.common.cmd_util import make_mujoco_env, mujoco_arg_parser
@@ -10,10 +13,7 @@ from baselines.acktr.value_functions import NeuralNetValueFunction
 import os
 import datetime
 
-import sys
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+
 
 def train(env_id, num_timesteps, seed):
     env = make_control_env(env_id, seed, hist_len=None)
