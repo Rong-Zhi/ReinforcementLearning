@@ -132,6 +132,9 @@ def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps,
         logger.record_tabular("EpRewMean", np.mean([path["reward"].sum() for path in paths]))
         logger.record_tabular("EpRewSEM", np.std([path["reward"].sum()/np.sqrt(len(paths)) for path in paths]))
         logger.record_tabular("EpLenMean", np.mean([pathlength(path) for path in paths]))
+        logger.record_tabular("Iteration", i)
+        logger.record_tabular("Name", 'ACKTR-try')
+        logger.record_tabular("trial", 0)
         logger.record_tabular("KL", kl)
         if callback:
             callback()
