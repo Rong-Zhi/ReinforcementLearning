@@ -29,12 +29,14 @@ class GaussianMlpPolicy(object):
         logprob_n = - tf.reduce_sum(tf.log(ac_dist[:,ac_dim:]), axis=1) - 0.5 * tf.log(2.0*np.pi)*ac_dim - 0.5 * tf.reduce_sum(tf.square(ac_dist[:,:ac_dim] - oldac_na) / (tf.square(ac_dist[:,ac_dim:])), axis=1) # Logprob of previous actions under CURRENT policy (whereas oldlogprob_n is under OLD policy)
         kl = tf.reduce_mean(kl_div(oldac_dist, ac_dist, ac_dim))
 
+        entropy = tf.reduce_mean(logstd_1a + .5 * np.log(2.0 * np.pi * np.e), axis=-1)
         #kl = .5 * tf.reduce_mean(tf.square(logprob_n - oldlogprob_n)) # Approximation of KL divergence between old policy used to generate actions, and new policy used to compute logprob_n
         surr = - tf.reduce_mean(adv_n * logprob_n) # Loss function that we'll differentiate to get the policy gradient
         surr_sampled = - tf.reduce_mean(logprob_n) # Sampled loss of the policy
         self._act = U.function([ob_no], [sampled_ac_na, ac_dist, logprobsampled_n]) # Generate a new action and its logprob
         #self.compute_kl = U.function([ob_no, oldac_na, oldlogprob_n], kl) # Compute (approximate) KL divergence between old policy and new policy
-        self.compute_kl = U.function([ob_no, oldac_dist], kl)
+
+        self.compute_kl = U.function([ob_no, oldac_dist], [kl, entropy])
         self.update_info = ((ob_no, oldac_na, adv_n), surr, surr_sampled) # Input and output variables needed for computing loss
         U.initialize() # Initialize uninitialized TF variables
 

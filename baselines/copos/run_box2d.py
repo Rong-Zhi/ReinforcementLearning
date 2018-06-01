@@ -15,8 +15,8 @@ import numpy as np
 import gym
 import sys
 
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 from baselines.common.cmd_util import control_arg_parser, make_control_env
 # from baselines import bench, logger
@@ -41,7 +41,7 @@ def train_copos(env_id, num_timesteps, seed):
     env = make_control_env(env_id, seed, hist_len=None)
     env.seed(workerseed)
 
-    timesteps_per_batch=1024
+    timesteps_per_batch=2048
     beta = -1
     if beta < 0:
         nr_episodes = num_timesteps // timesteps_per_batch

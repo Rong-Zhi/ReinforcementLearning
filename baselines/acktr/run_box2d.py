@@ -11,8 +11,8 @@ import os
 import datetime
 
 import sys
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 def train(env_id, num_timesteps, seed):

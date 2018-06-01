@@ -119,7 +119,8 @@ def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps,
         min_stepsize = np.float32(1e-8)
         max_stepsize = np.float32(1e0)
         # Adjust stepsize
-        kl = policy.compute_kl(ob_no, oldac_dist)
+
+        kl, entropy = policy.compute_kl(ob_no, oldac_dist)
         if kl > desired_kl * 2:
             logger.log("kl too high")
             tf.assign(stepsize, tf.maximum(min_stepsize, stepsize / 1.5)).eval()
@@ -133,6 +134,7 @@ def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps,
         logger.record_tabular("EpRewSEM", np.std([path["reward"].sum()/np.sqrt(len(paths)) for path in paths]))
         logger.record_tabular("EpLenMean", np.mean([pathlength(path) for path in paths]))
         logger.record_tabular("Iteration", i)
+        logger.record_tabular("Entropy", entropy[0])
         logger.record_tabular("Name", 'ACKTR-try')
         logger.record_tabular("trial", 0)
         logger.record_tabular("KL", kl)
