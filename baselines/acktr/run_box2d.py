@@ -15,7 +15,7 @@ import datetime
 
 
 
-def train(env_id, num_timesteps, seed):
+def train(env_id, num_timesteps, seed, trial):
     env = make_control_env(env_id, seed, hist_len=None)
 
     with tf.Session(config=tf.ConfigProto()):
@@ -28,7 +28,7 @@ def train(env_id, num_timesteps, seed):
 
         learn(env, policy=policy, vf=vf,
             gamma=0.99, lam=0.97, timesteps_per_batch=2048,
-            desired_kl=0.002,
+            desired_kl=0.002, trial=trial,
             num_timesteps=num_timesteps, animate=False)
 
         env.close()
@@ -51,7 +51,7 @@ def main():
     logger.configure(dir=log_dir)
     # logger.log("This is rank {}".format(rank))
     save_args(args)
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed)
 
 if __name__ == "__main__":
     main()

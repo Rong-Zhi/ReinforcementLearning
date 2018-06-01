@@ -45,7 +45,7 @@ def rollout(env, policy, max_pathlength, animate=False, obfilter=None):
             "reward" : np.array(rewards), "action" : np.array(acs),
             "action_dist": np.array(ac_dists), "logp" : np.array(logps)}
 
-def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps,
+def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps, trial,
     animate=False, callback=None, desired_kl=0.002):
 
     obfilter = ZFilter(env.observation_space.shape)
@@ -136,7 +136,7 @@ def learn(env, policy, vf, gamma, lam, timesteps_per_batch, num_timesteps,
         logger.record_tabular("Iteration", i)
         logger.record_tabular("Entropy", entropy[0])
         logger.record_tabular("Name", 'ACKTR-try')
-        logger.record_tabular("trial", 0)
+        logger.record_tabular("trial", trial)
         logger.record_tabular("KL", kl)
         if callback:
             callback()

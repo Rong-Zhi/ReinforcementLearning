@@ -25,7 +25,7 @@ import os.path as osp
 # import timeit
 import datetime
 
-def train_copos(env_id, num_timesteps, seed):
+def train_copos(env_id, num_timesteps, seed, trial):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -57,7 +57,7 @@ def train_copos(env_id, num_timesteps, seed):
         print("Automatically set beta: " + str(beta))
 
     copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01, beta=beta, cg_iters=10, cg_damping=0.1,
-                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3)
+                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, trial=trial)
     env.close()
 
 
@@ -80,7 +80,7 @@ def main():
     save_args(args)
     # if args.env == 'LunarLanderContinuousPOMDP-v0':
     #     newenv(hist_len=args.hist_len, block_high=float(args.block_high), policy_name=args.policy_name)
-    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed)
 
 
 if __name__ == '__main__':
