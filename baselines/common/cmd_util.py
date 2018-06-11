@@ -124,42 +124,43 @@ def robotics_arg_parser():
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
+
 def frac2float(v):
     num = v.split('/')
     return float(num[0])/float(num[1])
+
 def str2list(v):
     net = v.split(',')
     return [int(n) for n in net]
 
 def control_arg_parser():
     """
-    Create an argparse.ArgumentParser for run_mujoco.py.
+    Create an argparse.ArgumentParser for run_box2d.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
     # parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    # parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuous-v2')
     parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)
     parser.add_argument('--filter_size', help='Define filter size for modified CNN policy', default=[16, 2], type=str2list)
-    parser.add_argument('--hist_len', help='History Length', type=int, default=10)
+    parser.add_argument('--hist_len', help='History Length', type=int, default=16)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
                         default=17/32, type=frac2float)
-    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
+    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=512)
     parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
-    parser.add_argument('--method', help='method', type=str, default='ppo-md-try')
+    parser.add_argument('--method', help='method', type=str, default='ppo-entropy002-try')
     parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(2e6))
     parser.add_argument('--train', help='train', default=False, type=str2bool)
     parser.add_argument('--render', help='render', default=False, type=str2bool)
-    parser.add_argument('--ncpu', help='Number of CPU', type=int, default=1)
-    parser.add_argument('--load_path', default='/home/zhi/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/ppo-mlp-bh5-0-05-29-14-50/checkpoints/00976')
+    parser.add_argument('--ncpu', help='Number of CPU', type=int, default=4)
+    parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint', help='Use saved checkpoint?', default=False, type=str2bool)
     parser.add_argument('--iters', help='Iterations so far(to produce videos)', default=0)
     parser.add_argument('--use_entr', help='Use dynammic entropy regularization term?', default=False, type=str2bool)
-
     return parser
 
 def rocksample_arg_parser():

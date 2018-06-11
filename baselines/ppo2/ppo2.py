@@ -98,38 +98,38 @@ class Runner(object):
         self.model = model
         nenv = env.num_envs
         self.obs = np.zeros((nenv,) + env.observation_space.shape, dtype=model.train_model.X.dtype.name)
-        self.obs = env.reset()
+        self.obs[:] = env.reset()
         self.gamma = gamma
         self.lam = lam
         self.nsteps = nsteps
         self.states = model.initial_state
         self.dones = [False for _ in range(nenv)]
 
-    def play(self, path, iters_so_far):
-        obs = self.env.reset()
-        state = self.model.initial_state
-        num_episodes = 0
-        done = False
-        frames = []
-        rwds = []
-        epinfos = []
-        while True:
-            frame = self.env.unwrapedrender()
-            frames.append(frame)
-            action, _, states, _ = self.model.step(obs, state, done)
-            obs, reward, done, infos = self.env.step(action)
-            # print('reward:{0}, info:{1}'.format(reward, infos))
-            for info in infos:
-                maybeepinfo = info.get('episode')
-                if maybeepinfo:epinfos.append(maybeepinfo)
-            rwds.append(reward)
-            if done:
-                print("Saved video.")
-                imageio.mimsave(path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
-                break
-            num_episodes += 1
-
-        return epinfos
+    # def play(self, path, iters_so_far):
+    #     obs = self.env.reset()
+    #     state = self.model.initial_state
+    #     num_episodes = 0
+    #     done = False
+    #     frames = []
+    #     rwds = []
+    #     epinfos = []
+    #     while True:
+    #         frame = self.env.unwrapedrender()
+    #         frames.append(frame)
+    #         action, _, states, _ = self.model.step(obs, state, done)
+    #         obs, reward, done, infos = self.env.step(action)
+    #         # print('reward:{0}, info:{1}'.format(reward, infos))
+    #         for info in infos:
+    #             maybeepinfo = info.get('episode')
+    #             if maybeepinfo:epinfos.append(maybeepinfo)
+    #         rwds.append(reward)
+    #         if done:
+    #             print("Saved video.")
+    #             imageio.mimsave(path + '/' + str(iters_so_far) + '.gif', frames, fps=20)
+    #             break
+    #         num_episodes += 1
+    #
+    #     return epinfos
 
 
     def run(self):
@@ -211,15 +211,15 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
                     nbatch_train=nbatch_train, nsteps=nsteps, vf_coef=vf_coef, hist_len=hist_len,
                     max_grad_norm=max_grad_norm, net_size=net_size, filter_size=filter_size)
-    if save_interval:
-        import cloudpickle
-        with open(osp.join(logger.get_dir(), 'make_model.pkl'), 'wb') as fh:
-            fh.write(cloudpickle.dumps(make_model))
+    # if save_interval:
+    #     import cloudpickle
+    #     with open(osp.join(logger.get_dir(), 'make_model.pkl'), 'wb') as fh:
+    #         fh.write(cloudpickle.dumps(make_model))
 
     model = make_model()
-
-    if checkpoint:
-        model.load(load_path=load_path)
+    #
+    # if checkpoint:
+    #     model.load(load_path=load_path)
 
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
@@ -233,10 +233,10 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
     # ent_coef = useentr * ent_coef
     # ent_coef = entp - float(iters_so_far) / float(max_iters)
 
-    for update in range(1, nupdates+1):
+    for update in range(nupdates+1):
         # ent_coef = useentr * 0.01
-        ent_coef = max(ent_coef - 0.1 * float(update) / float(nupdates), 0.01)
         assert nbatch % nminibatches == 0
+        ent_p = ent_coef - 0.01 * float(update) / nupdates
         nbatch_train = nbatch // nminibatches
         tstart = time.time()
         frac = 1.0 - (update - 1.0) / nupdates
@@ -253,7 +253,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
                     end = start + nbatch_train
                     mbinds = inds[start:end]
                     slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, ent_dynamic=ent_coef))
+                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, ent_dynamic=ent_p))
         else: # recurrent version
             assert nenvs % nminibatches == 0
             envsperbatch = nenvs // nminibatches
@@ -268,12 +268,12 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
                     mbflatinds = flatinds[mbenvinds].ravel()
                     slices = (arr[mbflatinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                     mbstates = states[mbenvinds]
-                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates, ent_dynamic=ent_coef))
+                    mblossvals.append(model.train(lrnow, cliprangenow, *slices, mbstates, ent_dynamic=ent_p))
 
         lossvals = np.mean(mblossvals, axis=0)
         tnow = time.time()
         fps = int(nbatch / (tnow - tstart))
-        if update % log_interval == 0 or update == 1:
+        if update % log_interval == 0 or update == 0:
             ev = explained_variance(values, returns)
             logger.logkv("serial_timesteps", update*nsteps)
             logger.logkv("nupdates", update)
@@ -286,6 +286,7 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
             logger.logkv('trial', i_trial)
             logger.logkv("Iteration", update)
             logger.logkv('Name', method)
+            logger.logkv('Ent-coef',ent_p)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             logger.dumpkvs()
@@ -295,39 +296,39 @@ def learn(*, policy, env, nsteps, total_timesteps, ent_coef, lr, hist_len, env_n
         #     print('Average Retrun:{0}'.format(np.sum(rwd)/float(len(rwd))))
         #     print('Sum of Return:{0}'.format(np.sum(rwd)))
 
-        if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
-            checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
-            savepath = osp.join(checkdir, '%.5i'%update)
-            print('Saving to', savepath)
-            model.save(savepath)
-            # np.save('{}/mean'.format(checkdir + '/'), runner.env.obs.mean)
-            # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
+    #     if save_interval and (update % save_interval == 0 or update == 1 or update==nupdates) and logger.get_dir():
+    #         checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
+    #         savepath = osp.join(checkdir, '%.5i'%update)
+    #         print('Saving to', savepath)
+    #         model.save(savepath)
+    #         # np.save('{}/mean'.format(checkdir + '/'), runner.env.obs.mean)
+    #         # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
     env.close()
 
-def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, policy_name, env_name, filter_size,
-           gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
-
-    nenvs = env.num_envs
-    # if policy_name == 'mdPolicy' and env_name == 'LunarLanderCountinuousPOMDP-v0':
-    #     ob_space = (9, hist_len)
-    # else:
-    ob_space = env.observation_space
-    ac_space = env.action_space
-    nbatch = nenvs * nsteps
-    nbatch_train = nbatch // nminibatches
-
-    make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
-                               nbatch_train=nbatch_train, hist_len=hist_len,
-                               nsteps=nsteps, vf_coef=vf_coef, filter_size=filter_size,
-                               max_grad_norm=max_grad_norm, net_size=net_size)
-    model = make_model()
-    model.load(load_path=load_path)
-    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
-    infos = runner.play(path=video_path, iters_so_far=iters_so_far)
-    # print(rwd)
-    # print("Average Return:{0}".format(np.sum(rwd)))
-    print("Info:", infos)
-    env.close()
+# def render(*, policy, env, nsteps, vf_coef=0.5,  max_grad_norm=0.5, hist_len, policy_name, env_name, filter_size,
+#            gamma=0.99, lam=0.95, nminibatches=4, net_size, load_path=None, iters_so_far, video_path):
+#
+#     nenvs = env.num_envs
+#     # if policy_name == 'mdPolicy' and env_name == 'LunarLanderCountinuousPOMDP-v0':
+#     #     ob_space = (9, hist_len)
+#     # else:
+#     ob_space = env.observation_space
+#     ac_space = env.action_space
+#     nbatch = nenvs * nsteps
+#     nbatch_train = nbatch // nminibatches
+#
+#     make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs,
+#                                nbatch_train=nbatch_train, hist_len=hist_len,
+#                                nsteps=nsteps, vf_coef=vf_coef, filter_size=filter_size,
+#                                max_grad_norm=max_grad_norm, net_size=net_size)
+#     model = make_model()
+#     model.load(load_path=load_path)
+#     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
+#     infos = runner.play(path=video_path, iters_so_far=iters_so_far)
+#     # print(rwd)
+#     # print("Average Return:{0}".format(np.sum(rwd)))
+#     print("Info:", infos)
+#     env.close()
 
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)

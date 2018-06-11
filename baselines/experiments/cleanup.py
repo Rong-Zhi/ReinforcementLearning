@@ -1,10 +1,16 @@
 import pandas as pd
 import glob
 
-path = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/ent-md-f163-hist8-bh17-batch32-{}-05-28-23-42'
+path = '/Users/zhirong/Documents/share/todo/COPOS-hist2-{}-06-05-19-15'
 
 d = []
-for i in range(10):
+
+for i in range(5):
+    # # print(i)
+    # d = pd.read_csv(path.format(i)+'/progress.csv')
+    # d['trial'] = i
+    # d.to_csv(path.format(i)+'/progress.csv', index=False)
+
     d.append(pd.read_csv(path.format(i)+'/progress.csv'))
 data = pd.concat(d)
 data.to_csv(path.format(0)+'/progress1.csv')
