@@ -3,14 +3,15 @@
 from mpi4py import MPI
 import sys
 
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
 from baselines import logger
 from baselines.common.cmd_util import arg_parser
 from baselines.copos.compatible_mlp_policy import CompatibleMlpPolicy
+from baselines.copos.compatible_cnn_policy import CompatiblecnnPolicy
 from baselines.copos import copos_mpi
 from baselines.env.envsetting import newenv
 
@@ -25,23 +26,26 @@ import os.path as osp
 # import timeit
 import datetime
 
-def train_copos(env_id, num_timesteps, seed, trial, hist_len):
+def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy_name):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
 
     workerseed = seed * 10000
     def policy_fn(name, ob_space, ac_space):
-        return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=32, num_hid_layers=2)
+        # return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
+        #     hid_size=64, num_hid_layers=2)
+        return CompatiblecnnPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
+             hid_size=64, num_hid_layers=2)
 
     set_global_seeds(workerseed)
     # env = gym.make(env_id)
 
-    env = make_control_env(env_id, seed, hist_len=hist_len)
+    env = make_control_env(env_id, seed, hist_len=hist_len,
+                           block_high=block_high, policy_name=policy_name)
     env.seed(workerseed)
 
-    timesteps_per_batch=2048
+    timesteps_per_batch=4000
     beta = -1
     if beta < 0:
         nr_episodes = num_timesteps // timesteps_per_batch
@@ -80,7 +84,8 @@ def main():
     save_args(args)
     # if args.env == 'LunarLanderContinuousPOMDP-v0':
     #     newenv(hist_len=args.hist_len, block_high=float(args.block_high), policy_name=args.policy_name)
-    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len)
+    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
+                policy_name=args.policy_name, block_high=float(args.block_high))
 
 
 if __name__ == '__main__':

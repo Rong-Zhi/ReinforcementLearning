@@ -3,14 +3,17 @@ import baselines.common.tf_util as utils
 import tensorflow as tf
 import numpy as np
 from baselines.common.distributions import make_pdtype
+from baselines.a2c.utils import conv, fc, conv_to_fc
 import gym
 
+def md_net(X, ns, hid_size):
+    activ = tf.tanh
+    h1 = activ(conv(X, 'c1', nf=16, rf=ns, rf_=2, stride=1, init_scale=utils.normc_initializer(1.0)))
+    h2 = conv_to_fc(h1)
+    return activ(fc(h2, 'fc1', nh=hid_size, init_scale=utils.normc_initializer(1.0)))
 
 
-
-
-
-class CompatibleMlpPolicy(object):
+class CompatiblecnnPolicy(object):
     recurrent = False
 
     def __init__(self, name, *args, **kwargs):
@@ -24,25 +27,23 @@ class CompatibleMlpPolicy(object):
         sequence_length = None
 
         self.varphi_dim = hid_size
+        print("ob shape:", ob_space.shape)
+        nh, ns = ob_space.shape
+        xshape = (nh, ns, 1)
 
-        self.ob = utils.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-        # self.ob = tf.placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        self.ob = utils.get_placeholder(name="ob", dtype=tf.float32, shape=xshape)
 
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
+            self.ob_rms = np.expand_dims(self.ob_rms, -1)
 
         with tf.variable_scope('vf'):
             obz = tf.clip_by_value((self.ob - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
-            last_out = obz
-            for i in range(num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name="fc%i"%(i+1), kernel_initializer=utils.normc_initializer(1.0)))
+            last_out = md_net(X=obz, ns=ns, hid_size=hid_size)
             self.vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=utils.normc_initializer(1.0))[:, 0]
 
         with tf.variable_scope('pol'):
-            last_out = obz
-            # Create 'num_hid_layers' hidden layers
-            for i in range(num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=utils.normc_initializer(1.0)))
+            last_out = md_net(X=obz, ns=ns, hid_size=hid_size)
             if gaussian_fixed_var and isinstance(ac_space, gym.spaces.Box):
                 self.action_dim = ac_space.shape[0]
 
@@ -114,6 +115,7 @@ class CompatibleMlpPolicy(object):
         self.features_beta = utils.function([self.ob, w_beta_var, v], features_beta)
 
     def act(self, stochastic, ob):
+        ob = np.expand_dims(ob, -1)
         ac1, vpred1 =  self._act(stochastic, ob[None])
         return ac1[0], vpred1[0]
 
@@ -188,7 +190,9 @@ class CompatibleMlpPolicy(object):
         Compute wa(s)^T = w_beta^T * \grad_beta \varphi_beta(s)^T * K^T * Sigma^-1
         :return: wa(s)^T
         """
-        v0 = np.zeros((obs.shape[0], self.varphi_dim))
+        obs = np.expand_dims(obs, -1)
+        v0 = np.zeros((obs.shape[0], obs.shape[1], self.varphi_dim))
+        # v0 = np.zeros((obs.shape[0], self.varphi_dim))
         f_beta = self.features_beta(obs, w_beta, v0)[0]
         wa = np.dot(f_beta, self.get_ktprec())
 
@@ -196,6 +200,7 @@ class CompatibleMlpPolicy(object):
 
     def get_varphis(self, obs):
         # Non-linear neural network outputs
+        obs = np.expand_dims(obs, -1)
         return tf.get_default_session().run(self.varphi, {self.ob: obs})
 
     def get_prec_matrix(self):

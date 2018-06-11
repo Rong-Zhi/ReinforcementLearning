@@ -492,7 +492,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        logger.record_tabular("Name", 'COPOS-try')
+        logger.record_tabular("Name", 'COPOS-md-try')
         logger.record_tabular("Iteration", iters_so_far)
         logger.record_tabular("trial", trial)
 
