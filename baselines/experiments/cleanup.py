@@ -1,7 +1,7 @@
 import pandas as pd
 import glob
 
-path = '/home/zhi/Documents/share/LunarLanderContinuous-v2/ppo1-ent-dynamic002001-try-{}'
+path = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/PPO2-10seeds-64neuron-hist16-{}-06-12-12-00'
 
 dt = []
 
