@@ -15,6 +15,9 @@ path5 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-h
 
 path6 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-64neuron-hist8-0-06-11-14-28/progress1.csv'
 path7 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-64neuron-hist16-0-06-11-14-28/progress1.csv'
+path8 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-64neuron-hist1-0-06-12-12-16/progress1.csv'
+path9 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-64neuron-hist2-0-06-12-12-12/progress1.csv'
+path10 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
 
 path ='/home/zhi/Documents/share/LunarLanderContinuous-v2/ppo1-ent-dynamic001001-try-0/progress1.csv'
 
@@ -40,14 +43,17 @@ def plots(i):
     # d3['Name'] = 'COPOS-hist16'
     # d4 = pd.read_csv(path4)
     # d5 = pd.read_csv(path5)
-    # d6 = pd.read_csv(path6)
-    # d7 = pd.read_csv(path7)
+    d6 = pd.read_csv(path6)
+    d7 = pd.read_csv(path7)
+    d8 = pd.read_csv(path8)
+    d9 = pd.read_csv(path9)
+    d10 =pd.read_csv(path10)
 
-    d11 = pd.read_csv(path11)
-    d12 = pd.read_csv(path12)
-    d13 = pd.read_csv(path13)
-    d14 = pd.read_csv(path14)
-    d15 = pd.read_csv(path15)
+    # d11 = pd.read_csv(path11)
+    # d12 = pd.read_csv(path12)
+    # d13 = pd.read_csv(path13)
+    # d14 = pd.read_csv(path14)
+    # d15 = pd.read_csv(path15)
 
 
 
@@ -55,7 +61,7 @@ def plots(i):
     # d1 = pd.read_csv(path)
     # data = d
     # data = pd.concat([d4, d5, d6, d7])
-    data = pd.concat([d11, d12, d13, d14, d15])
+    data = pd.concat([d8, d9, d10, d6, d7])
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
     sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
 
