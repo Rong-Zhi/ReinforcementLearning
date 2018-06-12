@@ -138,8 +138,8 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_box2d.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
+    # parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
     # parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)

@@ -3,8 +3,57 @@ import baselines.common.tf_util as utils
 import tensorflow as tf
 import numpy as np
 from baselines.common.distributions import make_pdtype
-from baselines.a2c.utils import conv, fc, conv_to_fc
+# from baselines.a2c.utils import conv, fc, conv_to_fc
 import gym
+
+
+def ortho_init(scale=1.0):
+    def _ortho_init(shape, dtype, partition_info=None):
+        #lasagne ortho init for tf
+        shape = tuple(shape)
+        if len(shape) == 4: # assumes NHWC
+            flat_shape = (np.prod(shape[:-1]), shape[-1])
+        else:
+            raise NotImplementedError
+        a = np.random.normal(0.0, 1.0, flat_shape)
+        u, _, v = np.linalg.svd(a, full_matrices=False)
+        q = u if u.shape == flat_shape else v # pick the one with the correct shape
+        q = q.reshape(shape)
+        return (scale * q[:shape[0], :shape[1]]).astype(np.float32)
+    return _ortho_init
+
+def conv(x, scope, *, nf, rf, rf_, stride, pad='VALID', init_scale=1.0, data_format='NHWC'):
+    if data_format == 'NHWC':
+        channel_ax = 3
+        strides = [1, stride, stride, 1]
+        bshape = [1, 1, 1, nf]
+    else:
+        raise NotImplementedError
+    nin = 1
+    # nin = x.get_shape()[channel_ax].value
+    # print("nin:", nin)
+    # print(x)
+    # nin = x[3].value
+    wshape = [rf_, rf, nin, nf]
+    with tf.variable_scope(scope):
+        w = tf.get_variable("w", wshape, initializer=ortho_init(init_scale))
+        b = tf.get_variable("b", [1, nf, 1, 1], initializer=tf.constant_initializer(0.0))
+        if data_format == 'NHWC': b = tf.reshape(b, bshape)
+        return b + tf.nn.conv2d(x, w, strides=strides, padding=pad, data_format=data_format)
+
+def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
+    with tf.variable_scope(scope):
+        nin = x.get_shape()[1].value
+        w = tf.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
+        b = tf.get_variable("b", [nh], initializer=tf.constant_initializer(init_bias))
+        return tf.matmul(x, w)+b
+
+
+def conv_to_fc(x):
+    nh = np.prod([v.value for v in x.get_shape()[1:]])
+    x = tf.reshape(x, [-1, nh])
+    return x
+
 
 def md_net(X, ns, hid_size):
     activ = tf.tanh
@@ -27,18 +76,20 @@ class CompatiblecnnPolicy(object):
         sequence_length = None
 
         self.varphi_dim = hid_size
-        print("ob shape:", ob_space.shape)
+        print("ob shape before:", ob_space.shape)
         nh, ns = ob_space.shape
-        xshape = (nh, ns, 1)
+        xshape = (nh, ns)
 
         self.ob = utils.get_placeholder(name="ob", dtype=tf.float32, shape=xshape)
 
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
-            self.ob_rms = np.expand_dims(self.ob_rms, -1)
 
         with tf.variable_scope('vf'):
             obz = tf.clip_by_value((self.ob - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
+            obz = tf.expand_dims(obz, 0)
+            obz = tf.expand_dims(obz, -1)
+            print("ob shape after:", obz)
             last_out = md_net(X=obz, ns=ns, hid_size=hid_size)
             self.vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=utils.normc_initializer(1.0))[:, 0]
 
@@ -115,7 +166,6 @@ class CompatiblecnnPolicy(object):
         self.features_beta = utils.function([self.ob, w_beta_var, v], features_beta)
 
     def act(self, stochastic, ob):
-        ob = np.expand_dims(ob, -1)
         ac1, vpred1 =  self._act(stochastic, ob[None])
         return ac1[0], vpred1[0]
 
@@ -190,7 +240,6 @@ class CompatiblecnnPolicy(object):
         Compute wa(s)^T = w_beta^T * \grad_beta \varphi_beta(s)^T * K^T * Sigma^-1
         :return: wa(s)^T
         """
-        obs = np.expand_dims(obs, -1)
         v0 = np.zeros((obs.shape[0], obs.shape[1], self.varphi_dim))
         # v0 = np.zeros((obs.shape[0], self.varphi_dim))
         f_beta = self.features_beta(obs, w_beta, v0)[0]
@@ -200,7 +249,6 @@ class CompatiblecnnPolicy(object):
 
     def get_varphis(self, obs):
         # Non-linear neural network outputs
-        obs = np.expand_dims(obs, -1)
         return tf.get_default_session().run(self.varphi, {self.ob: obs})
 
     def get_prec_matrix(self):
