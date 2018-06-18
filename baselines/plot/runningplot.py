@@ -28,11 +28,11 @@ sns.set(color_codes=True)
 # path15 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/PPO2-10seeds-64neuron-hist16-0-06-12-12-00/progress1.csv'
 
 
-path1 = '/Users/zhirong/Documents/share/copos32neuron/COPOS-10seeds-32neuron#-hist1-0-06-12-16-28/progress1.csv'
-path2 = '/Users/zhirong/Documents/share/copos32neuron/COPOS-10seeds-32neuron#-hist2-0-06-12-16-29/progress1.csv'
-path3 = '/Users/zhirong/Documents/share/copos32neuron/COPOS-10seeds-32neuron#-hist4-0-06-12-16-30/progress1.csv'
-path4 = '/Users/zhirong/Documents/share/copos32neuron/COPOS-10seeds-32neuron#-hist8-0-06-12-16-31/progress1.csv'
-path5 = '/Users/zhirong/Documents/share/copos32neuron/COPOS-10seeds-32neuron#-hist16-0-06-12-16-32/progress1.csv'
+path1 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist1-0-06-12-12-14/progress1.csv'
+path2 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist2-0-06-12-12-11/progress1.csv'
+path3 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
+path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
+path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
 
 
 fig, axes = plt.subplots(1, 2, figsize=(15,5))

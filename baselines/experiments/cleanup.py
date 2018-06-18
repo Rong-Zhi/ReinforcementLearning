@@ -1,7 +1,7 @@
 import pandas as pd
 import glob
 
-path = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist2-{}-06-12-12-11'
+path = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-{}-06-17-13-52'
 
 dt = []
 
