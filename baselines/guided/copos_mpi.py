@@ -13,13 +13,14 @@ from contextlib import contextmanager
 from baselines.copos.eta_omega_dual import EtaOmegaOptimizer
 
 
-def traj_segment_generator(pi, env, horizon, stochastic):
+def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
     new = True
     rew = 0.0
-    ob = env.reset()
+    # TODO: modify into [ob, state]
+    ob, state = env.reset()
 
     cur_ep_ret = 0
     cur_ep_len = 0
@@ -28,35 +29,50 @@ def traj_segment_generator(pi, env, horizon, stochastic):
 
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
+    states = np.array([state for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
+    gvpreds = np.zeros(horizon, 'float32')
     news = np.zeros(horizon, 'int32')
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
 
     while True:
         prevac = ac
-        ac, vpred = pi.act(stochastic, ob)
+
+        # TODO: modify into [ob, state]
+        ac, gvpred = gpi.act(stochastic, ob, state)
+        gac, vpred = pi.act(stochastic, ob)
+
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
-            yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
-                    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+            yield {"ob" : obs, "rew" : rews, "state":states, "vpred" :
+                    vpreds,"gvpred":gvpreds, "new" : news,
+                   "ac" : acs, "prevac" : prevacs, "nextvpred":
+                    vpred * (1 - new), "nextgvpred":gvpred*(1 - new),
                     "ep_rets" : ep_rets, "ep_lens" : ep_lens}
             _, vpred = pi.act(stochastic, ob)
+            #TODO: modify into [ob, state]
+            _, gvpred = gpi.act(stochastic, ob, state)
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
             ep_lens = []
+
         i = t % horizon
+
+        if i % 2 == 0:
+            ac = gac
         obs[i] = ob
         vpreds[i] = vpred
+        states[i] = state
         news[i] = new
         acs[i] = ac
         prevacs[i] = prevac
-
-        ob, rew, new, _ = env.step(ac)
+        #TODO [ob, state]
+        ob, state, rew, new, _ = env.step(ac)
         rews[i] = rew
 
         cur_ep_ret += rew
@@ -66,21 +82,28 @@ def traj_segment_generator(pi, env, horizon, stochastic):
             ep_lens.append(cur_ep_len)
             cur_ep_ret = 0
             cur_ep_len = 0
-            ob = env.reset()
+            #TODO [ob, state]
+            ob, state = env.reset()
         t += 1
 
 def add_vtarg_and_adv(seg, gamma, lam):
     new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
     vpred = np.append(seg["vpred"], seg["nextvpred"])
+    gvpred = np.append(seg["gvpred"], seg["nextgvpred"])
     T = len(seg["rew"])
     seg["adv"] = gaelam = np.empty(T, 'float32')
+    seg["gadv"] = gaelam_ = np.empty(T, 'float32')
     rew = seg["rew"]
     lastgaelam = 0
+    lastgaelam_ = 0
     for t in reversed(range(T)):
         nonterminal = 1-new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
+        gdelta = rew[t] + gamma * gvpred[t+1] * nonterminal -gvpred[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
+        gaelam_[t] = lastgaelam_ = gdelta + gamma * lam * nonterminal * lastgaelam_
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
+    seg["gtdlamret"] = seg["gadv"] + seg["gvpred"]
 
 
 def eta_search(w_theta, w_beta, eta, omega, allmean, compute_losses, get_flat, set_from_flat, pi, epsilon, args):
@@ -240,33 +263,70 @@ def learn(env, policy_fn, *,
     np.set_printoptions(precision=3)
     # Setup losses and stuff
     # ----------------------------------------
-    ob_space = env.observation_space
+    total_space = env.observation_space
+    # TODO: check the correct form latter
+    ob_space = (1, num * hist_len)
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space)
     oldpi = policy_fn("oldpi", ob_space, ac_space)
+
+    #TODO: also give the ob_space here to initialize weghts of MLP
+    gpi = policy_fn("gpi", total_space, ac_space)
+    goldpi = policy_fn("goldpi", total_space, ac_space)
+
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
+    gatarg = tf.placeholder(dtype=tf.float32, shape=[None])
+    gret = tf.placeholder(dtype=tf.float32, shape=[None])
+
     ob = U.get_placeholder_cached(name="ob")
+    state = U.get_placeholder_cached(name='state')
     ac = pi.pdtype.sample_placeholder([None])
+    gac = gpi.pdtype.sample_placeholder([None])
 
     kloldnew = oldpi.pd.kl(pi.pd)
+    gkloldnew = goldpi.pd.kl(gpi.pd)
+
+    #TODO: check if it can work in this way
+    crosskl_ob = oldpi.pd.kl(gpi.pd)
+    crosskl_state = goldpi.pd.kl(pi.pd)
+
     ent = pi.pd.entropy()
+    gent = gpi.pd.entropy()
+
     old_entropy = oldpi.pd.entropy()
+    gol_entropy = goldpi.pd.entropy()
+
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
+    meancrosskl = tf.reduce_mean(crosskl_ob)
     entbonus = entcoeff * meanent
 
+    gmeankl = tf.reduce_mean(gkloldnew)
+    gmeanent = tf.reduce_mean(gent)
+    gmeancrosskl = tf.reduce_mean(crosskl_state)
+    gentbonus = entcoeff * gmeanent
+
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
+    gvferr = tf.reduce_mean(tf.square(gpi.vpred - gret))
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
+    gratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac) )
+
     surrgain = tf.reduce_mean(ratio * atarg)
+    gsurrgain = tf.reduce_mean(gratio * gatarg)
 
     optimgain = surrgain + entbonus
     losses = [optimgain, meankl, entbonus, surrgain, meanent]
     loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
 
+    goptimgain = gsurrgain + gentbonus
+    glosses = [goptimgain, gmeankl, gentbonus, gsurrgain, gmeanent]
+    gloss_names = ["goptimgain", "gmeankl", "gentloss", "gsurrgain", "gentropy"]
+
     dist = meankl
+    gdist = gmeankl
 
     all_var_list = pi.get_trainable_variables()
     all_var_list = [v for v in all_var_list if v.name.split("/")[0].startswith("pi")]
@@ -274,6 +334,14 @@ def learn(env, policy_fn, *,
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
     vfadam = MpiAdam(vf_var_list)
 
+
+    gall_var_list = gpi.get_trainable_variables()
+    gall_var_list = [v for v in gall_var_list if v.name.split("/")[0].startswith("pi")]
+    gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
+    gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
+    gvfadam = MpiAdam(gvf_var_list)
+
+    #TODO: start from here
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
     klgrads = tf.gradients(dist, var_list)
