@@ -356,12 +356,37 @@ def learn(env, policy_fn, *,
     gvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(klgrads, tangents)]) #pylint: disable=E1111
     fvp = U.flatgrad(gvp, var_list)
 
+
+    gget_flat = U.GetFlat(gvar_list)
+    gset_from_flat = U.SetFromFlat(gvar_list)
+    gklgrads = tf.gradients(gdist, gvar_list)
+    gflat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="gflat_tan")
+    gshapes = [var.get_shape().as_list() for var in var_list]
+    gstart = 0
+    gtangents = []
+    for shape in gshapes:
+        sz = U.intprod(shape)
+        gtangents.append(tf.reshape(gflat_tangent[gstart:gstart+sz], shape))
+        gstart += sz
+    ggvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(gklgrads, gtangents)]) #pylint: disable=E1111
+    gfvp = U.flatgrad(ggvp, gvar_list)
+
+
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
+
+    gassign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
+        for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
+
     compute_losses = U.function([ob, ac, atarg], losses)
     compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
+
+    gcomupte_losses = U.function([ob, state, ac, gatarg], glosses)
+    gcomupte_lossandgrad = U.function([ob, state, ac, gatarg], losses + [U.flatgrad(goptimgain, gvar_list)])
+    gcompute_fvp = U.function([gflat_tangent, ob, state, ac, gatarg], fvp)
+    gcompute_vflossandgrad = U.function([ob, state, gret], U.flatgrad(gvferr, gvf_var_list))
 
     @contextmanager
     def timed(msg):
@@ -386,6 +411,14 @@ def learn(env, policy_fn, *,
     set_from_flat(th_init)
     vfadam.sync()
     print("Init param sum", th_init.sum(), flush=True)
+
+
+    gth_init = gget_flat()
+    MPI.COMM_WORLD.Bcast(gth_init, root=0)
+    gset_from_flat(gth_init)
+    gvfadam.sync()
+    print("Init guided param sum", gth_init.sum(), flush=True)
+
 
     # Initialize eta, omega optimizer
     init_eta = 0.5
