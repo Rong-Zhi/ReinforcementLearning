@@ -288,6 +288,7 @@ def learn(env, policy_fn, *,
           epsilon, beta, cg_iters,
           gamma, lam,  # advantage estimation
           trial,
+          method,
           entcoeff=0.0,
           cg_damping=1e-2,
           kl_target=0.01,
@@ -709,7 +710,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        logger.record_tabular("Name", 'COPOS-guided')
+        logger.record_tabular("Name", method)
         logger.record_tabular("Iteration", iters_so_far)
         logger.record_tabular("trial", trial)
 

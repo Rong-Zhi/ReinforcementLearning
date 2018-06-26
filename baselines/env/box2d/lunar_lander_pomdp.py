@@ -122,6 +122,7 @@ class LunarLanderPOMDP(gym.Env):
 
         self.observation_space = spaces.Box(-high, high)
         # TODO: change the following line into (-t_high, t_high) for guided case
+        # self.total_space = spaces.Box(-t_high, t_high)
         self.total_space = spaces.Box(-high, high)
 
         # We assume this environment is continuous
@@ -329,6 +330,7 @@ class LunarLanderPOMDP(gym.Env):
             -1.0 if pos.y<self.BLOCK_HIGHT[1] and pos.y>self.BLOCK_HIGHT[0] else 1.0]
         assert len(state)==9
 
+        #TODO: set real_state to state for guided learning
         # real_state = state
         real_state = []
 
