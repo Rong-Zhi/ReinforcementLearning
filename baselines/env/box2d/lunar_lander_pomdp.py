@@ -114,16 +114,12 @@ class LunarLanderPOMDP(gym.Env):
         # if hist_len != 0:
         high = np.array([np.inf] * (1 + self.hist_len) * (9 + 2))
         t_high = np.array([np.inf] * ((1 + self.hist_len) * (9 + 2) + 9))
-        #     self.history = np.zeros([self.hist_len * (9 + 2)])
-        # else:
-        #     high = np.array([np.inf] * (9 + 2))
-
         self.history = np.zeros([(self.hist_len+1) * (9 + 2)])
 
         self.observation_space = spaces.Box(-high, high)
         # TODO: change the following line into (-t_high, t_high) for guided case
-        # self.total_space = spaces.Box(-t_high, t_high)
-        self.total_space = spaces.Box(-high, high)
+        self.total_space = spaces.Box(-t_high, t_high)
+        # self.total_space = spaces.Box(-high, high)
 
         # We assume this environment is continuous
         # Action is two floats [main engine, left-right engines].
@@ -331,8 +327,8 @@ class LunarLanderPOMDP(gym.Env):
         assert len(state)==9
 
         #TODO: set real_state to state for guided learning
-        # real_state = state
-        real_state = []
+        real_state = state
+        # real_state = []
 
         reward = 0
         shaping = \
