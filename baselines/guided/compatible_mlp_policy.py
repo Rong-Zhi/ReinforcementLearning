@@ -17,7 +17,7 @@ class CompatibleMlpPolicy(object):
         with tf.variable_scope(name):
             self._init(*args, **kwargs)
 
-    def _init(self, ob_space, ac_space, hid_size, num_hid_layers, init_std=1.0, gaussian_fixed_var=True):
+    def _init(self, ob_name, ob_space, ac_space, hid_size, num_hid_layers, init_std=1.0, gaussian_fixed_var=True):
         assert isinstance(ob_space, gym.spaces.Box)
 
         self.pdtype = pdtype = make_pdtype(ac_space)
@@ -25,7 +25,9 @@ class CompatibleMlpPolicy(object):
 
         self.varphi_dim = hid_size
 
-        self.ob = utils.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+
+        self.ob = utils.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        # self.ob = utils.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
         # self.ob = tf.placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
 
         with tf.variable_scope("obfilter"):

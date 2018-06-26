@@ -110,31 +110,25 @@ class LunarLanderPOMDP(gym.Env):
         # Add another dimension notifying if the agent enters into the block area
         # high = np.array([np.inf]*9)
 
-        if hist_len!=0 and policy_name!='mdPolicy':
-            high = np.array([np.inf] * hist_len * (9 + 2))
-            self.observation_space = spaces.Box(-high, high)
-            self.history = np.zeros([self.hist_len * (9 + 2)])
+        # We assume this env is always partially observable
+        # if hist_len != 0:
+        high = np.array([np.inf] * (1 + self.hist_len) * (9 + 2))
+        t_high = np.array([np.inf] * ((1 + self.hist_len) * (9 + 2) + 9))
+        #     self.history = np.zeros([self.hist_len * (9 + 2)])
+        # else:
+        #     high = np.array([np.inf] * (9 + 2))
 
-        elif hist_len!=0 and policy_name=='mdPolicy':
-            history_high = np.full((hist_len, 11), np.inf)
-            self.observation_space = spaces.Box(-history_high, history_high)
-            self.history = np.zeros((self.hist_len, (9 + 2)))
+        self.history = np.zeros([(self.hist_len+1) * (9 + 2)])
 
-        elif hist_len==0 and policy_name != 'mdPolciy':
-            high = np.array([np.inf] * 9)
-            self.observation_space = spaces.Box(-high, high)
-        else:
-            raise NotImplementedError
+        self.observation_space = spaces.Box(-high, high)
+        # TODO: change the following line into (-t_high, t_high) for guided case
+        self.total_space = spaces.Box(-high, high)
+
         # We assume this environment is continuous
-        # if self.continuous:
         # Action is two floats [main engine, left-right engines].
         # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
         # Left-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off
         self.action_space = spaces.Box(-1, +1, (2,))
-        # else:
-        #     # Nop, fire left engine, main engine, right engine
-        #     self.action_space = spaces.Discrete(4)
-        #     self.history = np.zeros((self.hist_len , (9 + 4)))  # ob dim = 9, act dim = 2 for continuous case
 
         self.prev_obs = None
         # self.reset()
@@ -335,6 +329,9 @@ class LunarLanderPOMDP(gym.Env):
             -1.0 if pos.y<self.BLOCK_HIGHT[1] and pos.y>self.BLOCK_HIGHT[0] else 1.0]
         assert len(state)==9
 
+        # real_state = state
+        real_state = []
+
         reward = 0
         shaping = \
             - 100*np.sqrt(state[0]*state[0] + state[1]*state[1]) \
@@ -361,18 +358,18 @@ class LunarLanderPOMDP(gym.Env):
             state[8] = -1
         else:
             self.prev_obs = state
+        #
+        # if self.hist_len!=0 and self.policy_name =='mdPolicy':
+        #     self.history = getNewHistoryStandard(self.history, state, action, 9, 2)
+        #     obs = self.history
+        #     obs = obs.reshape((self.hist_len, 11))
+        # if self.hist_len!=0 and self.policy_name!='mdPolicy':
+        self.history = getHistory(self.history, state, action, 9, 2)
+        obs = self.history
+        # else:
+        #     obs = np.array(state)
 
-        if self.hist_len!=0 and self.policy_name =='mdPolicy':
-            self.history = getNewHistoryStandard(self.history, state, action, 9, 2)
-            obs = self.history
-            obs = obs.reshape((self.hist_len, 11))
-        elif self.hist_len!=0 and self.policy_name!='mdPolicy':
-            self.history = getHistory(self.history, state, action, 9, 2)
-            obs=self.history
-        else:
-            obs = np.array(state)
-
-        return obs, reward, done, {}
+        return [obs, real_state], reward, done, {}
 
     def render(self, mode='human'):
         from gym.envs.classic_control import rendering
@@ -414,7 +411,7 @@ class LunarLanderPOMDP(gym.Env):
 
         scalex = VIEWPORT_W/SCALE/2
         scaley = self.helipad_y+LEG_DOWN/SCALE
-        for i in range(10):
+        for i in range(self.hist_len):
             ob = self.history[i*11:i*11+11]
             # ob = self.history[i,:]
             x = ob[0] * scalex + scalex

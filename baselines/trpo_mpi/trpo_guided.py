@@ -187,6 +187,7 @@ def learn(env, genv, policy_fn, *,
     gall_var_list = gpi.get_trainable_variables()
     gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
     gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
+    print(gvf_var_list)
     gvfadam = MpiAdam(gvf_var_list)
 
     gget_flat = U.GetFlat(gvar_list)

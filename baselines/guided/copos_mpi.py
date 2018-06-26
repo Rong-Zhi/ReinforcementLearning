@@ -19,8 +19,8 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     ac = env.action_space.sample()
     new = True
     rew = 0.0
-    # TODO: modify into [ob, state]
-    ob, state = env.reset()
+    [ob, state] = env.reset()
+    gob = np.concatenate((ob, state))
 
     cur_ep_ret = 0
     cur_ep_len = 0
@@ -30,6 +30,7 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
     states = np.array([state for _ in range(horizon)])
+    gobs = np.array([gob for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
     gvpreds = np.zeros(horizon, 'float32')
@@ -39,23 +40,20 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
 
     while True:
         prevac = ac
-
-        # TODO: modify into [ob, state]
-        ac, gvpred = gpi.act(stochastic, ob, state)
-        gac, vpred = pi.act(stochastic, ob)
+        gac, gvpred = gpi.act(stochastic, gob)
+        ac, vpred = pi.act(stochastic, ob)
 
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
-            yield {"ob" : obs, "rew" : rews, "state":states, "vpred" :
-                    vpreds,"gvpred":gvpreds, "new" : news,
+            yield {"ob" : obs, "rew" : rews, "state": states, "vpred" :
+                    vpreds, "gvpred": gvpreds, "new" : news, "gob": gobs,
                    "ac" : acs, "prevac" : prevacs, "nextvpred":
-                    vpred * (1 - new), "nextgvpred":gvpred*(1 - new),
+                    vpred * (1 - new), "nextgvpred": gvpred * (1 - new),
                     "ep_rets" : ep_rets, "ep_lens" : ep_lens}
             _, vpred = pi.act(stochastic, ob)
-            #TODO: modify into [ob, state]
-            _, gvpred = gpi.act(stochastic, ob, state)
+            _, gvpred = gpi.act(stochastic, gob)
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
@@ -71,8 +69,9 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
         news[i] = new
         acs[i] = ac
         prevacs[i] = prevac
-        #TODO [ob, state]
-        ob, state, rew, new, _ = env.step(ac)
+        gobs[i] = gob
+        [ob, state], rew, new, _ = env.step(ac)
+        gob = np.concatenate((ob, state))
         rews[i] = rew
 
         cur_ep_ret += rew
@@ -82,8 +81,7 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
             ep_lens.append(cur_ep_len)
             cur_ep_ret = 0
             cur_ep_len = 0
-            #TODO [ob, state]
-            ob, state = env.reset()
+            [ob, state] = env.reset()
         t += 1
 
 def add_vtarg_and_adv(seg, gamma, lam):
@@ -97,7 +95,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
     lastgaelam = 0
     lastgaelam_ = 0
     for t in reversed(range(T)):
-        nonterminal = 1-new[t+1]
+        nonterminal = 1 - new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
         gdelta = rew[t] + gamma * gvpred[t+1] * nonterminal -gvpred[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
@@ -243,6 +241,46 @@ def eta_search(w_theta, w_beta, eta, omega, allmean, compute_losses, get_flat, s
 #     return eta
 
 
+def copy_params(e1, e2):
+    # assign e2 with e1
+    update_ops = []
+    for e1_v, e2_v in zip(e1, e2):
+        if e1_v.shape == e2_v.shape:
+            op = e2_v.assign(e1_v)
+            update_ops.append(op)
+        else:
+            size_e1=e1_v.shape
+            op = e2_v.assign(tf.zeros_like(e2_v))
+            update_ops.append(op)
+            op = e2_v[:size_e1[0],:size_e1[1]].assign(e1_v)
+            update_ops.append(op)
+    tf.get_default_session().run(update_ops)
+
+def param_split(param):
+    t1, rt = [], []
+    for v in param:
+        if v.name.split("/")[2].startswith("fc1"):
+            t1.append(v)
+        else:
+            rt.append(v)
+    return t1, rt
+
+# initialize guided policy
+def guided_initilizer(gpol, gvf, fpol, fvf):
+
+    gpol1, rgpol = param_split(gpol)
+    fpol1, rfpol = param_split(fpol)
+    gvf1, rgvf = param_split(gvf)
+    fvf1, rfvf = param_split(fvf)
+
+    copy_params(rfpol, rgpol)
+    copy_params(rfvf, rgvf)
+    # gpol.startswith('gpi/pol/fc1/bias:0').assign(fpol.name.startwith('pi/pol/fc1/bias:0'))
+    # print(gvf1)
+    copy_params(fvf1, gvf1)
+    copy_params(fpol1, gpol1)
+
+
 
 
 def learn(env, policy_fn, *,
@@ -252,6 +290,8 @@ def learn(env, policy_fn, *,
           trial,
           entcoeff=0.0,
           cg_damping=1e-2,
+          kl_target=0.01,
+          crosskl_coeff=0.01,
           vf_stepsize=3e-4,
           vf_iters =3,
           max_timesteps=0, max_episodes=0, max_iters=0,  # time constraint
@@ -263,16 +303,14 @@ def learn(env, policy_fn, *,
     np.set_printoptions(precision=3)
     # Setup losses and stuff
     # ----------------------------------------
-    total_space = env.observation_space
-    # TODO: check the correct form latter
-    ob_space = (1, num * hist_len)
+    total_space = env.total_space
+    ob_space = env.observation_space
     ac_space = env.action_space
-    pi = policy_fn("pi", ob_space, ac_space)
-    oldpi = policy_fn("oldpi", ob_space, ac_space)
+    pi = policy_fn("pi", ob_space, ac_space, ob_name="ob")
+    oldpi = policy_fn("oldpi", ob_space, ac_space, ob_name="ob")
 
-    #TODO: also give the ob_space here to initialize weghts of MLP
-    gpi = policy_fn("gpi", total_space, ac_space)
-    goldpi = policy_fn("goldpi", total_space, ac_space)
+    gpi = policy_fn("gpi", total_space, ac_space, ob_name="gob")
+    goldpi = policy_fn("goldpi", total_space, ac_space, ob_name="gob")
 
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
@@ -281,49 +319,51 @@ def learn(env, policy_fn, *,
     gret = tf.placeholder(dtype=tf.float32, shape=[None])
 
     ob = U.get_placeholder_cached(name="ob")
-    state = U.get_placeholder_cached(name='state')
+    gob = U.get_placeholder_cached(name='gob')
     ac = pi.pdtype.sample_placeholder([None])
-    gac = gpi.pdtype.sample_placeholder([None])
+    crosskl_c = tf.placeholder(dtype=tf.float32, shape=[])
+    # crosskl_c = 0.01
+
 
     kloldnew = oldpi.pd.kl(pi.pd)
     gkloldnew = goldpi.pd.kl(gpi.pd)
 
     #TODO: check if it can work in this way
-    crosskl_ob = oldpi.pd.kl(gpi.pd)
-    crosskl_state = goldpi.pd.kl(pi.pd)
+    crosskl_ob = pi.pd.kl(goldpi.pd)
+    crosskl_gob = gpi.pd.kl(oldpi.pd)
+    # crosskl_ob = goldpi.pd.kl(pi.pd)
+    # crosskl_gob = oldpi.pd.kl(gpi.pd)
 
     ent = pi.pd.entropy()
     gent = gpi.pd.entropy()
 
     old_entropy = oldpi.pd.entropy()
-    gol_entropy = goldpi.pd.entropy()
+    gold_entropy = goldpi.pd.entropy()
 
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
     meancrosskl = tf.reduce_mean(crosskl_ob)
-    entbonus = entcoeff * meanent
 
     gmeankl = tf.reduce_mean(gkloldnew)
     gmeanent = tf.reduce_mean(gent)
-    gmeancrosskl = tf.reduce_mean(crosskl_state)
-    gentbonus = entcoeff * gmeanent
+    gmeancrosskl = tf.reduce_mean(crosskl_gob)
 
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
     gvferr = tf.reduce_mean(tf.square(gpi.vpred - gret))
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
-    gratio = tf.exp(pi.pd.logp(gac) - goldpi.pd.logp(gac) )
+    gratio = tf.exp(gpi.pd.logp(ac) - goldpi.pd.logp(ac))
 
     surrgain = tf.reduce_mean(ratio * atarg)
     gsurrgain = tf.reduce_mean(gratio * gatarg)
 
-    optimgain = surrgain + entbonus
-    losses = [optimgain, meankl, entbonus, surrgain, meanent]
-    loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
+    optimgain = surrgain + crosskl_c * meancrosskl
+    losses = [optimgain, meankl, meancrosskl, surrgain, meanent]
+    loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy"]
 
-    goptimgain = gsurrgain + gentbonus
-    glosses = [goptimgain, gmeankl, gentbonus, gsurrgain, gmeanent]
-    gloss_names = ["goptimgain", "gmeankl", "gentloss", "gsurrgain", "gentropy"]
+    goptimgain = gsurrgain + crosskl_c * gmeancrosskl
+    glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent]
+    gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy"]
 
     dist = meankl
     gdist = gmeankl
@@ -336,12 +376,12 @@ def learn(env, policy_fn, *,
 
 
     gall_var_list = gpi.get_trainable_variables()
-    gall_var_list = [v for v in gall_var_list if v.name.split("/")[0].startswith("pi")]
+    gall_var_list = [v for v in gall_var_list if v.name.split("/")[0].startswith("gpi")]
     gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
     gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
     gvfadam = MpiAdam(gvf_var_list)
 
-    #TODO: start from here
+
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
     klgrads = tf.gradients(dist, var_list)
@@ -361,7 +401,7 @@ def learn(env, policy_fn, *,
     gset_from_flat = U.SetFromFlat(gvar_list)
     gklgrads = tf.gradients(gdist, gvar_list)
     gflat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="gflat_tan")
-    gshapes = [var.get_shape().as_list() for var in var_list]
+    gshapes = [var.get_shape().as_list() for var in gvar_list]
     gstart = 0
     gtangents = []
     for shape in gshapes:
@@ -378,15 +418,16 @@ def learn(env, policy_fn, *,
     gassign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
 
-    compute_losses = U.function([ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
+    compute_losses = U.function([crosskl_c, gob, ob, ac, atarg], losses)
+    compute_lossandgrad = U.function([crosskl_c, gob, ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
-    gcomupte_losses = U.function([ob, state, ac, gatarg], glosses)
-    gcomupte_lossandgrad = U.function([ob, state, ac, gatarg], losses + [U.flatgrad(goptimgain, gvar_list)])
-    gcompute_fvp = U.function([gflat_tangent, ob, state, ac, gatarg], fvp)
-    gcompute_vflossandgrad = U.function([ob, state, gret], U.flatgrad(gvferr, gvf_var_list))
+    gcompute_losses = U.function([crosskl_c, gob, ob, ac, gatarg], glosses)
+    gcompute_lossandgrad = U.function([crosskl_c, gob, ob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
+    gcompute_fvp = U.function([gflat_tangent, gob, ac, gatarg], gfvp)
+    gcompute_vflossandgrad = U.function([gob, gret], U.flatgrad(gvferr, gvf_var_list))
+
 
     @contextmanager
     def timed(msg):
@@ -406,19 +447,20 @@ def learn(env, policy_fn, *,
         return out
 
     U.initialize()
+
+    guided_initilizer(gpol=gvar_list, gvf=gvf_var_list, fpol=var_list, fvf=vf_var_list)
+
     th_init = get_flat()
     MPI.COMM_WORLD.Bcast(th_init, root=0)
     set_from_flat(th_init)
     vfadam.sync()
-    print("Init param sum", th_init.sum(), flush=True)
-
+    print("Init final policy param sum", th_init.sum(), flush=True)
 
     gth_init = gget_flat()
     MPI.COMM_WORLD.Bcast(gth_init, root=0)
     gset_from_flat(gth_init)
     gvfadam.sync()
-    print("Init guided param sum", gth_init.sum(), flush=True)
-
+    print("Init guided policy param sum", gth_init.sum(), flush=True)
 
     # Initialize eta, omega optimizer
     init_eta = 0.5
@@ -427,7 +469,7 @@ def learn(env, policy_fn, *,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
+    seg_gen = traj_segment_generator(pi, gpi, env, timesteps_per_batch, stochastic=True)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -454,27 +496,50 @@ def learn(env, policy_fn, *,
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
+        gob, gatarg, gtdlamret = seg["gob"], seg["gadv"], seg["gtdlamret"]
+
         vpredbefore = seg["vpred"] # predicted value function before udpate
+        gvpredbefore = seg["gvpred"]
+
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+        gatarg = (gatarg - gatarg.mean()) / gatarg.std()
+
 
         if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
-        args = seg["ob"], seg["ac"], atarg
-        fvpargs = [arr[::5] for arr in args]
+        if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(gtdlamret)
+        if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(gob)
+
+        args = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], atarg
+        fvpargs = [arr[::5] for arr in args[2:]]
+
+        gargs = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], gatarg
+        gfvpargs = [arr[::5] for arr in gargs[2:]]
+
         def fisher_vector_product(p):
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
 
         assign_old_eq_new() # set old parameter values to new parameter values
+        gassign_old_eq_new()
+
         with timed("computegrad"):
             *lossbefore, g = compute_lossandgrad(*args)
+            *glossbefore, gg = gcompute_lossandgrad(*gargs)
+
         lossbefore = allmean(np.array(lossbefore))
         g = allmean(g)
-        if np.allclose(g, 0):
+
+        glossbefore = allmean(np.array(glossbefore))
+        gg = allmean(gg)
+
+        if np.allclose(g, 0) or np.allclose(gg, 0):
             logger.log("Got zero gradient. not updating")
         else:
             with timed("cg"):
                 stepdir = cg(fisher_vector_product, g, cg_iters=cg_iters, verbose=rank==0)
+                gstepdir = cg(fisher_vector_product, gg, cg_iters=cg_iters, verbose=rank==0)
+            assert np.isfinite(gstepdir).all()
             assert np.isfinite(stepdir).all()
 
 
@@ -483,6 +548,7 @@ def learn(env, policy_fn, *,
                 # TRPO specific code.
                 # Find correct step size using line search
                 #
+                #TODO: also enable guided learning for TRPO
                 shs = .5*stepdir.dot(fisher_vector_product(stepdir))
                 lm = np.sqrt(shs / epsilon)
                 # logger.log("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
@@ -516,9 +582,11 @@ def learn(env, policy_fn, *,
                 #
 
                 copos_update_dir = stepdir
+                gcopos_update_dir = gstepdir
 
                 # Split direction into log-linear 'w_theta' and non-linear 'w_beta' parts
                 w_theta, w_beta = pi.split_w(copos_update_dir)
+                gw_theta, gw_beta = gpi.split_w(gcopos_update_dir)
 
                 # q_beta(s,a) = \grad_beta \log \pi(a|s) * w_beta
                 #             = features_beta(s) * K^T * Prec * a
@@ -527,55 +595,103 @@ def learn(env, policy_fn, *,
                 Waa, Wsa = pi.w2W(w_theta)
                 wa = pi.get_wa(ob, w_beta)
 
+                gWaa, gWsa = gpi.w2W(gw_theta)
+                gwa = gpi.get_wa(gob, gw_beta)
+
                 varphis = pi.get_varphis(ob)
+                gvarphis = gpi.get_varphis(gob)
 
                 # Optimize eta and omega
-                tmp_ob = np.zeros((1,) + env.observation_space.shape) # We assume that entropy does not depend on the NN
+                tmp_ob = np.zeros((1,) + ob_space.shape) # We assume that entropy does not depend on the NN
                 old_ent = old_entropy.eval({oldpi.ob: tmp_ob})[0]
                 eta, omega = eta_omega_optimizer.optimize(w_theta, Waa, Wsa, wa, varphis, pi.get_kt(),
                                                           pi.get_prec_matrix(), pi.is_new_policy_valid, old_ent)
-                logger.log("Initial eta: " + str(eta) + " and omega: " + str(omega))
+                logger.log("Initial eta of final policy: " + str(eta) + " and omega: " + str(omega))
+
+                gtmp_ob = np.zeros((1,) + total_space.shape)
+                gold_ent = gold_entropy.eval({goldpi.ob: gtmp_ob})[0]
+                geta, gomega = eta_omega_optimizer.optimize(gw_theta, gWaa, gWsa, gwa, gvarphis, gpi.get_kt(),
+                                                            gpi.get_prec_matrix(), gpi.is_new_policy_valid, gold_ent)
+                logger.log("Initial eta of guided policy: " + str(geta) + " and omega: " + str(gomega))
 
                 current_theta_beta = get_flat()
                 prev_theta, prev_beta = pi.all_to_theta_beta(current_theta_beta)
+
+                gcurrent_theta_beta = get_flat()
+                gprev_theta, gprev_beta = gpi.all_to_theta_beta(gcurrent_theta_beta)
 
                 for i in range(2):
                     # Do a line search for both theta and beta parameters by adjusting only eta
                     eta = eta_search(w_theta, w_beta, eta, omega, allmean, compute_losses, get_flat, set_from_flat, pi,
                                      epsilon, args)
-                    logger.log("Updated eta, eta: " + str(eta) + " and omega: " + str(omega))
+                    logger.log("Updated eta of final policy, eta: " + str(eta) + " and omega: " + str(omega))
 
                     # Find proper omega for new eta. Use old policy parameters first.
                     set_from_flat(pi.theta_beta_to_all(prev_theta, prev_beta))
                     eta, omega = \
                         eta_omega_optimizer.optimize(w_theta, Waa, Wsa, wa, varphis, pi.get_kt(),
                                                      pi.get_prec_matrix(), pi.is_new_policy_valid, old_ent, eta)
-                    logger.log("Updated omega, eta: " + str(eta) + " and omega: " + str(omega))
+                    logger.log("Updated omega of final policy, eta: " + str(eta) + " and omega: " + str(omega))
+
+                    geta = eta_search(gw_theta, gw_beta, geta, gomega, allmean, gcompute_losses, gget_flat,
+                                      gset_from_flat, gpi, epsilon, gargs)
+                    logger.log("updated eta of guided policy, eta:" + str(geta) + "and omega:" + str(gomega))
+
+                    gset_from_flat(gpi.theta_beta_to_all(gprev_theta, gprev_beta))
+                    geta, gomega = eta_omega_optimizer.optimize(gw_theta, gWaa, gWsa, gwa, gvarphis,
+                                    gpi.get_kt(), gpi.get_prec_matrix(), gpi.is_new_policy_valid, gold_ent, geta)
+                    logger.log("Updated omega of guided policy, eta:" + str(geta) + "and omega:" + str(gomega))
 
                 # Use final policy
-                logger.log("Final eta: " + str(eta) + " and omega: " + str(omega))
+                logger.log("Final eta of final policy: " + str(eta) + " and omega: " + str(omega))
+                logger.log("Final eta of guided policy: " + str(geta) + "and omega:" + str(gomega))
+
                 cur_theta = (eta * prev_theta + w_theta.reshape(-1, )) / (eta + omega)
                 cur_beta = prev_beta + w_beta.reshape(-1, ) / eta
                 set_from_flat(pi.theta_beta_to_all(cur_theta, cur_beta))
 
-                meanlosses = surr, kl, *_ = allmean(np.array(compute_losses(*args)))
+                gcur_theta = (geta * gprev_theta + w_theta.reshape(-1, )) / (geta + gomega)
+                gcur_beta = gprev_beta + gw_beta.reshape(-1, ) / geta
+                gset_from_flat(gpi.theta_beta_to_all(gcur_theta, gcur_beta))
 
-            if nworkers > 1 and iters_so_far % 20 == 0:
-                paramsums = MPI.COMM_WORLD.allgather((thnew.sum(), vfadam.getflat().sum())) # list of tuples
-                assert all(np.allclose(ps, paramsums[0]) for ps in paramsums[1:])
+                meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
+                gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
+
+
+                pd_crosskl = np.mean((crosskl, gcrosskl))
+
+                if pd_crosskl < kl_target / 2:
+                    print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
+                    crosskl_coeff /= 1.5
+                elif pd_crosskl > kl_target * 2:
+                    print("KL divergence between guided policy and final control policy is large, increse the coefficient")
+                    crosskl_coeff *= 1.5
+
+            # if nworkers > 1 and iters_so_far % 20 == 0:
+            #     paramsums = MPI.COMM_WORLD.allgather((thnew.sum(), vfadam.getflat().sum())) # list of tuples
+            #     assert all(np.allclose(ps, paramsums[0]) for ps in paramsums[1:])
+
+
 
         for (lossname, lossval) in zip(loss_names, meanlosses):
             logger.record_tabular(lossname, lossval)
 
-        with timed("vf"):
+        for (lossname, lossval) in zip(gloss_names, gmeanlosses):
+            logger.record_tabular(lossname, lossval)
 
+        with timed("vf"):
             for _ in range(vf_iters):
                 for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
                 include_final_partial_batch=False, batch_size=64):
                     g = allmean(compute_vflossandgrad(mbob, mbret))
                     vfadam.update(g, vf_stepsize)
+                for (mbob, mbret) in dataset.iterbatches((seg["gob"], seg["gtdlamret"]),
+                include_final_partial_batch=False, batch_size=64):
+                    gg = allmean(gcompute_vflossandgrad(mbob, mbret))
+                    gvfadam.update(gg, vf_stepsize)
 
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
+        logger.record_tabular("gev_tdlam_before", explained_variance(gvpredbefore, gtdlamret))
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
         listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
@@ -593,7 +709,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        logger.record_tabular("Name", 'COPOS-md-try')
+        logger.record_tabular("Name", 'COPOS-guided')
         logger.record_tabular("Iteration", iters_so_far)
         logger.record_tabular("trial", trial)
 
