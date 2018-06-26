@@ -424,8 +424,8 @@ def learn(env, policy_fn, *,
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
-    gcompute_losses = U.function([crosskl_c, gob, ob, ac, gatarg], glosses)
-    gcompute_lossandgrad = U.function([crosskl_c, gob, ob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
+    gcompute_losses = U.function([crosskl_c, ob, gob, ac, gatarg], glosses)
+    gcompute_lossandgrad = U.function([crosskl_c, ob, gob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
     gcompute_fvp = U.function([gflat_tangent, gob, ac, gatarg], gfvp)
     gcompute_vflossandgrad = U.function([gob, gret], U.flatgrad(gvferr, gvf_var_list))
 
@@ -515,11 +515,14 @@ def learn(env, policy_fn, *,
         args = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], atarg
         fvpargs = [arr[::5] for arr in args[2:]]
 
-        gargs = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], gatarg
+        gargs = crosskl_coeff, seg["ob"], seg["gob"], seg["ac"], gatarg
         gfvpargs = [arr[::5] for arr in gargs[2:]]
 
         def fisher_vector_product(p):
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
+
+        def gfisher_vector_product(p):
+            return allmean(gcompute_fvp(p, *gfvpargs)) + cg_damping * p
 
         assign_old_eq_new() # set old parameter values to new parameter values
         gassign_old_eq_new()
@@ -539,7 +542,7 @@ def learn(env, policy_fn, *,
         else:
             with timed("cg"):
                 stepdir = cg(fisher_vector_product, g, cg_iters=cg_iters, verbose=rank==0)
-                gstepdir = cg(fisher_vector_product, gg, cg_iters=cg_iters, verbose=rank==0)
+                gstepdir = cg(gfisher_vector_product, gg, cg_iters=cg_iters, verbose=rank==0)
             assert np.isfinite(gstepdir).all()
             assert np.isfinite(stepdir).all()
 
@@ -618,7 +621,7 @@ def learn(env, policy_fn, *,
                 current_theta_beta = get_flat()
                 prev_theta, prev_beta = pi.all_to_theta_beta(current_theta_beta)
 
-                gcurrent_theta_beta = get_flat()
+                gcurrent_theta_beta = gget_flat()
                 gprev_theta, gprev_beta = gpi.all_to_theta_beta(gcurrent_theta_beta)
 
                 for i in range(2):
