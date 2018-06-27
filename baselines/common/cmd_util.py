@@ -138,16 +138,16 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_box2d.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
     # parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    # parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     # parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)
     # parser.add_argument('--filter_size', help='Define filter size for modified CNN policy', default=[16, 2], type=str2list)
     parser.add_argument('--hist_len', help='History Length', type=int, default=8)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
                         default=5/8, type=frac2float)
-    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=512)
+    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=1024)
     # parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
     parser.add_argument('--method', help='method', type=str, default='copos-guided-try')

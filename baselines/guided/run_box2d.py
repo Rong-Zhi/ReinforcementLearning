@@ -3,9 +3,9 @@
 from mpi4py import MPI
 import sys
 
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
 from baselines import logger
@@ -56,7 +56,7 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy
         print("Automatically set beta: " + str(beta))
 
     copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01, beta=beta, cg_iters=10, cg_damping=0.1, method=method,
-                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, trial=trial, crosskl_coeff=0.0, kl_target=0.01)
+                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, trial=trial, crosskl_coeff=0.1, kl_target=0.01)
     env.close()
 
 

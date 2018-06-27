@@ -358,11 +358,11 @@ def learn(env, policy_fn, *,
     surrgain = tf.reduce_mean(ratio * atarg)
     gsurrgain = tf.reduce_mean(gratio * gatarg)
 
-    optimgain = surrgain + crosskl_c * meancrosskl
+    optimgain = surrgain - crosskl_c * meancrosskl
     losses = [optimgain, meankl, meancrosskl, surrgain, meanent]
     loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy"]
 
-    goptimgain = gsurrgain + crosskl_c * gmeancrosskl
+    goptimgain = gsurrgain - crosskl_c * gmeancrosskl
     glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent]
     gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy"]
 
