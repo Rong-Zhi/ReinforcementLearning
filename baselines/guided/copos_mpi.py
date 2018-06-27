@@ -661,15 +661,15 @@ def learn(env, policy_fn, *,
                 meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
-
-                pd_crosskl = np.mean((crosskl, gcrosskl))
-
-                if pd_crosskl < kl_target / 2:
-                    print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
-                    crosskl_coeff /= 1.5
-                elif pd_crosskl > kl_target * 2:
-                    print("KL divergence between guided policy and final control policy is large, increse the coefficient")
-                    crosskl_coeff *= 1.5
+                #
+                # pd_crosskl = np.mean((crosskl, gcrosskl))
+                #
+                # if pd_crosskl < kl_target / 2:
+                #     print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
+                #     crosskl_coeff /= 1.5
+                # elif pd_crosskl > kl_target * 2:
+                #     print("KL divergence between guided policy and final control policy is large, increse the coefficient")
+                #     crosskl_coeff *= 1.5
 
             # if nworkers > 1 and iters_so_far % 20 == 0:
             #     paramsums = MPI.COMM_WORLD.allgather((thnew.sum(), vfadam.getflat().sum())) # list of tuples
