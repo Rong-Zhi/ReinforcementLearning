@@ -28,14 +28,16 @@ sns.set(color_codes=True)
 # path15 = '/home/zhi/Documents/share/LunarLanderContinuousPOMDP-v0/PPO2-10seeds-64neuron-hist16-0-06-12-12-00/progress1.csv'
 
 
-path1 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist1-0-06-12-12-14/progress1.csv'
-path2 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist2-0-06-12-12-11/progress1.csv'
-path3 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
-path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
-path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
+# path1 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist1-0-06-12-12-14/progress1.csv'
+# path2 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist2-0-06-12-12-11/progress1.csv'
+# path3 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
+# path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
+# path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
+
+path = '/Users/zhirong/Documents/share/guided-diffinput/guided-diffinput-hist2-net64-0-06-27-11-55/progress1.csv'
 
 
-fig, axes = plt.subplots(1, 2, figsize=(15,5))
+fig, axes = plt.subplots(2, 4, figsize=(15,8))
 axes = axes.flatten()
 
 # fig = plt.figure(1)
@@ -44,13 +46,13 @@ def plots(i):
     for ax in axes:
         ax.clear()
 
-
-    d1 = pd.read_csv(path1)
-    d2 = pd.read_csv(path2)
-    d3 = pd.read_csv(path3)
+    d = pd.read_csv(path)
+    # d1 = pd.read_csv(path1)
+    # d2 = pd.read_csv(path2)
+    # d3 = pd.read_csv(path3)
     # d3['Name'] = 'COPOS-hist16'
-    d4 = pd.read_csv(path4)
-    d5 = pd.read_csv(path5)
+    # d4 = pd.read_csv(path4)
+    # d5 = pd.read_csv(path5)
     # d6 = pd.read_csv(path6)
     # d7 = pd.read_csv(path7)
     # d8 = pd.read_csv(path8)
@@ -67,12 +69,18 @@ def plots(i):
 
     # d = pd.read_csv(path)
     # d1 = pd.read_csv(path)
-    # data = d
-    data = pd.concat([d1, d2, d3, d4, d5])
+    data = d
+    # data = pd.concat([d1, d2, d3, d4, d5])
     # data = pd.concat([d8, d9, d10, d6, d7])
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
     sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95)
 
+    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95)
 
 if __name__ == '__main__':
     ani = animation.FuncAnimation(fig, plots, interval=1000)

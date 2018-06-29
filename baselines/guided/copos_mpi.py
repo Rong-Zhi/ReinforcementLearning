@@ -330,10 +330,10 @@ def learn(env, policy_fn, *,
     gkloldnew = goldpi.pd.kl(gpi.pd)
 
     #TODO: check if it can work in this way
-    crosskl_ob = pi.pd.kl(goldpi.pd)
-    crosskl_gob = gpi.pd.kl(oldpi.pd)
-    # crosskl_ob = goldpi.pd.kl(pi.pd)
-    # crosskl_gob = oldpi.pd.kl(gpi.pd)
+    # crosskl_ob = pi.pd.kl(goldpi.pd)
+    # crosskl_gob = gpi.pd.kl(oldpi.pd)
+    crosskl_ob = oldpi.pd.kl(gpi.pd)
+    crosskl_gob = goldpi.pd.kl(pi.pd)
 
     ent = pi.pd.entropy()
     gent = gpi.pd.entropy()
@@ -358,11 +358,11 @@ def learn(env, policy_fn, *,
     surrgain = tf.reduce_mean(ratio * atarg)
     gsurrgain = tf.reduce_mean(gratio * gatarg)
 
-    optimgain = surrgain - crosskl_c * meancrosskl
+    optimgain = surrgain + crosskl_c * meancrosskl
     losses = [optimgain, meankl, meancrosskl, surrgain, meanent]
     loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy"]
 
-    goptimgain = gsurrgain - crosskl_c * gmeancrosskl
+    goptimgain = gsurrgain + crosskl_c * gmeancrosskl
     glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent]
     gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy"]
 
@@ -654,15 +654,16 @@ def learn(env, policy_fn, *,
                 cur_beta = prev_beta + w_beta.reshape(-1, ) / eta
                 set_from_flat(pi.theta_beta_to_all(cur_theta, cur_beta))
 
-                gcur_theta = (geta * gprev_theta + w_theta.reshape(-1, )) / (geta + gomega)
+                gcur_theta = (geta * gprev_theta + gw_theta.reshape(-1, )) / (geta + gomega)
                 gcur_beta = gprev_beta + gw_beta.reshape(-1, ) / geta
                 gset_from_flat(gpi.theta_beta_to_all(gcur_theta, gcur_beta))
 
                 meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
-                #
+
                 # pd_crosskl = np.mean((crosskl, gcrosskl))
+                # pd_crosskl = crosskl
                 #
                 # if pd_crosskl < kl_target / 2:
                 #     print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
@@ -706,6 +707,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
         logger.record_tabular("EpThisIter", len(lens))
+        logger.record_tabular("Coeff kl cross:", crosskl_coeff)
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
         iters_so_far += 1
