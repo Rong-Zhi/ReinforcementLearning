@@ -334,6 +334,8 @@ def learn(env, policy_fn, *,
     #TODO: check if it can work in this way
     crosskl_ob = pi.pd.kl(goldpi.pd)
     crosskl_gob = gpi.pd.kl(oldpi.pd)
+    # crosskl
+
 
     pdmean = pi.pd.mean
     pdstd = pi.pd.std
@@ -363,11 +365,14 @@ def learn(env, policy_fn, *,
     surrgain = tf.reduce_mean(ratio * atarg)
     gsurrgain = tf.reduce_mean(gratio * gatarg)
 
-    optimgain = surrgain + crosskl_c * meancrosskl
+    # optimgain = surrgain + crosskl_c * meancrosskl
+    optimgain = surrgain
     losses = [optimgain, meankl, meancrosskl, surrgain, meanent, tf.reduce_mean(ratio)]
     loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy", "ratio"]
 
-    goptimgain = gsurrgain + crosskl_c * gmeancrosskl
+    # goptimgain = gsurrgain + crosskl_c * gmeancrosskl
+    goptimgain = gsurrgain
+
     glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent, tf.reduce_mean(gratio)]
     gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy", "gratio"]
 
@@ -379,6 +384,7 @@ def learn(env, policy_fn, *,
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
     vfadam = MpiAdam(vf_var_list)
+    # poladam = MpiAdam(var_list)
 
 
     gall_var_list = gpi.get_trainable_variables()
@@ -386,11 +392,14 @@ def learn(env, policy_fn, *,
     gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
     gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
     gvfadam = MpiAdam(gvf_var_list)
+    # gpoladpam = MpiAdam(gvar_list)
 
 
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
     klgrads = tf.gradients(dist, var_list)
+    # crossklgrads = tf.gradients(meancrosskl, var_list)
+
     flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
     shapes = [var.get_shape().as_list() for var in var_list]
     start = 0
@@ -406,6 +415,8 @@ def learn(env, policy_fn, *,
     gget_flat = U.GetFlat(gvar_list)
     gset_from_flat = U.SetFromFlat(gvar_list)
     gklgrads = tf.gradients(gdist, gvar_list)
+    # gcrossklgrads = tf.gradients(gmeancrosskl, gvar_list)
+
     gflat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="gflat_tan")
     gshapes = [var.get_shape().as_list() for var in gvar_list]
     gstart = 0
@@ -428,6 +439,7 @@ def learn(env, policy_fn, *,
     compute_lossandgrad = U.function([crosskl_c, gob, ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
+    # compute_crossklandgrad = U.function([ob, gob],U.flatgrad(meancrosskl, var_list))
 
     gcompute_losses = U.function([crosskl_c, ob, gob, ac, gatarg], glosses)
     gcompute_lossandgrad = U.function([crosskl_c, ob, gob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
@@ -460,12 +472,14 @@ def learn(env, policy_fn, *,
     MPI.COMM_WORLD.Bcast(th_init, root=0)
     set_from_flat(th_init)
     vfadam.sync()
+    # poladam.sync()
     print("Init final policy param sum", th_init.sum(), flush=True)
 
     gth_init = gget_flat()
     MPI.COMM_WORLD.Bcast(gth_init, root=0)
     gset_from_flat(gth_init)
     gvfadam.sync()
+    # gpoladpam.sync()
     print("Init guided policy param sum", gth_init.sum(), flush=True)
 
     # Initialize eta, omega optimizer
@@ -680,17 +694,20 @@ def learn(env, policy_fn, *,
                 meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
+                # poladam.update(allmean(compute_crossklandgrad(ob, gob)), vf_stepsize)
 
-                pd_crosskl = np.mean((crosskl, gcrosskl))
-                pd_crosskl = crosskl
 
-                if pd_crosskl < kl_target / 2:
-                    print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
-                    crosskl_coeff /= 1.5
-                elif pd_crosskl > kl_target * 2:
-                    print("KL divergence between guided policy and final control policy is large, increse the coefficient")
-                    crosskl_coeff *= 1.5
-                crosskl_coeff = np.clip(crosskl_coeff, 1e-4, 30)
+                # pd_crosskl = np.mean((crosskl, gcrosskl))
+                # pd_crosskl = crosskl
+
+                # if pd_crosskl < kl_target / 2:
+                #     print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
+                #     crosskl_coeff /= 1.5
+                # elif pd_crosskl > kl_target * 2:
+                #     print("KL divergence between guided policy and final control policy is large, increse the coefficient")
+                #     crosskl_coeff *= 1.5
+                # crosskl_coeff = np.clip(crosskl_coeff, 1e-4, 30)
+
 
             # if nworkers > 1 and iters_so_far % 20 == 0:
             #     paramsums = MPI.COMM_WORLD.allgather((thnew.sum(), vfadam.getflat().sum())) # list of tuples
