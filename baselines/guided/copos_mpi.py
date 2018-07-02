@@ -65,6 +65,7 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
             ac = gac
         obs[i] = ob
         vpreds[i] = vpred
+        gvpreds[i] = gvpred
         states[i] = state
         news[i] = new
         acs[i] = ac
@@ -97,9 +98,10 @@ def add_vtarg_and_adv(seg, gamma, lam):
     for t in reversed(range(T)):
         nonterminal = 1 - new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
-        gdelta = rew[t] + gamma * gvpred[t+1] * nonterminal -gvpred[t]
+        gdelta = rew[t] + gamma * gvpred[t+1] * nonterminal - gvpred[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
         gaelam_[t] = lastgaelam_ = gdelta + gamma * lam * nonterminal * lastgaelam_
+
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
     seg["gtdlamret"] = seg["gadv"] + seg["gvpred"]
 
@@ -330,10 +332,13 @@ def learn(env, policy_fn, *,
     gkloldnew = goldpi.pd.kl(gpi.pd)
 
     #TODO: check if it can work in this way
-    # crosskl_ob = pi.pd.kl(goldpi.pd)
-    # crosskl_gob = gpi.pd.kl(oldpi.pd)
-    crosskl_ob = oldpi.pd.kl(gpi.pd)
-    crosskl_gob = goldpi.pd.kl(pi.pd)
+    crosskl_ob = pi.pd.kl(goldpi.pd)
+    crosskl_gob = gpi.pd.kl(oldpi.pd)
+
+    pdmean = pi.pd.mean
+    pdstd = pi.pd.std
+    gpdmean = gpi.pd.mean
+    gpdstd = gpi.pd.std
 
     ent = pi.pd.entropy()
     gent = gpi.pd.entropy()
@@ -359,12 +364,12 @@ def learn(env, policy_fn, *,
     gsurrgain = tf.reduce_mean(gratio * gatarg)
 
     optimgain = surrgain + crosskl_c * meancrosskl
-    losses = [optimgain, meankl, meancrosskl, surrgain, meanent]
-    loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy"]
+    losses = [optimgain, meankl, meancrosskl, surrgain, meanent, tf.reduce_mean(ratio)]
+    loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy", "ratio"]
 
     goptimgain = gsurrgain + crosskl_c * gmeancrosskl
-    glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent]
-    gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy"]
+    glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent, tf.reduce_mean(gratio)]
+    gloss_names = ["goptimgain", "gmeankl","gmeancrosskl", "gsurrgain", "gentropy", "gratio"]
 
     dist = meankl
     gdist = gmeankl
@@ -499,18 +504,32 @@ def learn(env, policy_fn, *,
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         gob, gatarg, gtdlamret = seg["gob"], seg["gadv"], seg["gtdlamret"]
 
+        # Test
+        # print("atarg:", atarg)
+        # print("gatarg:", gatarg)
+
         vpredbefore = seg["vpred"] # predicted value function before udpate
         gvpredbefore = seg["gvpred"]
 
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
         gatarg = (gatarg - gatarg.mean()) / gatarg.std()
 
+        # Test
+        # print("vpredbefore:",vpredbefore)
+        # print("tdlamret:", tdlamret)
+        #
+        # print("gvpredbefore:", gvpredbefore)
+        # print("gtdlamret:", gtdlamret)
 
         if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(gtdlamret)
         if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(gob)
+
+        # Test
+        # print("mean:{0}, std:{1}".format(pdmean.eval({pi.ob: ob}), pdstd.eval({pi.ob: ob})))
+        # print("gmean:{0}, gstd:{1}".format(gpdmean.eval({gpi.ob: gob}), gpdstd.eval({gpi.ob: gob})))
 
         args = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], atarg
         fvpargs = [arr[::5] for arr in args[2:]]
@@ -662,15 +681,16 @@ def learn(env, policy_fn, *,
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
 
-                # pd_crosskl = np.mean((crosskl, gcrosskl))
-                # pd_crosskl = crosskl
-                #
-                # if pd_crosskl < kl_target / 2:
-                #     print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
-                #     crosskl_coeff /= 1.5
-                # elif pd_crosskl > kl_target * 2:
-                #     print("KL divergence between guided policy and final control policy is large, increse the coefficient")
-                #     crosskl_coeff *= 1.5
+                pd_crosskl = np.mean((crosskl, gcrosskl))
+                pd_crosskl = crosskl
+
+                if pd_crosskl < kl_target / 2:
+                    print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
+                    crosskl_coeff /= 1.5
+                elif pd_crosskl > kl_target * 2:
+                    print("KL divergence between guided policy and final control policy is large, increse the coefficient")
+                    crosskl_coeff *= 1.5
+                crosskl_coeff = np.clip(crosskl_coeff, 1e-4, 30)
 
             # if nworkers > 1 and iters_so_far % 20 == 0:
             #     paramsums = MPI.COMM_WORLD.allgather((thnew.sum(), vfadam.getflat().sum())) # list of tuples
@@ -707,7 +727,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
         logger.record_tabular("EpThisIter", len(lens))
-        logger.record_tabular("Coeff kl cross:", crosskl_coeff)
+        logger.record_tabular("CrossKLCoeff :", crosskl_coeff)
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
         iters_so_far += 1

@@ -144,10 +144,10 @@ def control_arg_parser():
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     # parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)
     # parser.add_argument('--filter_size', help='Define filter size for modified CNN policy', default=[16, 2], type=str2list)
-    parser.add_argument('--hist_len', help='History Length', type=int, default=8)
+    parser.add_argument('--hist_len', help='History Length', type=int, default=2)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
                         default=5/8, type=frac2float)
-    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=1024)
+    parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
     # parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
     parser.add_argument('--method', help='method', type=str, default='copos-guided-try')
