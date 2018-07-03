@@ -3,8 +3,8 @@
 from mpi4py import MPI
 import sys
 
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
-sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
 # sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
@@ -34,7 +34,7 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy
     workerseed = seed * 10000
     def policy_fn(name, ob_space, ac_space, ob_name):
         return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=32, num_hid_layers=2, ob_name=ob_name)
+            hid_size=64, num_hid_layers=2, ob_name=ob_name)
 
     set_global_seeds(workerseed)
     env = make_control_env(env_id, seed, hist_len=hist_len,

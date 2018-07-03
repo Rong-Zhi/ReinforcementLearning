@@ -362,8 +362,12 @@ def learn(env, policy_fn, *,
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
     gratio = tf.exp(gpi.pd.logp(ac) - goldpi.pd.logp(ac))
 
-    surrgain = tf.reduce_mean(ratio * atarg)
-    gsurrgain = tf.reduce_mean(gratio * gatarg)
+
+    # surrgain = tf.reduce_mean(ratio * atarg)
+    # gsurrgain = tf.reduce_mean(gratio * gatarg)
+
+    surrgain = tf.reduce_mean(pi.pd.logp(ac) * atarg)
+    gsurrgain = tf.reduce_mean(gpi.pd.logp(ac) * gatarg)
 
     # optimgain = surrgain + crosskl_c * meancrosskl
     optimgain = surrgain
@@ -384,7 +388,7 @@ def learn(env, policy_fn, *,
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
     vfadam = MpiAdam(vf_var_list)
-    # poladam = MpiAdam(var_list)
+    poladam = MpiAdam(var_list)
 
 
     gall_var_list = gpi.get_trainable_variables()
@@ -392,7 +396,7 @@ def learn(env, policy_fn, *,
     gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
     gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
     gvfadam = MpiAdam(gvf_var_list)
-    # gpoladpam = MpiAdam(gvar_list)
+    gpoladpam = MpiAdam(gvar_list)
 
 
     get_flat = U.GetFlat(var_list)
@@ -439,12 +443,13 @@ def learn(env, policy_fn, *,
     compute_lossandgrad = U.function([crosskl_c, gob, ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
-    # compute_crossklandgrad = U.function([ob, gob],U.flatgrad(meancrosskl, var_list))
+    compute_crossklandgrad = U.function([ob, gob],U.flatgrad(meancrosskl, var_list))
 
     gcompute_losses = U.function([crosskl_c, ob, gob, ac, gatarg], glosses)
     gcompute_lossandgrad = U.function([crosskl_c, ob, gob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
     gcompute_fvp = U.function([gflat_tangent, gob, ac, gatarg], gfvp)
     gcompute_vflossandgrad = U.function([gob, gret], U.flatgrad(gvferr, gvf_var_list))
+    compute_gcrossklandgrad = U.function([gob, ob], U.flatgrad(gmeancrosskl, gvar_list))
 
 
     @contextmanager
@@ -472,14 +477,14 @@ def learn(env, policy_fn, *,
     MPI.COMM_WORLD.Bcast(th_init, root=0)
     set_from_flat(th_init)
     vfadam.sync()
-    # poladam.sync()
+    poladam.sync()
     print("Init final policy param sum", th_init.sum(), flush=True)
 
     gth_init = gget_flat()
     MPI.COMM_WORLD.Bcast(gth_init, root=0)
     gset_from_flat(gth_init)
     gvfadam.sync()
-    # gpoladpam.sync()
+    gpoladpam.sync()
     print("Init guided policy param sum", gth_init.sum(), flush=True)
 
     # Initialize eta, omega optimizer
@@ -694,7 +699,8 @@ def learn(env, policy_fn, *,
                 meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
-                # poladam.update(allmean(compute_crossklandgrad(ob, gob)), vf_stepsize)
+                poladam.update(allmean(compute_crossklandgrad(ob, gob)), vf_stepsize)
+                gpoladpam.update(allmean(compute_gcrossklandgrad(gob, ob)), vf_stepsize)
 
 
                 # pd_crosskl = np.mean((crosskl, gcrosskl))
