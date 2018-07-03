@@ -118,8 +118,8 @@ class LunarLanderPOMDP(gym.Env):
 
         self.observation_space = spaces.Box(-high, high)
         # TODO: change the following line into (-t_high, t_high) for guided case
-        # self.total_space = spaces.Box(-t_high, t_high)
-        self.total_space = spaces.Box(-high, high)
+        self.total_space = spaces.Box(-t_high, t_high)
+        # self.total_space = spaces.Box(-high, high)
 
         # We assume this environment is continuous
         # Action is two floats [main engine, left-right engines].
@@ -327,8 +327,8 @@ class LunarLanderPOMDP(gym.Env):
         assert len(state)==9
 
         #TODO: set real_state to state for guided learning
-        # real_state = state
-        real_state = []
+        real_state = state
+        # real_state = []
 
         reward = 0
         shaping = \
