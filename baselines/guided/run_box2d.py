@@ -26,7 +26,8 @@ import os.path as osp
 # import timeit
 import datetime
 
-def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy_name, nsteps, method, hid_size, give_state):
+def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
+                policy_name, nsteps, method, hid_size, give_state, vf_iters):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -57,7 +58,7 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy
 
     copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01, beta=beta,
                     cg_iters=10, cg_damping=0.1, method=method,
-                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3,
+                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=vf_iters, vf_stepsize=1e-3,
                     trial=trial, crosskl_coeff=0.01, kl_target=0.01)
     env.close()
 
@@ -81,7 +82,7 @@ def main():
     save_args(args)
     train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
                 policy_name=args.policy_name, block_high=float(args.block_high), nsteps=args.nsteps,
-                method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state))
+                method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
 
 
 if __name__ == '__main__':
