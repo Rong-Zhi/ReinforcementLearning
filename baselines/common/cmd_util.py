@@ -151,7 +151,7 @@ def control_arg_parser():
     # parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
     parser.add_argument('--method', help='method', type=str, default='copos-guided-try-sameinput')
-    parser.add_argument('--policy_name', help='choose a policy net', type=str, default='mdPolicy')
+    parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(1e6))
     # parser.add_argument('--train', help='train', default=False, type=str2bool)
