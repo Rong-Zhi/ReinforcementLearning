@@ -43,13 +43,13 @@ def make_mujoco_env(env_id, seed):
     env.seed(seed)
     return env
 
-def make_control_env(env_id, seed, hist_len, block_high, policy_name):
+def make_control_env(env_id, seed, hist_len, block_high, policy_name, give_state):
     """
     Create a wrapped, monitored gym.Env for MuJoCo.
     """
     set_global_seeds(seed)
     if env_id == 'LunarLanderContinuousPOMDP-v0':
-        newenv(hist_len=hist_len, block_high=block_high, policy_name=policy_name)
+        newenv(hist_len=hist_len, block_high=block_high, policy_name=policy_name, give_state=give_state)
     env = gym.make(env_id)
     env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     env.seed(seed)
@@ -144,16 +144,18 @@ def control_arg_parser():
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     # parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)
     # parser.add_argument('--filter_size', help='Define filter size for modified CNN policy', default=[16, 2], type=str2list)
-    parser.add_argument('--hist_len', help='History Length', type=int, default=2)
+    parser.add_argument('--hist_len', help='History Length', type=int, default=4)
     parser.add_argument('--block_high', help='Define the hight of shelter area, should be greater than 1/2',
                         default=5/8, type=frac2float)
     parser.add_argument('--nsteps', help='timesteps each iteration', type=int, default=2048)
+    parser.add_argument('--hid_size', help='number of neurons for each hidden layer', type=int, default=32)
     # parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=15)
-    parser.add_argument('--method', help='method', type=str, default='copos-guided-try-sameinput')
+    parser.add_argument('--method', help='method', type=str, default='copos-guided-try-diffinput')
     parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=int(1e6))
+    parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=1)
     # parser.add_argument('--train', help='train', default=False, type=str2bool)
     # parser.add_argument('--render', help='render', default=False, type=str2bool)
     parser.add_argument('--ncpu', help='Number of CPU', type=int, default=1)

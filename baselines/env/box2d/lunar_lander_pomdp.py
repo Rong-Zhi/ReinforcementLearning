@@ -91,7 +91,7 @@ class LunarLanderPOMDP(gym.Env):
 
     continuous = False
 
-    def __init__(self, hist_len=0, block_high=0.5, policy_name=None):
+    def __init__(self, hist_len=0, block_high=0.5, give_state=True, policy_name=None):
         self.seed()
         self.viewer = None
 
@@ -106,6 +106,8 @@ class LunarLanderPOMDP(gym.Env):
         self.prev_reward = None
         self.policy_name = policy_name
 
+        self.give_state = give_state
+
         # high = np.array([np.inf]*8)  # useful range is -1 .. +1, but spikes can be higher
         # Add another dimension notifying if the agent enters into the block area
         # high = np.array([np.inf]*9)
@@ -118,8 +120,10 @@ class LunarLanderPOMDP(gym.Env):
 
         self.observation_space = spaces.Box(-high, high)
         # TODO: change the following line into (-t_high, t_high) for guided case
-        # self.total_space = spaces.Box(-t_high, t_high)
-        self.total_space = spaces.Box(-high, high)
+        if self.give_state is True:
+            self.total_space = spaces.Box(-t_high, t_high)
+        else:
+            self.total_space = spaces.Box(-high, high)
 
         # We assume this environment is continuous
         # Action is two floats [main engine, left-right engines].
@@ -327,8 +331,10 @@ class LunarLanderPOMDP(gym.Env):
         assert len(state)==9
 
         #TODO: set real_state to state for guided learning
-        # real_state = state
-        real_state = []
+        if self.give_state is True:
+            real_state = state
+        else:
+            real_state = []
 
         reward = 0
         shaping = \

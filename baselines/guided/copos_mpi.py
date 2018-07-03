@@ -332,8 +332,10 @@ def learn(env, policy_fn, *,
     gkloldnew = goldpi.pd.kl(gpi.pd)
 
     #TODO: check if it can work in this way
-    crosskl_ob = pi.pd.kl(goldpi.pd)
-    crosskl_gob = gpi.pd.kl(oldpi.pd)
+    # crosskl_ob = pi.pd.kl(goldpi.pd)
+    # crosskl_gob = gpi.pd.kl(oldpi.pd)
+    crosskl_gob = pi.pd.kl(gpi.pd)
+    crosskl_ob = gpi.pd.kl(pi.pd)
     # crosskl
 
 
@@ -351,6 +353,8 @@ def learn(env, policy_fn, *,
     meankl = tf.reduce_mean(kloldnew)
     meanent = tf.reduce_mean(ent)
     meancrosskl = tf.reduce_mean(crosskl_ob)
+
+    # meancrosskl = tf.maximum(tf.reduce_mean(crosskl_ob - 100), 0)
 
     gmeankl = tf.reduce_mean(gkloldnew)
     gmeanent = tf.reduce_mean(gent)
@@ -699,10 +703,14 @@ def learn(env, policy_fn, *,
                 meanlosses = surr, kl, crosskl, *_ = allmean(np.array(compute_losses(*args)))
                 gmeanlosses = gsurr, gkl, gcrosskl, *_ = allmean(np.array(gcompute_losses(*gargs)))
 
-                poladam.update(allmean(compute_crossklandgrad(ob, gob)), vf_stepsize)
+                # poladam.update(allmean(compute_crossklandgrad(ob, gob)), vf_stepsize)
                 # gpoladpam.update(allmean(compute_gcrossklandgrad(gob, ob)), vf_stepsize)
 
-
+                for _ in range(vf_iters):
+                    for (mbob, mbgob) in dataset.iterbatches((seg["ob"], seg["gob"]),
+                        include_final_partial_batch=False, batch_size=64):
+                        g = allmean(compute_crossklandgrad(mbob, mbgob))
+                        poladam.update(g, vf_stepsize)
                 # pd_crosskl = np.mean((crosskl, gcrosskl))
                 # pd_crosskl = crosskl
 
