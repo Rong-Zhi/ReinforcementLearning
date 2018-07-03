@@ -34,7 +34,7 @@ sns.set(color_codes=True)
 # path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
 # path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
 
-path = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-0-07-03-11-39/progress1.csv'
+path = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
 
 
 fig, axes = plt.subplots(2, 4, figsize=(15,8))
@@ -72,15 +72,16 @@ def plots(i):
     data = d
     # data = pd.concat([d1, d2, d3, d4, d5])
     # data = pd.concat([d8, d9, d10, d6, d7])
-    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95, err_style='unit_traces')
+    # rr_style = 'unit_traces'
+    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95)
 
-    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95, err_style='unit_traces')
-    sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95, err_style='unit_traces')
+    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95)
+    sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95)
 
 if __name__ == '__main__':
     ani = animation.FuncAnimation(fig, plots, interval=1000)
