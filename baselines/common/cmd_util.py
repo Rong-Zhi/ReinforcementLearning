@@ -154,7 +154,7 @@ def control_arg_parser():
     parser.add_argument('--method', help='method', type=str, default='copos-guided-try-diffinput')
     parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num_timesteps', type=int, default=int(2e6))
+    parser.add_argument('--num_timesteps', type=int, default=2)
     parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=1)
     # parser.add_argument('--train', help='train', default=False, type=str2bool)
     # parser.add_argument('--render', help='render', default=False, type=str2bool)

@@ -80,7 +80,7 @@ def main():
               datetime.datetime.now().strftime("%m-%d-%H-%M")
     logger.configure(dir=log_dir)
     save_args(args)
-    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
+    train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
                 policy_name=args.policy_name, block_high=float(args.block_high), nsteps=args.nsteps,
                 method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
 
