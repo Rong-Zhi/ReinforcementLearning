@@ -259,9 +259,11 @@ def learn(env, policy_fn, *,
 
     vferr = tf.reduce_mean(tf.square(pi.vpred - ret))
 
-    ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
-    surrgain = tf.reduce_mean(ratio * atarg)
+    # ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
+    # surrgain = tf.reduce_mean(ratio * atarg)
 
+    surrgain = tf.reduce_mean(pi.pd.logp(ac) * atarg)
+    
     optimgain = surrgain + entbonus
     losses = [optimgain, meankl, entbonus, surrgain, meanent]
     loss_names = ["optimgain", "meankl", "entloss", "surrgain", "entropy"]
