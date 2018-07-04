@@ -34,14 +34,20 @@ sns.set(color_codes=True)
 # path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
 # path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
 
-path1 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
-path2 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
-path3 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
-path4 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
-path5 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path1 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net32-epoch5-0-07-04-00-56/progress1.csv'
+path2 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net32-epoch10-0-07-04-00-56/progress1.csv'
+path3 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net64-epoch5-0-07-04-00-57/progress1.csv'
+path4 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net64-epoch10-0-07-04-00-59/progress1.csv'
+path5 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch5-0-07-03-17-46/progress1.csv'
+path6 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch10-0-07-04-00-51/progress1.csv'
+path7 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch5-0-07-03-17-48/progress1.csv'
+path8 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path9 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-hist4-0-06-11-12-24/progress1.csv'
+path10 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
 
 
-fig, axes = plt.subplots(2, 4, figsize=(15,8))
+
+fig, axes = plt.subplots(1, 2, figsize=(10,5))
 axes = axes.flatten()
 
 # fig = plt.figure(1)
@@ -50,16 +56,30 @@ def plots(i):
     for ax in axes:
         ax.clear()
 
-    d = pd.read_csv(path)
-    # d1 = pd.read_csv(path1)
+    # d = pd.read_csv(path)
+    d1 = pd.read_csv(path1)
+    d1['Name']='guidedcopos-hist4-net32'
     # d2 = pd.read_csv(path2)
-    # d3 = pd.read_csv(path3)
-    # d3['Name'] = 'COPOS-hist16'
+    # d2['Name'] = 'guidedcpos-epoch10-hist4-net32'
+    d3 = pd.read_csv(path3)
+    d3['Name'] = 'guidedcopos-hist4-net64'
+
+    d9 = pd.read_csv(path9)
+    d9['Name'] = 'copos-hist4-net32'
+
+    d10 = pd.read_csv(path10)
+    d10['Name'] = 'copos-hist4-net64'
+
     # d4 = pd.read_csv(path4)
+    # d4['Name'] = 'GuidedCOPOS-ratio-epoch10-net64'
     # d5 = pd.read_csv(path5)
+    # d5['Name'] = 'guidedcopos-log-net32'
     # d6 = pd.read_csv(path6)
+    # d6['Name'] = 'log-epoch10-net32'
     # d7 = pd.read_csv(path7)
+    # d7['Name'] = 'guidedcopos-log-net64'
     # d8 = pd.read_csv(path8)
+    # d8['Name'] = 'log-epoch10-net64'
     # d9 = pd.read_csv(path9)
     # d10 =pd.read_csv(path10)
 
@@ -73,19 +93,19 @@ def plots(i):
 
     # d = pd.read_csv(path)
     # d1 = pd.read_csv(path)
-    data = d
-    # data = pd.concat([d1, d2, d3, d4, d5])
+    # data = d
+    data = pd.concat([d1,d3,d9,d10])
     # data = pd.concat([d8, d9, d10, d6, d7])
     # rr_style = 'unit_traces'
     sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
     sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95)
 
-    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95)
 
 if __name__ == '__main__':
     ani = animation.FuncAnimation(fig, plots, interval=1000)
