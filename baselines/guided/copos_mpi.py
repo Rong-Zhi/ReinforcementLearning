@@ -9,6 +9,8 @@ from collections import deque
 from baselines.common.mpi_adam import MpiAdam
 from baselines.common.cg import cg
 from contextlib import contextmanager
+import os
+import os.path as osp
 
 from baselines.copos.eta_omega_dual import EtaOmegaOptimizer
 
@@ -387,16 +389,16 @@ def learn(env, policy_fn, *,
     dist = meankl
     gdist = gmeankl
 
-    all_var_list = pi.get_trainable_variables()
-    all_var_list = [v for v in all_var_list if v.name.split("/")[0].startswith("pi")]
+    all_pi_var_list = pi.get_trainable_variables()
+    all_var_list = [v for v in all_pi_var_list if v.name.split("/")[0].startswith("pi")]
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
     vfadam = MpiAdam(vf_var_list)
     poladam = MpiAdam(var_list)
 
 
-    gall_var_list = gpi.get_trainable_variables()
-    gall_var_list = [v for v in gall_var_list if v.name.split("/")[0].startswith("gpi")]
+    gall_gpi_var_list = gpi.get_trainable_variables()
+    gall_var_list = [v for v in gall_gpi_var_list if v.name.split("/")[0].startswith("gpi")]
     gvar_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("pol")]
     gvf_var_list = [v for v in gall_var_list if v.name.split("/")[1].startswith("vf")]
     gvfadam = MpiAdam(gvf_var_list)
@@ -455,6 +457,7 @@ def learn(env, policy_fn, *,
     gcompute_vflossandgrad = U.function([gob, gret], U.flatgrad(gvferr, gvf_var_list))
     # compute_gcrossklandgrad = U.function([gob, ob], U.flatgrad(gmeancrosskl, gvar_list))
 
+    saver = tf.train.Saver()
 
     @contextmanager
     def timed(msg):
@@ -496,6 +499,8 @@ def learn(env, policy_fn, *,
     init_omega = 2.0
     eta_omega_optimizer = EtaOmegaOptimizer(beta, epsilon, init_eta, init_omega)
 
+
+
     # Prepare for rollouts
     # ----------------------------------------
     seg_gen = traj_segment_generator(pi, gpi, env, timesteps_per_batch, stochastic=True)
@@ -504,6 +509,7 @@ def learn(env, policy_fn, *,
     timesteps_so_far = 0
     iters_so_far = 0
     tstart = time.time()
+    num_iters = max_timesteps // timesteps_per_batch
     lenbuffer = deque(maxlen=40) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=40) # rolling buffer for episode rewards
 
@@ -772,6 +778,23 @@ def learn(env, policy_fn, *,
 
         if rank==0:
             logger.dump_tabular()
+
+        if iters_so_far % 100 == 0 or iters_so_far == 1 or iters_so_far == num_iters:
+            sess = tf.get_default_session()
+            checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
+            savepath = osp.join(checkdir, '%.5i.ckpt'%iters_so_far)
+            saver.save(sess, save_path=savepath)
+            print("save model to path:", savepath)
+
+            # np.save('{}/mean'.format(checkdir + '/'), runner.env.obs.mean)
+            # np.save('{}/var'.format(checkdir + '/'), runner.env.obs.var)
+
+
+def get_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]

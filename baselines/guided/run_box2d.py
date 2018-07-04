@@ -2,6 +2,7 @@
 # noinspection PyUnresolvedReferences
 from mpi4py import MPI
 import sys
+import imageio
 
 sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
@@ -25,6 +26,8 @@ import os
 import os.path as osp
 # import timeit
 import datetime
+
+
 
 def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
                 nsteps, method, hid_size, give_state, vf_iters):
@@ -62,6 +65,32 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
                     trial=trial, crosskl_coeff=0.01, kl_target=0.01)
     env.close()
 
+def render(hid_size, load_path, video_path, env_id, seed, hist_len, block_high, give_state):
+    import baselines.common.tf_util as U
+    sess = U.single_threaded_session()
+    sess.__enter__()
+    def policy_fn(name, ob_space, ac_space, ob_name):
+        return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
+            hid_size=hid_size, num_hid_layers=2, ob_name=ob_name)
+
+    env = make_control_env(env_id, seed, hist_len=hist_len,
+                           block_high=block_high, version0=True, give_state=give_state)
+    pi = policy_fn("pi", env.observation_space, env.action_space, ob_name="ob")
+    sess.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
+    saver.restore(sess, load_path)
+    ob = env.reset()
+    frames = []
+    while True:
+        frame = env.unwrapped.render(mode='rgb_array')
+        frames.append(frame)
+        ac, vpred = pi.act(stochastic=False, ob=ob)
+        print(ob)
+        ob, rwd, done, _ = env.step(ac)
+        if done:
+            imageio.mimsave(video_path+'result.mp4', frames, fps=20)
+            break
+    env.close()
 
 def get_dir(path):
     if not os.path.exists(path):
@@ -74,6 +103,9 @@ def save_args(args):
 
 def main():
     args = control_arg_parser().parse_args()
+
+    # Training
+
     ENV_path = get_dir(os.path.join(args.log_dir, args.env))
     log_dir = os.path.join(ENV_path, args.method + "-" +
                            '{}'.format(args.seed)) + "-" + \
@@ -83,6 +115,14 @@ def main():
     train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed,
                 hist_len=args.hist_len, block_high=float(args.block_high), nsteps=args.nsteps,
                 method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
+
+    #Render
+
+    # load_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-04-21-47/checkpoints/00001.ckpt'
+    # video_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-04-21-47/'
+    # render(hid_size=args.hid_size,load_path=load_path, video_path=video_path,
+    #        env_id=args.env, seed=0, hist_len=args.hist_len, block_high=args.block_high,
+    #        give_state=0)
 
 
 if __name__ == '__main__':
