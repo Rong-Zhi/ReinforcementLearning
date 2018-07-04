@@ -3,9 +3,9 @@
 from mpi4py import MPI
 import sys
 
-# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
 from baselines import logger
@@ -26,26 +26,27 @@ import os.path as osp
 # import timeit
 import datetime
 
-def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy_name):
+def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
+                nsteps, method, hid_size, give_state, vf_iters):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
 
     workerseed = seed * 10000
     def policy_fn(name, ob_space, ac_space):
-        # return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-        #     hid_size=64, num_hid_layers=2)
-        return CompatiblecnnPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-             hid_size=64, num_hid_layers=2)
+        return CompatibleMlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
+            hid_size=hid_size, num_hid_layers=2)
+        # return CompatiblecnnPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
+        #      hid_size=hid_size, num_hid_layers=2)
 
     set_global_seeds(workerseed)
     # env = gym.make(env_id)
 
     env = make_control_env(env_id, seed, hist_len=hist_len,
-                           block_high=block_high, policy_name=policy_name)
+                           block_high=block_high, version0=True, give_state=give_state)
     env.seed(workerseed)
 
-    timesteps_per_batch=4000
+    timesteps_per_batch=nsteps
     beta = -1
     if beta < 0:
         nr_episodes = num_timesteps // timesteps_per_batch
@@ -60,8 +61,10 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high, policy
         print("Initial entropy: " + str(entropy) + ", episodes: " + str(nr_episodes))
         print("Automatically set beta: " + str(beta))
 
-    copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01, beta=beta, cg_iters=10, cg_damping=0.1,
-                    max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3, trial=trial)
+    copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01,
+                    beta=beta, cg_iters=10, cg_damping=0.1,
+                    max_timesteps=num_timesteps, gamma=0.99,
+                    lam=0.98, vf_iters=vf_iters, vf_stepsize=1e-3, trial=trial, method=method)
     env.close()
 
 
@@ -84,8 +87,9 @@ def main():
     save_args(args)
     # if args.env == 'LunarLanderContinuousPOMDP-v0':
     #     newenv(hist_len=args.hist_len, block_high=float(args.block_high), policy_name=args.policy_name)
-    train_copos(args.env, num_timesteps=args.num_timesteps, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
-                policy_name=args.policy_name, block_high=float(args.block_high))
+    train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed,
+                hist_len=args.hist_len, block_high=float(args.block_high), nsteps=args.nsteps,
+                method=args.method, hid_size=args.hid_size, give_state=args.give_state, vf_iters=args.epoch)
 
 
 if __name__ == '__main__':

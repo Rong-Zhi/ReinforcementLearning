@@ -27,7 +27,7 @@ import os.path as osp
 import datetime
 
 def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
-                policy_name, nsteps, method, hid_size, give_state, vf_iters):
+                nsteps, method, hid_size, give_state, vf_iters):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
@@ -39,7 +39,7 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
 
     set_global_seeds(workerseed)
     env = make_control_env(env_id, seed, hist_len=hist_len,
-                           block_high=block_high, policy_name=policy_name, give_state=give_state)
+                           block_high=block_high, version0=False, give_state=give_state)
     env.seed(workerseed)
 
     timesteps_per_batch=nsteps
@@ -80,8 +80,8 @@ def main():
               datetime.datetime.now().strftime("%m-%d-%H-%M")
     logger.configure(dir=log_dir)
     save_args(args)
-    train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed, hist_len=args.hist_len,
-                policy_name=args.policy_name, block_high=float(args.block_high), nsteps=args.nsteps,
+    train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed,
+                hist_len=args.hist_len, block_high=float(args.block_high), nsteps=args.nsteps,
                 method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
 
 

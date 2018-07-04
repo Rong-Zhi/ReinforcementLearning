@@ -43,13 +43,13 @@ def make_mujoco_env(env_id, seed):
     env.seed(seed)
     return env
 
-def make_control_env(env_id, seed, hist_len, block_high, policy_name, give_state):
+def make_control_env(env_id, seed, hist_len, block_high, version0, give_state):
     """
     Create a wrapped, monitored gym.Env for MuJoCo.
     """
     set_global_seeds(seed)
     if env_id == 'LunarLanderContinuousPOMDP-v0':
-        newenv(hist_len=hist_len, block_high=block_high, policy_name=policy_name, give_state=give_state)
+        newenv(hist_len=hist_len, block_high=block_high, version0=version0, give_state=give_state)
     env = gym.make(env_id)
     env = Monitor(env, logger.get_dir(), allow_early_resets=True)
     env.seed(seed)
@@ -152,10 +152,10 @@ def control_arg_parser():
     # parser.add_argument('--batch_size', help='batch size', type=int, default=32)
     parser.add_argument('--epoch', help='epoch', type=int, default=5)
     parser.add_argument('--method', help='method', type=str, default='copos-guided-try-diffinput')
-    parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
+    # parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=2)
-    parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=1)
+    parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=0)
     # parser.add_argument('--train', help='train', default=False, type=str2bool)
     # parser.add_argument('--render', help='render', default=False, type=str2bool)
     parser.add_argument('--ncpu', help='Number of CPU', type=int, default=1)

@@ -13,9 +13,10 @@ class Monitor(Wrapper):
     EXT = "monitor.csv"
     f = None
 
-    def __init__(self, env, filename, allow_early_resets=False, reset_keywords=(), info_keywords=()):
+    def __init__(self, env, filename, allow_early_resets=False, reset_keywords=(), info_keywords=(), version0=True):
         Wrapper.__init__(self, env=env)
         self.tstart = time.time()
+        self.version0=version0
         if filename is None:
             self.f = None
             self.logger = None
@@ -60,7 +61,10 @@ class Monitor(Wrapper):
             raise RuntimeError("Tried to step environment that needs reset")
         if isinstance(self.action_space, gym.spaces.Box):
             action = np.clip(action, self.action_space.low, self.action_space.high)
-        [ob, state], rew, done, info = self.env.step(action)
+        if self.version0:
+            ob, rew, done, info = self.env.step(action)
+        else:
+            [ob, state], rew, done, info = self.env.step(action)
         self.rewards.append(rew)
         if done:
             self.needs_reset = True
@@ -78,7 +82,10 @@ class Monitor(Wrapper):
                 self.f.flush()
             info['episode'] = epinfo
         self.total_steps += 1
-        return ([ob, state], rew, done, info)
+        if self.version0:
+            return (ob, rew, done, info)
+        else:
+            return ([ob, state], rew, done, info)
 
     def close(self):
         if self.f is not None:

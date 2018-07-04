@@ -226,7 +226,7 @@ def learn(env, policy_fn, *,
           timesteps_per_batch,  # what to train on
           epsilon, beta, cg_iters,
           gamma, lam,  # advantage estimation
-          trial,
+          trial, method,
           entcoeff=0.0,
           cg_damping=1e-2,
           vf_stepsize=3e-4,
@@ -492,7 +492,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        logger.record_tabular("Name", 'COPOS-md-try')
+        logger.record_tabular("Name", method)
         logger.record_tabular("Iteration", iters_so_far)
         logger.record_tabular("trial", trial)
 

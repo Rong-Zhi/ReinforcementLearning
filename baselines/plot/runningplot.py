@@ -34,7 +34,11 @@ sns.set(color_codes=True)
 # path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
 # path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
 
-path = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path1 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path2 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path3 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path4 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+path5 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
 
 
 fig, axes = plt.subplots(2, 4, figsize=(15,8))

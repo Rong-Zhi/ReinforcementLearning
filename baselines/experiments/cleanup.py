@@ -1,12 +1,12 @@
 import pandas as pd
 import glob
 
-path = '/Users/zhirong/Documents/share/guided/guided-sameinput-hist4-net64-epoch10-{}-07-03-17-50'
+path = '/Users/zhirong/Documents/share/guided/guided-sameinput-hist4-net32-epoch10-{}-07-04-00-51'
 
 dt = []
 
 for i in range(10):
-    # # print(i)
+    # print(i)
     d = pd.read_csv(path.format(i)+'/progress.csv')
     # d['trial'] = i
     # d.to_csv(path.format(i)+'/progress.csv', index=False)
