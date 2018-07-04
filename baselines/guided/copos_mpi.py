@@ -368,12 +368,13 @@ def learn(env, policy_fn, *,
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # advantage * pnew / pold
     gratio = tf.exp(gpi.pd.logp(ac) - goldpi.pd.logp(ac))
 
+    # Ratio objective
+    # surrgain = tf.reduce_mean(ratio * atarg)
+    # gsurrgain = tf.reduce_mean(gratio * gatarg)
 
-    surrgain = tf.reduce_mean(ratio * atarg)
-    gsurrgain = tf.reduce_mean(gratio * gatarg)
-
-    # surrgain = tf.reduce_mean(pi.pd.logp(ac) * atarg)
-    # gsurrgain = tf.reduce_mean(gpi.pd.logp(ac) * gatarg)
+    # Log objective
+    surrgain = tf.reduce_mean(pi.pd.logp(ac) * atarg)
+    gsurrgain = tf.reduce_mean(gpi.pd.logp(ac) * gatarg)
 
     # optimgain = surrgain + crosskl_c * meancrosskl
     optimgain = surrgain
