@@ -22,6 +22,7 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     new = True
     rew = 0.0
     [ob, state] = env.reset()
+    print(state)
     gob = np.concatenate((ob, state))
 
     cur_ep_ret = 0
@@ -291,7 +292,7 @@ def learn(env, policy_fn, *,
           timesteps_per_batch,  # what to train on
           epsilon, beta, cg_iters,
           gamma, lam,  # advantage estimation
-          trial,
+          trial, sess,
           method,
           entcoeff=0.0,
           cg_damping=1e-2,
@@ -534,9 +535,6 @@ def learn(env, policy_fn, *,
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         gob, gatarg, gtdlamret = seg["gob"], seg["gadv"], seg["gtdlamret"]
 
-        # Test
-        # print("atarg:", atarg)
-        # print("gatarg:", gatarg)
 
         vpredbefore = seg["vpred"] # predicted value function before udpate
         gvpredbefore = seg["gvpred"]
@@ -544,22 +542,11 @@ def learn(env, policy_fn, *,
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
         gatarg = (gatarg - gatarg.mean()) / gatarg.std()
 
-        # Test
-        # print("vpredbefore:",vpredbefore)
-        # print("tdlamret:", tdlamret)
-        #
-        # print("gvpredbefore:", gvpredbefore)
-        # print("gtdlamret:", gtdlamret)
-
         if hasattr(pi, "ret_rms"): pi.ret_rms.update(tdlamret)
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
 
         if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(gtdlamret)
         if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(gob)
-
-        # Test
-        # print("mean:{0}, std:{1}".format(pdmean.eval({pi.ob: ob}), pdstd.eval({pi.ob: ob})))
-        # print("gmean:{0}, gstd:{1}".format(gpdmean.eval({gpi.ob: gob}), gpdstd.eval({gpi.ob: gob})))
 
         args = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], atarg
         fvpargs = [arr[::5] for arr in args[2:]]
@@ -781,7 +768,7 @@ def learn(env, policy_fn, *,
             logger.dump_tabular()
 
         if iters_so_far % 100 == 0 or iters_so_far == 1 or iters_so_far == num_iters:
-            sess = tf.get_default_session()
+            # sess = tf.get_default_session()
             checkdir = get_dir(osp.join(logger.get_dir(), 'checkpoints'))
             savepath = osp.join(checkdir, '%.5i.ckpt'%iters_so_far)
             saver.save(sess, save_path=savepath)

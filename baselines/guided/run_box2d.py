@@ -4,9 +4,9 @@ from mpi4py import MPI
 import sys
 import imageio
 
-sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
+# sys.path.append('/work/scratch/rz97hoku/ReinforcementLearning/')
 # sys.path.append('/home/zhi/Documents/ReinforcementLearning/')
-# sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
+sys.path.append('/Users/zhirong/Documents/ReinforcementLearning/')
 
 from baselines.common import set_global_seeds
 from baselines import logger
@@ -62,7 +62,7 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
     copos_mpi.learn(env, policy_fn, timesteps_per_batch=timesteps_per_batch, epsilon=0.01, beta=beta,
                     cg_iters=10, cg_damping=0.1, method=method,
                     max_timesteps=num_timesteps, gamma=0.99, lam=0.98, vf_iters=vf_iters, vf_stepsize=1e-3,
-                    trial=trial, crosskl_coeff=0.01, kl_target=0.01)
+                    trial=trial, crosskl_coeff=0.01, kl_target=0.01, sess=sess)
     env.close()
 
 def render(hid_size, load_path, video_path, env_id, seed, hist_len, block_high, give_state):
@@ -106,23 +106,23 @@ def main():
 
     # Training
 
-    ENV_path = get_dir(os.path.join(args.log_dir, args.env))
-    log_dir = os.path.join(ENV_path, args.method + "-" +
-                           '{}'.format(args.seed)) + "-" + \
-              datetime.datetime.now().strftime("%m-%d-%H-%M")
-    logger.configure(dir=log_dir)
-    save_args(args)
-    train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed,
-                hist_len=args.hist_len, block_high=float(args.block_high), nsteps=args.nsteps,
-                method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
+    # ENV_path = get_dir(os.path.join(args.log_dir, args.env))
+    # log_dir = os.path.join(ENV_path, args.method + "-" +
+    #                        '{}'.format(args.seed)) + "-" + \
+    #           datetime.datetime.now().strftime("%m-%d-%H-%M")
+    # logger.configure(dir=log_dir)
+    # save_args(args)
+    # train_copos(args.env, num_timesteps=args.num_timesteps * 1e6, seed=args.seed, trial=args.seed,
+    #             hist_len=args.hist_len, block_high=float(args.block_high), nsteps=args.nsteps,
+    #             method=args.method, hid_size=args.hid_size, give_state=bool(args.give_state), vf_iters=args.epoch)
 
     #Render
 
-    # load_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-04-21-47/checkpoints/00001.ckpt'
-    # video_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-04-21-47/'
-    # render(hid_size=args.hid_size,load_path=load_path, video_path=video_path,
-    #        env_id=args.env, seed=0, hist_len=args.hist_len, block_high=args.block_high,
-    #        give_state=0)
+    load_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-05-13-34/checkpoints/00976.ckpt'
+    video_path = '/Users/zhirong/Documents/ReinforcementLearning/tmp/LunarLanderContinuousPOMDP-v0/copos-guided-try-diffinput-0-07-05-13-34/'
+    render(hid_size=args.hid_size,load_path=load_path, video_path=video_path,
+           env_id=args.env, seed=0, hist_len=args.hist_len, block_high=args.block_high,
+           give_state=0)
 
 
 if __name__ == '__main__':

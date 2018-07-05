@@ -51,7 +51,7 @@ def make_control_env(env_id, seed, hist_len, block_high, version0, give_state):
     if env_id == 'LunarLanderContinuousPOMDP-v0':
         newenv(hist_len=hist_len, block_high=block_high, version0=version0, give_state=give_state)
     env = gym.make(env_id)
-    env = Monitor(env, logger.get_dir(), allow_early_resets=True)
+    env = Monitor(env, logger.get_dir(), allow_early_resets=True, version0=version0)
     env.seed(seed)
     return env
 
@@ -138,9 +138,9 @@ def control_arg_parser():
     Create an argparse.ArgumentParser for run_box2d.py.
     """
     parser = arg_parser()
-    # parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
+    parser.add_argument('--log_dir',type=str, default='/Users/zhirong/Documents/ReinforcementLearning/tmp')
     # parser.add_argument('--log_dir', type=str, default='/home/zhi/Documents/ReinforcementLearning/tmp')
-    parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
+    # parser.add_argument('--log_dir',type=str, default='/work/scratch/rz97hoku/ReinforcementLearning/tmp')
     parser.add_argument('--env', help='environment ID', type=str, default='LunarLanderContinuousPOMDP-v0')
     # parser.add_argument('--net_size', help='Network size', default=[64,64], type=str2list)
     # parser.add_argument('--filter_size', help='Define filter size for modified CNN policy', default=[16, 2], type=str2list)
@@ -155,7 +155,7 @@ def control_arg_parser():
     # parser.add_argument('--policy_name', help='choose a policy net', type=str, default='MlpPolicy')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_timesteps', type=int, default=2)
-    parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=0)
+    parser.add_argument('--give_state', help='0:False, 1:True', type=int, default=1)
     # parser.add_argument('--train', help='train', default=False, type=str2bool)
     # parser.add_argument('--render', help='render', default=False, type=str2bool)
     parser.add_argument('--ncpu', help='Number of CPU', type=int, default=1)
