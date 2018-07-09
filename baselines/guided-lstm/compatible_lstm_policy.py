@@ -39,8 +39,8 @@ class LstmPolicy(object):
 
         self.ob = U.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
         M = tf.placeholder(tf.float32, [nbatch])  # mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
-
+        Svf = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
+        Spi = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
         with tf.variable_scope("vf"):
             if usecnn:
                 h = nature_cnn(self.ob)
@@ -48,9 +48,9 @@ class LstmPolicy(object):
                 h = self.ob
             xs = batch_to_seq(h, nenv, nsteps)
             ms = batch_to_seq(M, nenv, nsteps)
-            h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
+            h5, vfsnew = lstm(xs, ms, Svf, 'lstmvf', nh=nlstm)
             h5 = seq_to_batch(h5)
-            vf = fc(h5, 'value', 1)
+            self.vpred = fc(h5, 'value', 1)
 
         with tf.variable_scope("pol"):
 
@@ -60,7 +60,7 @@ class LstmPolicy(object):
                 h = self.ob
             xs = batch_to_seq(h, nenv, nsteps)
             ms = batch_to_seq(M, nenv, nsteps)
-            h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
+            h5, pisnew = lstm(xs, ms, Spi, 'lstmpi', nh=nlstm)
             h5 = seq_to_batch(h5)
 
             self.action_dim = ac_space.shape[0]
@@ -91,16 +91,16 @@ class LstmPolicy(object):
 
 
         self.pd = pdtype.pdfromflat(pdparam)
-        self.vpred = vf[:, 0]
         self.M = M
-        self.S = S
+        self.Svf = Svf
+        self.Spi = Spi
 
         self.state_in = []
         self.state_out = []
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
         ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
-        self._act = U.function([stochastic, self.ob], [ac, self.vpred])
+        self._act = U.function([stochastic, self.ob, M, Spi, Svf], [ac, self.vpred, pisnew, vfsnew])
 
         # Get all policy parameters
         vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope + '/pol')
@@ -123,13 +123,16 @@ class LstmPolicy(object):
 
         self.features_beta = U.function([self.ob, w_beta_var, v], features_beta)
 
-    def act(self, stochastic, ob):
-        ac1, vpred1 =  self._act(stochastic, ob[None])
-        return ac1[0], vpred1[0]
+    def act(self, stochastic, ob, mask, pistate, vfstate):
+        ac1, vpred1, pisnew, vfsnew =  self._act(stochastic, ob[None], mask, pistate, vfstate)
+        return ac1[0], vpred1[0], pisnew, vfsnew
+
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
+
     def get_trainable_variables(self):
         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+
     def get_initial_state(self):
         return []
 

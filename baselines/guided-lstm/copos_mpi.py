@@ -15,7 +15,7 @@ import os.path as osp
 from baselines.copos.eta_omega_dual import EtaOmegaOptimizer
 
 
-def traj_segment_generator(pi, gpi, env, horizon, stochastic):
+def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
     # Initialize state variables
     t = 0
     ac = env.action_space.sample()
@@ -24,6 +24,7 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     [ob, state] = env.reset()
     print(state)
     gob = np.concatenate((ob, state))
+    vfstate = pistate = gvfstate = gpisate = [0.0]
 
     cur_ep_ret = 0
     cur_ep_len = 0
@@ -33,18 +34,26 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic):
     # Initialize history arrays
     obs = np.array([ob for _ in range(horizon)])
     states = np.array([state for _ in range(horizon)])
-    gobs = np.array([gob for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
+
+    vfstates = np.zeros(nlstm, 'float32')
+    pistates = np.zeros(nlstm, 'float32')
+
+    gobs = np.array([gob for _ in range(horizon)])
     gvpreds = np.zeros(horizon, 'float32')
-    news = np.zeros(horizon, 'int32')
+    gvfstates = np.zeros(nlstm, 'float32')
+    gpistates = np.zeros(nlstm, 'float32')
+
+    news = np.zeros(horizon, 'float32')
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
 
     while True:
         prevac = ac
-        gac, gvpred = gpi.act(stochastic, gob)
-        ac, vpred = pi.act(stochastic, ob)
+        #TODO: change setting here
+        gac, gvpred, pistate, vfstate = gpi.act(stochastic, gob)
+        ac, vpred, gpistate, gvfstate = pi.act(stochastic, ob)
 
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
