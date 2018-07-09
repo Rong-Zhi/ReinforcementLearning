@@ -181,70 +181,6 @@ def eta_search(w_theta, w_beta, eta, omega, allmean, compute_losses, get_flat, s
 
     return eta
 
-# def eta_search(w_theta, w_beta, eta, omega, allmean, compute_losses, get_flat, set_from_flat, pi, epsilon, args):
-#     """
-#     Binary search for eta for finding both valid log-linear "theta" and non-linear "beta" parameter values
-#     :return: new eta
-#     """
-#
-#     w_theta = w_theta.reshape(-1,)
-#     w_beta = w_beta.reshape(-1,)
-#     all_params = get_flat()
-#     best_params = all_params
-#     param_theta, param_beta = pi.all_to_theta_beta(all_params)
-#     prev_param_theta = np.copy(param_theta)
-#     prev_param_beta = np.copy(param_beta)
-#     final_gain = -1e20
-#     final_constraint_val = float('nan')
-#     gain_before, kl, *_ = allmean(np.array(compute_losses(*args)))
-#
-#     backtrack_ratio = 0.8
-#     max_backtracks = 20
-#
-#     gain = gain_before
-#     for n_iter, ratio in enumerate(np.concatenate([9.32 * (backtrack_ratio ** np.arange(1, max_backtracks))])):
-#         cur_eta = ratio * eta
-#         cur_param_theta = (cur_eta * prev_param_theta + w_theta) / (cur_eta + omega)
-#         cur_param_beta = prev_param_beta + w_beta / cur_eta
-#
-#         thnew = pi.theta_beta_to_all(cur_param_theta, cur_param_beta)
-#         set_from_flat(thnew)
-#
-#         # TEST
-#         if np.min(np.real(np.linalg.eigvals(pi.get_prec_matrix()))) < 0:
-#             print("Negative definite covariance!")
-#
-#         if np.min(np.imag(np.linalg.eigvals(pi.get_prec_matrix()))) != 0:
-#             print("Covariance has imaginary eigenvalues")
-#
-#         gain, kl, *_ = allmean(np.array(compute_losses(*args)))
-#
-#         # TEST
-#         print(ratio, gain, kl)
-#
-#         if all((gain > final_gain, kl <= epsilon, not np.isnan(kl), not np.isnan(gain))):
-#             eta = cur_eta
-#             final_gain = gain
-#             final_constraint_val = kl
-#             best_params = thnew
-#
-#     if any((np.isnan(final_gain), np.isnan(final_constraint_val), final_constraint_val >= epsilon)):
-#         logger.log("eta_search: Line search condition violated. Rejecting the step!")
-#         if np.isnan(final_gain):
-#             logger.log("eta_search: Violated because gain is NaN")
-#         if np.isnan(final_constraint_val):
-#             logger.log("eta_search: Violated because KL is NaN")
-#         if final_gain < gain_before:
-#             logger.log("eta_search: Violated because gain not improving")
-#         if final_constraint_val >= epsilon:
-#             logger.log("eta_search: Violated because KL constraint violated")
-#         set_from_flat(all_params)
-#     else:
-#         set_from_flat(best_params)
-#
-#     logger.log("eta optimization finished, final gain: " + str(final_gain))
-#     return eta
-
 
 def copy_params(e1, e2):
     # assign e2 with e1
@@ -705,16 +641,6 @@ def learn(env, policy_fn, *,
                         include_final_partial_batch=False, batch_size=64):
                         g = allmean(compute_crossklandgrad(mbob, mbgob))
                         poladam.update(g, vf_stepsize)
-                # pd_crosskl = np.mean((crosskl, gcrosskl))
-                # pd_crosskl = crosskl
-
-                # if pd_crosskl < kl_target / 2:
-                #     print("KL divergence between guided policy and final control policy is small, reduce the coefficient")
-                #     crosskl_coeff /= 1.5
-                # elif pd_crosskl > kl_target * 2:
-                #     print("KL divergence between guided policy and final control policy is large, increse the coefficient")
-                #     crosskl_coeff *= 1.5
-                # crosskl_coeff = np.clip(crosskl_coeff, 1e-4, 30)
 
 
             # if nworkers > 1 and iters_so_far % 20 == 0:

@@ -1,62 +1,127 @@
 import baselines.common.tf_util as U
 import tensorflow as tf
-import gym
 import numpy as np
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
+
+import gym
 from baselines.common.distributions import make_pdtype
+
 
 def nature_cnn(unscaled_images):
     """
     CNN from Nature paper.
     """
-    scaled_images = tf.cast(unscaled_images, tf.float32) / 255.
     activ = tf.nn.relu
+    scaled_images = unscaled_images / 255.0
     h = activ(conv(scaled_images, 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2)))
     h2 = activ(conv(h, 'c2', nf=64, rf=4, stride=2, init_scale=np.sqrt(2)))
     h3 = activ(conv(h2, 'c3', nf=64, rf=3, stride=1, init_scale=np.sqrt(2)))
     h3 = conv_to_fc(h3)
-    return activ(fc(h3, 'fc1', nh=512, init_scale=np.sqrt(2)))
+    h3 = activ(fc(h3, 'fc1', nh=512, init_scale=np.sqrt(2)))
+    return h3
 
-class CnnPolicy(object):
+
+class LstmPolicy(object):
     recurrent = False
-    def __init__(self, name, ob_space, ac_space):
+    def __init__(self, name, *args, **kwargs):
         with tf.variable_scope(name):
-            self._init(ob_space, ac_space)
+            self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
 
-    def _init(self, ob_space, ac_space):
+    def _init(self, ob_name, ob_space, ac_space, nsteps, usecnn=False, nlstm=256):
         assert isinstance(ob_space, gym.spaces.Box)
 
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
+        init_std = 1.0
+        nenv = 1
+        nbatch = nenv * nsteps
 
-        ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        self.ob = U.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        M = tf.placeholder(tf.float32, [nbatch])  # mask (done t-1)
+        S = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
 
-        obscaled = ob / 255.0
+        with tf.variable_scope("vf"):
+            if usecnn:
+                h = nature_cnn(self.ob)
+            else:
+                h = self.ob
+            xs = batch_to_seq(h, nenv, nsteps)
+            ms = batch_to_seq(M, nenv, nsteps)
+            h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
+            h5 = seq_to_batch(h5)
+            vf = fc(h5, 'value', 1)
 
         with tf.variable_scope("pol"):
-            x = obscaled
-            x = tf.nn.relu(U.conv2d(x, 8, "l1", [8, 8], [4, 4], pad="VALID"))
-            x = tf.nn.relu(U.conv2d(x, 16, "l2", [4, 4], [2, 2], pad="VALID"))
-            x = U.flattenallbut0(x)
-            x = tf.nn.relu(tf.layers.dense(x, 128, name='lin', kernel_initializer=U.normc_initializer(1.0)))
-            logits = tf.layers.dense(x, pdtype.param_shape()[0], name='logits', kernel_initializer=U.normc_initializer(0.01))
-            self.pd = pdtype.pdfromflat(logits)
-        with tf.variable_scope("vf"):
-            x = obscaled
-            x = tf.nn.relu(U.conv2d(x, 8, "l1", [8, 8], [4, 4], pad="VALID"))
-            x = tf.nn.relu(U.conv2d(x, 16, "l2", [4, 4], [2, 2], pad="VALID"))
-            x = U.flattenallbut0(x)
-            x = tf.nn.relu(tf.layers.dense(x, 128, name='lin', kernel_initializer=U.normc_initializer(1.0)))
-            self.vpred = tf.layers.dense(x, 1, name='value', kernel_initializer=U.normc_initializer(1.0))
-            self.vpredz = self.vpred
+
+            if usecnn:
+                h = nature_cnn(self.ob)
+            else:
+                h = self.ob
+            xs = batch_to_seq(h, nenv, nsteps)
+            ms = batch_to_seq(M, nenv, nsteps)
+            h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
+            h5 = seq_to_batch(h5)
+
+            self.action_dim = ac_space.shape[0]
+            self.varphi = h5
+            self.varphi_dim = 64
+
+            stddev_init = np.ones([1, self.action_dim]) * init_std
+            prec_init = 1. / (np.multiply(stddev_init, stddev_init))  # 1 x |a|
+            self.prec = tf.get_variable(name="prec", shape=[1, self.action_dim],
+                                        initializer=tf.constant_initializer(prec_init))
+            kt_init = np.ones([self.varphi_dim, self.action_dim]) * 0.5 / self.varphi_dim
+            ktprec_init = kt_init * prec_init
+            self.ktprec = tf.get_variable(name="ktprec", shape=[self.varphi_dim, self.action_dim],
+                                          initializer=tf.constant_initializer(ktprec_init))
+            kt = tf.divide(self.ktprec, self.prec)
+            mean = tf.matmul(h5, kt)
+
+            logstd = tf.log(tf.sqrt(1. / self.prec))
+
+
+            self.prec_get_flat = U.GetFlat([self.prec])
+            self.prec_set_from_flat = U.SetFromFlat([self.prec])
+
+            self.ktprec_get_flat = U.GetFlat([self.ktprec])
+            self.ktprec_set_from_flat = U.SetFromFlat([self.ktprec])
+
+            pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
+
+
+        self.pd = pdtype.pdfromflat(pdparam)
+        self.vpred = vf[:, 0]
+        self.M = M
+        self.S = S
 
         self.state_in = []
         self.state_out = []
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        ac = self.pd.sample()
-        self._act = U.function([stochastic, ob], [ac, self.vpred])
+        ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
+        self._act = U.function([stochastic, self.ob], [ac, self.vpred])
+
+        # Get all policy parameters
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope + '/pol')
+        # Remove log-linear parameters ktprec and prec to get only non-linear parameters
+        del vars[-1]
+        del vars[-1]
+        beta_params = vars
+
+        # Flat w_beta
+        beta_len = np.sum([np.prod(p.get_shape().as_list()) for p in beta_params])
+        w_beta_var = tf.placeholder(dtype=tf.float32, shape=[beta_len])
+
+        # Unflatten w_beta
+        beta_shapes = list(map(tf.shape, beta_params))
+        w_beta_unflat_var = self.unflatten_tensor_variables(w_beta_var, beta_shapes)
+
+        # w_beta^T * \grad_beta \varphi(s)^T
+        v = tf.placeholder(dtype=self.varphi.dtype, shape=self.varphi.get_shape(), name="v_in_Rop")
+        features_beta = self.alternative_Rop(self.varphi, beta_params, w_beta_unflat_var, v)
+
+        self.features_beta = U.function([self.ob, w_beta_var, v], features_beta)
 
     def act(self, stochastic, ob):
         ac1, vpred1 =  self._act(stochastic, ob[None])
@@ -68,16 +133,13 @@ class CnnPolicy(object):
     def get_initial_state(self):
         return []
 
-
     def theta_len(self):
         action_dim = self.action_dim
         varphi_dim = self.varphi_dim
 
         ktprec_len = varphi_dim * action_dim
-        if self.dist_diagonal:
-            prec_len = action_dim
-        else:
-            prec_len = action_dim * action_dim
+
+        prec_len = action_dim
 
         return (prec_len + ktprec_len)
 
@@ -114,13 +176,9 @@ class CnnPolicy(object):
         action_dim = self.action_dim
         varphi_dim = self.varphi_dim
 
-        if self.dist_diagonal:
-            prec_len = action_dim
-            waa = np.reshape(w_theta[0:prec_len], (action_dim,))
-            Waa = np.diag(waa)
-        else:
-            prec_len = action_dim * action_dim
-            Waa = np.reshape(w_theta[0:prec_len], (action_dim,action_dim))
+        prec_len = action_dim
+        waa = np.reshape(w_theta[0:prec_len], (action_dim,))
+        Waa = np.diag(waa)
 
         Wsa = np.reshape(w_theta[prec_len:], (varphi_dim, action_dim))
 
@@ -142,19 +200,13 @@ class CnnPolicy(object):
         return tf.get_default_session().run(self.varphi, {self.ob: obs})
 
     def get_prec_matrix(self):
-        if self.dist_diagonal:
-            return np.diag(self.get_prec().reshape(-1,))
-        else:
-            return self.get_prec()
+        return np.diag(self.get_prec().reshape(-1, ))
 
     def is_policy_valid(self, prec, ktprec):
-        if np.any(np.abs(ktprec.reshape(-1,1)) > 1e12):
+        if np.any(np.abs(ktprec.reshape(-1, 1)) > 1e12):
             return False
 
-        if self.dist_diagonal:
-            p = prec
-        else:
-            p = np.linalg.eigvals(prec)
+        p = prec
 
         return np.all(p > 1e-12) and np.all(p < 1e12)
 
@@ -177,15 +229,9 @@ class CnnPolicy(object):
         action_dim = self.action_dim
         varphi_dim = self.varphi_dim
 
-        if self.dist_diagonal:
-            prec_len = action_dim
-            prec = np.reshape(theta[0:prec_len], (action_dim,))
-            ktprec = np.reshape(theta[prec_len:], (varphi_dim, action_dim))
-        else:
-            prec_len = action_dim * action_dim
-            prec = np.reshape(theta[0:prec_len],
-                              (action_dim, action_dim))
-            ktprec = np.reshape(theta[prec_len:], (varphi_dim, action_dim))
+        prec_len = action_dim
+        prec = np.reshape(theta[0:prec_len], (action_dim,))
+        ktprec = np.reshape(theta[prec_len:], (varphi_dim, action_dim))
 
         return (prec, ktprec)
 
@@ -199,10 +245,7 @@ class CnnPolicy(object):
         return tf.get_default_session().run(self.prec)
 
     def get_sigma(self):
-        if self.dist_diagonal:
-            return np.diag(1 / self.get_prec().reshape(-1, ))
-        else:
-            return np.linalg.inv(self.get_prec())
+        return np.diag(1 / self.get_prec().reshape(-1, ))
 
     def get_kt(self):
         return np.dot(self.get_ktprec(), self.get_sigma())
@@ -211,7 +254,7 @@ class CnnPolicy(object):
         """
         :return: \theta
         """
-        theta = np.concatenate((self.get_prec().reshape(-1,), self.get_ktprec().reshape(-1,)))
+        theta = np.concatenate((self.get_prec().reshape(-1, ), self.get_ktprec().reshape(-1, )))
         return theta
 
     def alternative_Rop(self, f, x, u, v):
