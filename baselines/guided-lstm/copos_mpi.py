@@ -37,14 +37,14 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
     states = np.array([state for _ in range(horizon)])
     rews = np.zeros(horizon, 'float32')
     vpreds = np.zeros(horizon, 'float32')
-
-    vfstates = np.zeros(nlstm, 'float32')
-    pistates = np.zeros(nlstm, 'float32')
+    #
+    # vfstates = np.zeros(nlstm, 'float32')
+    # pistates = np.zeros(nlstm, 'float32')
 
     gobs = np.array([gob for _ in range(horizon)])
     gvpreds = np.zeros(horizon, 'float32')
-    gvfstates = np.zeros(nlstm, 'float32')
-    gpistates = np.zeros(nlstm, 'float32')
+    # gvfstates = np.zeros(nlstm, 'float32')
+    # gpistates = np.zeros(nlstm, 'float32')
 
     news = np.zeros(horizon, 'float32')
     acs = np.array([ac for _ in range(horizon)])
@@ -64,7 +64,9 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
                     vpreds, "gvpred": gvpreds, "new" : news, "gob": gobs,
                    "ac" : acs, "prevac" : prevacs, "nextvpred":
                     vpred * (1 - new), "nextgvpred": gvpred * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, "pistate":pistate,
+                   "vfstate":vfstate, "gpistate":gpistate, "gvfstate":gvfstate}
+
             _, vpred, pistate, vfstate = pi.act(stochastic, ob, new, pistate, vfstate)
             _, gvpred, gpisate, gvfstate = gpi.act(stochastic, gob, new, gpisate, gvfstate)
             # Be careful!!! if you change the downstream algorithm to aggregate
@@ -80,11 +82,11 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
         vpreds[i] = vpred
         gvpreds[i] = gvpred
 
-        pistates[i] = pistate
-        gpistates[i] = gpistate
-
-        vfstates[i] = vfstate
-        gvfstates[i] = gvfstate
+        # pistates[i] = pistate
+        # gpistates[i] = gpistate
+        #
+        # vfstates[i] = vfstate
+        # gvfstates[i] = gvfstate
 
         states[i] = state
         news[i] = new
@@ -239,8 +241,6 @@ def guided_initilizer(gpol, gvf, fpol, fvf):
     copy_params(fpol1, gpol1)
 
 
-
-
 def learn(env, policy_fn, *,
           timesteps_per_batch,  # what to train on
           epsilon, beta, cg_iters,
@@ -250,7 +250,6 @@ def learn(env, policy_fn, *,
           entcoeff=0.0,
           cg_damping=1e-2,
           kl_target=0.01,
-          crosskl_coeff=0.01,
           vf_stepsize=3e-4,
           vf_iters =3,
           max_timesteps=0, max_episodes=0, max_iters=0,  # time constraint
@@ -265,11 +264,17 @@ def learn(env, policy_fn, *,
     total_space = env.total_space
     ob_space = env.observation_space
     ac_space = env.action_space
-    pi = policy_fn("pi", ob_space, ac_space, ob_name="ob")
-    oldpi = policy_fn("oldpi", ob_space, ac_space, ob_name="ob")
 
-    gpi = policy_fn("gpi", total_space, ac_space, ob_name="gob")
-    goldpi = policy_fn("goldpi", total_space, ac_space, ob_name="gob")
+    pi = policy_fn("pi", ob_space, ac_space, ob_name="ob", m_name="mask",
+                   svfname="vfstate", spiname="pistate")
+    oldpi = policy_fn("oldpi", ob_space, ac_space, ob_name="ob", m_name="mask",
+                      svfname="vfstate", spiname="pistate")
+
+    gpi = policy_fn("gpi", total_space, ac_space, ob_name="gob", m_name="gmask",
+                    svfname="gvfstate", spiname="gpistate")
+    goldpi = policy_fn("goldpi", total_space, ac_space, ob_name="gob", m_name="gmask",
+                       svfname="gvfstate", spiname="gpistate")
+
 
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
@@ -278,22 +283,24 @@ def learn(env, policy_fn, *,
     gret = tf.placeholder(dtype=tf.float32, shape=[None])
 
     ob = U.get_placeholder_cached(name="ob")
-    gob = U.get_placeholder_cached(name='gob')
-    ac = pi.pdtype.sample_placeholder([None])
-    crosskl_c = tf.placeholder(dtype=tf.float32, shape=[])
-    # crosskl_c = 0.01
+    m = U.get_placeholder_cached(name="mask")
+    svf = U.get_placeholder_cached(name="vfstate")
+    spi = U.get_placeholder_cached(name="pistate")
 
+    gob = U.get_placeholder_cached(name='gob')
+    gm = U.get_placeholder_cached(name="gmask")
+    gsvf = U.get_placeholder_cached(name="gvfstate")
+    gspi = U.get_placeholder_cached(name="gpistate")
+
+    ac = pi.pdtype.sample_placeholder([None])
 
     kloldnew = oldpi.pd.kl(pi.pd)
     gkloldnew = goldpi.pd.kl(gpi.pd)
 
-    #TODO: check if it can work in this way
     # crosskl_ob = pi.pd.kl(goldpi.pd)
     # crosskl_gob = gpi.pd.kl(oldpi.pd)
     crosskl_gob = pi.pd.kl(gpi.pd)
     crosskl_ob = gpi.pd.kl(pi.pd)
-    # crosskl
-
 
     pdmean = pi.pd.mean
     pdstd = pi.pd.std
@@ -330,12 +337,10 @@ def learn(env, policy_fn, *,
     surrgain = tf.reduce_mean(pi.pd.logp(ac) * atarg)
     gsurrgain = tf.reduce_mean(gpi.pd.logp(ac) * gatarg)
 
-    # optimgain = surrgain + crosskl_c * meancrosskl
     optimgain = surrgain
     losses = [optimgain, meankl, meancrosskl, surrgain, meanent, tf.reduce_mean(ratio)]
     loss_names = ["optimgain", "meankl", "meancrosskl", "surrgain", "entropy", "ratio"]
 
-    # goptimgain = gsurrgain + crosskl_c * gmeancrosskl
     goptimgain = gsurrgain
 
     glosses = [goptimgain, gmeankl, gmeancrosskl, gsurrgain, gmeanent, tf.reduce_mean(gratio)]
@@ -400,16 +405,16 @@ def learn(env, policy_fn, *,
     gassign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(goldpi.get_variables(), gpi.get_variables())])
 
-    compute_losses = U.function([crosskl_c, gob, ob, ac, atarg], losses)
-    compute_lossandgrad = U.function([crosskl_c, gob, ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
-    compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
-    compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
-    compute_crossklandgrad = U.function([ob, gob],U.flatgrad(meancrosskl, var_list))
+    compute_losses = U.function([gob, gm, gsvf, gspi, ob, m, svf, spi, ac, atarg], losses)
+    compute_lossandgrad = U.function([gob, gm, gsvf, gspi, ob, m, svf, spi, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
+    compute_fvp = U.function([flat_tangent, ob, m, svf, spi, ac, atarg], fvp)
+    compute_vflossandgrad = U.function([ob, m, svf, spi, ret], U.flatgrad(vferr, vf_var_list))
+    compute_crossklandgrad = U.function([ob, m, svf, spi, gob, gm, gsvf, gspi],U.flatgrad(meancrosskl, var_list))
 
-    gcompute_losses = U.function([crosskl_c, ob, gob, ac, gatarg], glosses)
-    gcompute_lossandgrad = U.function([crosskl_c, ob, gob, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
-    gcompute_fvp = U.function([gflat_tangent, gob, ac, gatarg], gfvp)
-    gcompute_vflossandgrad = U.function([gob, gret], U.flatgrad(gvferr, gvf_var_list))
+    gcompute_losses = U.function([ob, m, svf, spi, gob, gm, gsvf, gspi, ac, gatarg], glosses)
+    gcompute_lossandgrad = U.function([ob, m, svf, spi, gob, gm, gsvf, gspi, ac, gatarg], glosses + [U.flatgrad(goptimgain, gvar_list)])
+    gcompute_fvp = U.function([gflat_tangent, gob, gm, gsvf, gspi, ac, gatarg], gfvp)
+    gcompute_vflossandgrad = U.function([gob, gm, gsvf, gspi, gret], U.flatgrad(gvferr, gvf_var_list))
     # compute_gcrossklandgrad = U.function([gob, ob], U.flatgrad(gmeancrosskl, gvar_list))
 
     saver = tf.train.Saver()
@@ -485,8 +490,9 @@ def learn(env, policy_fn, *,
         add_vtarg_and_adv(seg, gamma, lam)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
-        ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
+        ob, ac, new, atarg, tdlamret = seg["ob"], seg["ac"], seg["new"], seg["adv"], seg["tdlamret"]
         gob, gatarg, gtdlamret = seg["gob"], seg["gadv"], seg["gtdlamret"]
+        pistate, vfstate, gpistate, gvfstate = seg["pistate"], seg["vfstate"], seg["gpistate"], seg["gvfstate"]
 
 
         vpredbefore = seg["vpred"] # predicted value function before udpate
@@ -501,11 +507,11 @@ def learn(env, policy_fn, *,
         if hasattr(gpi, "ret_rms"): gpi.ret_rms.update(gtdlamret)
         if hasattr(gpi, "ob_rms"): gpi.ob_rms.update(gob)
 
-        args = crosskl_coeff, seg["gob"], seg["ob"], seg["ac"], atarg
-        fvpargs = [arr[::5] for arr in args[2:]]
+        args = gob, new, gvfstate, gpistate, ob, new, vfstate, pistate, ac, atarg
+        fvpargs = [arr[::5] for arr in args[4:]]
 
-        gargs = crosskl_coeff, seg["ob"], seg["gob"], seg["ac"], gatarg
-        gfvpargs = [arr[::5] for arr in gargs[2:]]
+        gargs = ob, new, vfstate, pistate, gob, new, gvfstate, gpistate, ac, gatarg
+        gfvpargs = [arr[::5] for arr in gargs[4:]]
 
         def fisher_vector_product(p):
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
@@ -695,7 +701,7 @@ def learn(env, policy_fn, *,
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
         logger.record_tabular("EpThisIter", len(lens))
-        logger.record_tabular("CrossKLCoeff :", crosskl_coeff)
+
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
         iters_so_far += 1

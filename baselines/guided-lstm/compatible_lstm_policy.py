@@ -28,7 +28,7 @@ class LstmPolicy(object):
             self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
 
-    def _init(self, ob_name, ob_space, ac_space, usecnn=False, nlstm=256):
+    def _init(self, ob_name, m_name, svfname, spiname, ob_space, ac_space, usecnn=False, nlstm=256):
         assert isinstance(ob_space, gym.spaces.Box)
 
         self.pdtype = pdtype = make_pdtype(ac_space)
@@ -39,9 +39,9 @@ class LstmPolicy(object):
 
         self.initial_state = np.zeros((nenv, nlstm * 2), dtype=np.float32)
         self.ob = U.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-        M = tf.placeholder(tf.float32, [sequence_length])  # mask (done t-1)
-        Svf = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
-        Spi = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
+        M = U.get_placeholder(m_name, tf.float32, [sequence_length])  # mask (done t-1)
+        Svf = U.get_placeholder(svfname, tf.float32, [nenv, nlstm * 2])  # states
+        Spi = U.get_placeholder(spiname, tf.float32, [nenv, nlstm * 2])  # states
 
         with tf.variable_scope("vf"):
             if usecnn:
