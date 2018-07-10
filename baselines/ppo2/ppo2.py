@@ -131,7 +131,6 @@ class Runner(object):
     #
     #     return epinfos
 
-
     def run(self):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [],[],[],[],[],[]
         mb_states = self.states

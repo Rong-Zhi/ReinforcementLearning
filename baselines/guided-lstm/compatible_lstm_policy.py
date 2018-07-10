@@ -28,27 +28,30 @@ class LstmPolicy(object):
             self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
 
-    def _init(self, ob_name, ob_space, ac_space, nsteps, usecnn=False, nlstm=256):
+    def _init(self, ob_name, ob_space, ac_space, usecnn=False, nlstm=256):
         assert isinstance(ob_space, gym.spaces.Box)
 
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
         init_std = 1.0
         nenv = 1
-        nbatch = nenv * nsteps
+        # nbatch = nenv * nsteps
 
+        self.initial_state = np.zeros((nenv, nlstm * 2), dtype=np.float32)
         self.ob = U.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-        M = tf.placeholder(tf.float32, [nbatch])  # mask (done t-1)
+        M = tf.placeholder(tf.float32, [sequence_length])  # mask (done t-1)
         Svf = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
         Spi = tf.placeholder(tf.float32, [nenv, nlstm * 2])  # states
+
         with tf.variable_scope("vf"):
             if usecnn:
                 h = nature_cnn(self.ob)
             else:
                 h = self.ob
-            xs = batch_to_seq(h, nenv, nsteps)
-            ms = batch_to_seq(M, nenv, nsteps)
-            h5, vfsnew = lstm(xs, ms, Svf, 'lstmvf', nh=nlstm)
+            # xs = batch_to_seq(h, nenv, nsteps)
+            # ms = batch_to_seq(M, nenv, nsteps)
+            # h5, vfsnew = lstm(xs, ms, Svf, 'lstmvf', nh=nlstm)
+            h5, vfsnew = lstm(h, M, Svf, 'lstmvf', nh=nlstm)
             h5 = seq_to_batch(h5)
             self.vpred = fc(h5, 'value', 1)
 
@@ -58,9 +61,10 @@ class LstmPolicy(object):
                 h = nature_cnn(self.ob)
             else:
                 h = self.ob
-            xs = batch_to_seq(h, nenv, nsteps)
-            ms = batch_to_seq(M, nenv, nsteps)
-            h5, pisnew = lstm(xs, ms, Spi, 'lstmpi', nh=nlstm)
+            # xs = batch_to_seq(h, nenv, nsteps)
+            # ms = batch_to_seq(M, nenv, nsteps)
+            # h5, pisnew = lstm(xs, ms, Spi, 'lstmpi', nh=nlstm)
+            h5, pisnew = lstm(h, M, Spi, 'lstmpi', nh=nlstm)
             h5 = seq_to_batch(h5)
 
             self.action_dim = ac_space.shape[0]

@@ -24,7 +24,8 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
     [ob, state] = env.reset()
     print(state)
     gob = np.concatenate((ob, state))
-    vfstate = pistate = gvfstate = gpisate = [0.0]
+    vfstate = pistate = pi.initial_state
+    gvfstate = gpisate = gpi.initial_state
 
     cur_ep_ret = 0
     cur_ep_len = 0
@@ -52,8 +53,8 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
     while True:
         prevac = ac
         #TODO: change setting here
-        gac, gvpred, pistate, vfstate = gpi.act(stochastic, gob)
-        ac, vpred, gpistate, gvfstate = pi.act(stochastic, ob)
+        gac, gvpred, pistate, vfstate = gpi.act(stochastic, gob, new, pistate, vfstate)
+        ac, vpred, gpistate, gvfstate = pi.act(stochastic, ob, new, gpisate, gvfstate)
 
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
@@ -64,8 +65,8 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
                    "ac" : acs, "prevac" : prevacs, "nextvpred":
                     vpred * (1 - new), "nextgvpred": gvpred * (1 - new),
                     "ep_rets" : ep_rets, "ep_lens" : ep_lens}
-            _, vpred = pi.act(stochastic, ob)
-            _, gvpred = gpi.act(stochastic, gob)
+            _, vpred, pistate, vfstate = pi.act(stochastic, ob, new, pistate, vfstate)
+            _, gvpred, gpisate, gvfstate = gpi.act(stochastic, gob, new, gpisate, gvfstate)
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
@@ -78,6 +79,13 @@ def traj_segment_generator(pi, gpi, env, horizon, stochastic, nlstm):
         obs[i] = ob
         vpreds[i] = vpred
         gvpreds[i] = gvpred
+
+        pistates[i] = pistate
+        gpistates[i] = gpistate
+
+        vfstates[i] = vfstate
+        gvfstates[i] = gvfstate
+
         states[i] = state
         news[i] = new
         acs[i] = ac
@@ -425,7 +433,7 @@ def learn(env, policy_fn, *,
 
     U.initialize()
 
-    guided_initilizer(gpol=gvar_list, gvf=gvf_var_list, fpol=var_list, fvf=vf_var_list)
+    # guided_initilizer(gpol=gvar_list, gvf=gvf_var_list, fpol=var_list, fvf=vf_var_list)
 
     th_init = get_flat()
     MPI.COMM_WORLD.Bcast(th_init, root=0)

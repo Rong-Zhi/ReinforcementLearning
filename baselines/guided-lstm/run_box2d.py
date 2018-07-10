@@ -52,9 +52,12 @@ def train_copos(env_id, num_timesteps, seed, trial, hist_len, block_high,
         # Automatically compute beta based on initial entropy and number of iterations
         tmp_pi = policy_fn("tmp_pi", env.observation_space, env.action_space, ob_name="tmp_ob")
         sess.run(tf.global_variables_initializer())
+        tmp_pistate = tmp_vfstate = tmp_pi.initial_state
+        new = tf.float32(False)
 
         tmp_ob = np.zeros((1,) + env.observation_space.shape)
-        entropy = sess.run(tmp_pi.pd.entropy(), feed_dict={tmp_pi.ob: tmp_ob})
+        entropy = sess.run(tmp_pi.pd.entropy(), feed_dict={tmp_pi.ob: tmp_ob, tmp_pi.Spi:tmp_pistate,
+                                                           tmp_pi.Svf:tmp_vfstate, tmp_pi.M:new})
         beta = 2 * entropy / nr_episodes
         print("Initial entropy: " + str(entropy) + ", episodes: " + str(nr_episodes))
         print("Automatically set beta: " + str(beta))
