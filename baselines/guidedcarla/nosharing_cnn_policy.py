@@ -11,20 +11,26 @@ class CnnPolicy(object):
             self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
 
-    def _init(self, ob_name, ob_space, ac_space, init_std=1.0):
+    def _init(self, ob_name, ob_space, ac_space, m_name, m_shape, hist_len, init_std=1.0):
         assert isinstance(ob_space, gym.spaces.Box)
 
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
 
-        self.ob = utils.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        self.ob = utils.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape) + [hist_len])
+        self.measure = utils.get_placeholder(name=m_name, dtype=tf.float32, shape=[sequence_length] + list(m_shape) + [hist_len])
 
         obscaled = self.ob / 255.0
+        m = tf.clip_by_value((self.measure - self.ms_rms.mean) / self.ms_rms.std, -5.0, 5.0)
 
         with tf.variable_scope("vf"):
             x = obscaled
             x = tf.nn.relu(utils.conv2d(x, 8, "l1", [8, 8], [4, 4], pad="VALID"))
             x = tf.nn.relu(utils.conv2d(x, 16, "l2", [4, 4], [2, 2], pad="VALID"))
+
+
+            m = tf.nn.tanh(tf.layers.dense(m, 32, name="fc1", kernel_initializer=utils.normc_initializer(1.0)))
+
             x = utils.flattenallbut0(x)
             x = tf.nn.relu(tf.layers.dense(x, 128, name='lin', kernel_initializer=utils.normc_initializer(1.0)))
             self.vpred = tf.layers.dense(x, 1, name='value', kernel_initializer=utils.normc_initializer(1.0))
