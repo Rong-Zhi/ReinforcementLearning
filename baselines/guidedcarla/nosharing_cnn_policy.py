@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import gym
 from baselines.common.distributions import make_pdtype
+from baselines.common.mpi_running_mean_std import RunningMeanStd
 
 class CnnPolicy(object):
     recurrent = False
@@ -11,16 +12,23 @@ class CnnPolicy(object):
             self._init(*args, **kwargs)
             self.scope = tf.get_variable_scope().name
 
-    def _init(self, ob_name, ob_space, ac_space, m_name, m_shape, hist_len, init_std=1.0):
-        assert isinstance(ob_space, gym.spaces.Box)
-
+    def _init(self, sensor_name, sensor_shape, ac_space, measure_name,
+              measure_shape, init_std=1.0):
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
 
-        self.ob = utils.get_placeholder(name=ob_name, dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape) + [hist_len])
-        self.measure = utils.get_placeholder(name=m_name, dtype=tf.float32, shape=[sequence_length] + list(m_shape) + [hist_len])
+        self.sensor = utils.get_placeholder(name=sensor_name,
+                                            dtype=tf.float32,
+                                            shape=[sequence_length] +
+                                         list(sensor_shape))
+        self.measure = utils.get_placeholder(name=measure_name,
+                                             dtype=tf.float32,
+                                             shape=[sequence_length] +
+                                             list(measure_shape))
+        with tf.variable_scope("measurefilter"):
+            self.ms_rms = RunningMeanStd(shape=measure_shape)
 
-        obscaled = self.ob / 255.0
+        obscaled = self.sensor / 255.0
         m = tf.clip_by_value((self.measure - self.ms_rms.mean) / self.ms_rms.std, -5.0, 5.0)
 
         with tf.variable_scope("vf"):
@@ -82,7 +90,7 @@ class CnnPolicy(object):
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
         ac = utils.switch(stochastic, self.pd.sample(), self.pd.mode())
-        self._act = utils.function([stochastic, self.ob], [ac, self.vpred])
+        self._act = utils.function([stochastic, self.sensor], [ac, self.vpred])
 
         # Get all policy parameters
         vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope + '/pol')
@@ -103,7 +111,7 @@ class CnnPolicy(object):
         v = tf.placeholder(dtype=self.varphi.dtype, shape=self.varphi.get_shape(), name="v_in_Rop")
         features_beta = self.alternative_Rop(self.varphi, beta_params, w_beta_unflat_var, v)
 
-        self.features_beta = utils.function([self.ob, w_beta_var, v], features_beta)
+        self.features_beta = utils.function([self.sensor, w_beta_var, v], features_beta)
 
     def act(self, stochastic, ob):
         ac1, vpred1 = self._act(stochastic, ob[None])
@@ -188,7 +196,7 @@ class CnnPolicy(object):
 
     def get_varphis(self, obs):
         # Non-linear neural network outputs
-        return tf.get_default_session().run(self.varphi, {self.ob: obs})
+        return tf.get_default_session().run(self.varphi, {self.sensor: obs})
 
     def get_prec_matrix(self):
         if self.dist_diagonal:
