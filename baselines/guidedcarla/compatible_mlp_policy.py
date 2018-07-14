@@ -6,10 +6,6 @@ from baselines.common.distributions import make_pdtype
 import gym
 
 
-
-
-
-
 class CompatibleMlpPolicy(object):
     recurrent = False
 
