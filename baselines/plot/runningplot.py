@@ -34,18 +34,18 @@ sns.set(color_codes=True)
 # path4 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist8-0-06-17-13-52/progress1.csv'
 # path5 = '/Users/zhirong/Documents/share/copos64neuron/COPOS-10seeds-64neuron-hist16-0-06-17-13-52/progress1.csv'
 
-path1 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net32-epoch5-0-07-04-00-56/progress1.csv'
-path2 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net32-epoch10-0-07-04-00-56/progress1.csv'
-path3 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net64-epoch5-0-07-04-00-57/progress1.csv'
-path4 = '/Users/zhirong/Documents/share/guided/guided-ratio-diffinput-hist4-net64-epoch10-0-07-04-00-59/progress1.csv'
-path5 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch5-0-07-03-17-46/progress1.csv'
-path6 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch10-0-07-04-00-51/progress1.csv'
-path7 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch5-0-07-03-17-48/progress1.csv'
-path8 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
-path9 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-hist4-0-06-11-12-24/progress1.csv'
-path10 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
-
-path = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/log-hist4-net32-0-07-04-17-17/progress1.csv'
+path1 = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/copos-hist4-net32-2m-new-0-08-22-13-04/progress1.csv'
+# path2 = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/copos-hist4-net32-4m-new-0-08-22-13-03/progress1.csv'
+path3 = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/guidedcopos-hist4-net32-new-0-08-22-12-55/progress1.csv'
+# path4 = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/copos-hist4-net32-4m-new-0-08-22-13-03/progress1.csv'
+# path5 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch5-0-07-03-17-46/progress1.csv'
+# path6 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net32-epoch10-0-07-04-00-51/progress1.csv'
+# path7 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch5-0-07-03-17-48/progress1.csv'
+# path8 = '/Users/zhirong/Documents/share/guided/guided-diffinput-hist4-net64-epoch10-0-07-03-17-48/progress1.csv'
+# path9 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-hist4-0-06-11-12-24/progress1.csv'
+# path10 = '/Users/zhirong/Documents/share/complete/COPOS-10seeds-64neuron-hist4-0-06-12-12-10/progress1.csv'
+#
+# path = '/Users/zhirong/Documents/share/LunarLanderContinuousPOMDP-v0/log-hist4-net32-0-07-04-17-17/progress1.csv'
 
 
 
@@ -58,12 +58,12 @@ def plots(i):
     for ax in axes:
         ax.clear()
 
-    d = pd.read_csv(path)
-    # d1 = pd.read_csv(path1)
+    # d = pd.read_csv(path3)
+    d1 = pd.read_csv(path1)
     # d1['Name']='guidedcopos-hist4-net32'
     # # d2 = pd.read_csv(path2)
     # # d2['Name'] = 'guidedcpos-epoch10-hist4-net32'
-    # d3 = pd.read_csv(path3)
+    d3 = pd.read_csv(path3)
     # d3['Name'] = 'guidedcopos-hist4-net64'
     #
     # d9 = pd.read_csv(path9)
@@ -95,17 +95,17 @@ def plots(i):
 
     # d = pd.read_csv(path)
     # d1 = pd.read_csv(path)
-    data = d
-    # data = pd.concat([d1,d3,d9,d10])
+    data = d1
+    # data = pd.concat([d1,d3])
     # data = pd.concat([d8, d9, d10, d6, d7])
-    # rr_style = 'unit_traces'
-    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], ci=95)
-    sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1], ci=95)
+    rr_style = 'unit_traces'
+    sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[0], err_style=rr_style)
+    sns.tsplot(data=data, time='Iteration', value='entropy', unit='trial', condition='Name',ax=axes[1],err_style=rr_style)
     # sns.tsplot(data=data, time='Iteration', value='meankl', unit='trial', condition='Name', ax=axes[2], ci=95)
     # sns.tsplot(data=data, time='Iteration', value='meancrosskl', unit='trial', condition='Name', ax=axes[3], ci=95)
-
+    #
     # sns.tsplot(data=data, time='Iteration', value='EpRewMean',unit='trial', condition='Name', ax=axes[4], ci=95)
-    # sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[5], ci=95)
+    # sns.tsplot(data=data, time='Iteration', value='gentropy', unit='trial', condition='Name',ax=axes[1], ci=95)
     # sns.tsplot(data=data, time='Iteration', value='gmeankl', unit='trial', condition='Name', ax=axes[6], ci=95)
     # sns.tsplot(data=data, time='Iteration', value='gmeancrosskl', unit='trial', condition='Name', ax=axes[7], ci=95)
 
